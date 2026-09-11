@@ -48,7 +48,7 @@ Five things bite first:
 - **An unmeasured number may not justify a design.** The 150-words-a-minute speaking pace is an assumption, so every figure downstream of it - minutes, megabytes, days-to-full - is an estimate until a model is run on the target runner.
 - **Nothing may cost more as the archive grows.** A test reads a fixture or the built canary day, never the committed clips; the prune stage reads the oldest day, never a walk over everything.
 
-Two rules carry an exception and there are only these two. `.github/workflows/prune.yml` force-pushes `main` on a schedule to bound the history the committed clips add (CLAUDE.md sections 0a and 8); nothing else may, and no person may. And the operator console prints a counterfactual cost in currency, labelled a counterfactual and never a bill (Rule #10); no other surface prints money.
+Two rules carry an exception and there are only these two. `.github/workflows/prune.yml` force-pushes `main` on a schedule to bound the history the committed clips add (CLAUDE.md sections 0a and 8); nothing else may, and no person may. And the operator console prints a counterfactual cost in currency, labelled a counterfactual and never a bill (Guardrail #10); no other surface prints money.
 
 ## See also
 

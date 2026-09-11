@@ -9,7 +9,7 @@ it on 2026-09-11.
 
 This page exists so execution craft has a home inside `docs/`. A lesson kept
 only in an agent's private note store is invisible to the next person and the
-next agent ([../../CLAUDE.md](../../CLAUDE.md) Rule #4). A private store is a
+next agent ([../../CLAUDE.md](../../CLAUDE.md) Guardrail #4). A private store is a
 cache of this page, never the only copy.
 
 **This is not a place for project knowledge.** A rule about how the pipeline
@@ -106,7 +106,7 @@ a bold lead naming the false result ("reads as X, is actually Y"), one or two
 sentences of cause, then the command that gets the true answer. Keep the tell -
 the check that separates the trap from the thing it looks like - because an entry
 with a fix and no tell fires confidently on the wrong diagnosis. A number carries
-its date ([../../CLAUDE.md](../../CLAUDE.md) Rule #10). An entry whose trap can no
+its date ([../../CLAUDE.md](../../CLAUDE.md) Guardrail #10). An entry whose trap can no
 longer fire is deleted, not archived.
 
 ## See also
@@ -114,5 +114,5 @@ longer fire is deleted, not archived.
 - [../how-to/run-the-gates.md](../how-to/run-the-gates.md) - the checks these traps interfere with, and the state of each gate.
 - [documentation-structure.md](documentation-structure.md) - routing rule 8, which sends a tool quirk here rather than into private memory.
 - [repository-layout.md](repository-layout.md) - the directory map these commands run against.
-- [../agents/guardrails.md](../agents/guardrails.md) - the rules digest that points here for the memory contract (Rule #4).
-- [../../CLAUDE.md](../../CLAUDE.md) - section 5 (Documentation Discipline) and Rule #10.
+- [../agents/guardrails.md](../agents/guardrails.md) - the guardrails digest that points here for the memory contract (Guardrail #4).
+- [../../CLAUDE.md](../../CLAUDE.md) - section 5 (Documentation Discipline) and Guardrail #10.

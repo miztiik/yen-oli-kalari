@@ -13,11 +13,11 @@ The wrapper exists so the `.claude/` harness can invoke the same loading behavio
 
 1. Open [`docs/agents/bootstrap.md`](../../../docs/agents/bootstrap.md).
 2. Execute the ritual it specifies, in order.
-3. In your first paragraph back to the user, name the Rules and docs that are load-bearing for the answer (the final step of the ritual).
+3. In your first paragraph back to the user, name the Adaptive Guardrails and docs that are load-bearing for the answer (the final step of the ritual).
 4. When editing agent/customization Markdown, use ASCII only: "-", "->", ">=", "section".
 
 ## See also
 
-- [`docs/agents/guardrails.md`](../../../docs/agents/guardrails.md) - the rules every persona must honour, loaded as part of bootstrap.
+- [`docs/agents/guardrails.md`](../../../docs/agents/guardrails.md) - the guardrails every persona must honour, loaded as part of bootstrap.
 - [`docs/concepts/pipeline-loop.md`](../../../docs/concepts/pipeline-loop.md) - the stages and what each one owns.
 - [`CLAUDE.md`](../../../CLAUDE.md) - the engineering contract.

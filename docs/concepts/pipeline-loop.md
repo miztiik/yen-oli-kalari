@@ -42,10 +42,10 @@ One consequence is worth stating, because it frees a real choice: the runner mod
 
 ## What holds at every step
 
-- **No stage fetches at read time.** Everything here is build time; a listener's browser only fetches committed clips (Rule #1).
-- **No article body is committed or served**, and the audio payload adds no text of its own (Rule #1, section 0a).
+- **No stage fetches at read time.** Everything here is build time; a listener's browser only fetches committed clips (Guardrail #1).
+- **No article body is committed or served**, and the audio payload adds no text of its own (Guardrail #1, section 0a).
 - **No stage silently drops data.** A failed clip, an aged-out day, and an item not yet voiced are three different facts, and each is recorded as itself ([ui-shell.md](ui-shell.md) carries the words a listener sees).
-- **Nothing costs more as the archive grows.** A run reads one day and writes one day; the prune reads the oldest audio, never a walk over everything ever published (Rule #12).
+- **Nothing costs more as the archive grows.** A run reads one day and writes one day; the prune reads the oldest audio, never a walk over everything ever published (Guardrail #12).
 
 ## What does not exist yet
 
@@ -65,6 +65,6 @@ One consequence is worth stating, because it frees a real choice: the runner mod
 - [design-system.md](design-system.md) - the visual language of those surfaces.
 - [../reference/benchmarks/2026-09-11-input-volume-and-audio-cost.md](../reference/benchmarks/2026-09-11-input-volume-and-audio-cost.md) - what one day costs to voice, measured.
 - [../reference/measurements.md](../reference/measurements.md) - the instrument log of figures now in force.
-- [../agents/guardrails.md](../agents/guardrails.md) - the rules every stage honours.
+- [../agents/guardrails.md](../agents/guardrails.md) - the guardrails every stage honours.
 - [../how-to/run-the-gates.md](../how-to/run-the-gates.md) - the checks a pipeline change runs before it merges.
 - [../../CLAUDE.md](../../CLAUDE.md) - the engineering contract, including the layer rules for stages.

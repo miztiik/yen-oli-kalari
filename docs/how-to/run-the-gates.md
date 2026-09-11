@@ -45,7 +45,7 @@ python backend/utilities/price_audio.py
 
 This counts items a day and summary length over yen-idhazh's committed digests,
 so the audio design is priced against a measured number
-([../../CLAUDE.md](../../CLAUDE.md) Rule #10).
+([../../CLAUDE.md](../../CLAUDE.md) Guardrail #10).
 
 ```powershell
 python backend/utilities/measure_input.py <path-to-yen-idhazh-checkout>
@@ -92,7 +92,7 @@ you can type now.
 
 ## What is deliberately left to CI
 
-By [../../CLAUDE.md](../../CLAUDE.md) Rule #2 the runner is the architecture, so
+By [../../CLAUDE.md](../../CLAUDE.md) Guardrail #2 the runner is the architecture, so
 some work never runs on a developer machine even once the gates exist. The voice
 synthesis job, the publish, and the prune cycle that holds the 1 GB cap run in
 CI on `ubuntu-latest` against its 6 h job cap
@@ -128,4 +128,4 @@ this section when the first one lands.
 - [../reference/measurements.md](../reference/measurements.md) - the caps the site-weight and compute gates will enforce.
 - [../reference/repository-layout.md](../reference/repository-layout.md) - which directory each planned gate reads and writes.
 - [../concepts/pipeline-loop.md](../concepts/pipeline-loop.md) - why synthesis and the prune cycle are CI work, not local work.
-- [../../CLAUDE.md](../../CLAUDE.md) - Rule #2 (the runner is the architecture), section 9 (Definition of Done), section 12 (published-site verification).
+- [../../CLAUDE.md](../../CLAUDE.md) - Guardrail #2 (the runner is the architecture), section 9 (Definition of Done), section 12 (published-site verification).

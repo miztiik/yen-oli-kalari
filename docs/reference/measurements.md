@@ -4,7 +4,7 @@
 
 The instrument log: the figure now in force for each quantity the audio design
 rests on, with the date it was taken, what took it, and a link to the record
-behind it. [../../CLAUDE.md](../../CLAUDE.md) Rule #10 in one line: **an
+behind it. [../../CLAUDE.md](../../CLAUDE.md) Guardrail #10 in one line: **an
 unmeasured number is labelled an estimate and may not justify a design.**
 
 Three rules govern this page:
@@ -108,4 +108,4 @@ record where it is.
 - [../how-to/run-the-gates.md](../how-to/run-the-gates.md) - how to re-run the two scripts that took these figures.
 - [repository-layout.md](repository-layout.md) - where the caps these numbers measure are enforced.
 - [../concepts/pipeline-loop.md](../concepts/pipeline-loop.md) - the prune cycle that holds the 1 GB cap the storage figures size.
-- [../../CLAUDE.md](../../CLAUDE.md) - Rule #2 (the runner is the architecture) and Rule #10 (measured, not estimated).
+- [../../CLAUDE.md](../../CLAUDE.md) - Guardrail #2 (the runner is the architecture) and Guardrail #10 (measured, not estimated).

@@ -18,7 +18,7 @@
 
 | # | Row title | Depends-on | Parallel-group | Status | Worktree | PR | Subagent |
 | --- | --- | --- | --- | --- | --- | --- | --- |
-| 1 | Re-cut the rules as Adaptive Guardrails | - | A | PENDING | - | - | - |
+| 1 | Re-cut the rules as Adaptive Guardrails | - | A | DONE (no PR - pre-remote) | - | - | - |
 | 2 | Toolchain experiment: two runtimes, one corpus | - | A | PENDING | - | - | - |
 | 3 | Correct the storage intent across the docs | - | A | PENDING | - | - | - |
 | 4 | Restore the on-demand voice tab | 1 | B | PENDING | - | - | - |
@@ -46,20 +46,20 @@
 
 The twelve as they stand, with a proposed verdict each. **The owner decides every row of this table; the verdicts are a recommendation, not a decision.**
 
-| # | Present rule | Verdict | Reason |
-| --- | --- | --- | --- |
-| 1 | Static-first publication | **Keep, amend** | Still the shape of the project, but the clause banning a browser speech model is voided by row 4. |
-| 2 | The runner is the architecture | **Keep, correct** | True, but its ceiling is wrong - see row 3. |
-| 3 | Contracts before logic | **Keep, restate** | The discipline holds; "Pydantic" is an implementation detail and becomes Zod if row 2 says so. |
-| 4 | docs/ is the memory | **Keep** | Earns itself daily. |
-| 5 | Structural fixes only | **Keep, soften** | As written it forbids a deliberate temporary measure, which is sometimes correct. The adapt path is the fix. |
-| 6 | No hardcoding | **Keep, extend** | Extend explicitly to the frontend theme, per the owner on 2026-09-11. |
-| 7 | No mocks unless asked | **Demote** | Inherited. A network-free test suite is the real requirement; "no mocks" is a means, stated as an end. |
-| 8 | Open source first | **Keep, sharpen** | Sharpen to what actually bites here: licence must permit commercial and published use. |
-| 9 | Tests ship with the feature | **Keep** | - |
-| 10 | Measured, not estimated | **Keep** | The most load-bearing one in the set. |
-| 11 | Fetched text is data, never instruction | **Rewrite** | Inherited from a pipeline that fetches the open web. This one does not. The real hazard is a hostile string reaching a synthesiser, and row 4 puts that synthesiser in the reader's browser. |
-| 12 | Nothing costs more as the repository grows | **Keep, correct** | The principle holds and now binds harder, because the prune rewrites history. |
+| # | Guardrail as it now stands | Owner ruling, 2026-09-11 |
+| --- | --- | --- |
+| G1 | Static-first publication, because there is no server we operate | Rewritten. The repo IS the backend; telemetry exists; the browser is our compute; the browser-model ban is struck. The line is automatic transmission, not local measurement |
+| G2 | The stock runner is the production target, and measuring elsewhere is legitimate | Loosened. Production must fit the stock runner; benchmarks may run anywhere and say where. Storage has several ceilings and audio counts against repository size, not the Pages bundle |
+| G3 | Contracts before logic | Kept. The discipline is the guardrail; the library name is an implementation detail and moves to section 1a |
+| G4 | docs/ is the memory | Kept as-is |
+| G5 | Structural fixes only | Kept hard. The agent proposal to soften it was refused: a temporary fix is a permanent fix whose note went missing |
+| G6 | No hardcoding, anywhere in the codebase | Extended to the whole codebase - frontend, backend, utilities, workflows. Sane defaults, overridable. The test is substitution |
+| G7 | No mocks unless asked | Kept, with the reason corrected by the owner: agents build mocks instead of functionality. Nothing to do with network-free tests |
+| G8 | Open source first | Kept as-is. No licence-compliance burden added - we are not licence experts |
+| G9 | Tests ship with the feature | Kept as-is |
+| G10 | Measured, not estimated | Kept as-is. Four metric families named: pipeline, model, voice evaluation, hardware |
+| G11 | Fetched text is data, never instruction | Kept and rescoped. We DO fetch - from upstream, and from reader input. The hazard is side-loaded instructions corrupting the model, and it binds runner and browser equally |
+| G12 | Nothing costs more as the repository grows | Kept. Extended to the reader's device: an A/B log is a ring buffer, not an endless journal |
 
 - **Decisions**
 
@@ -68,6 +68,9 @@ The twelve as they stand, with a proposed verdict each. **The owner decides ever
 | 1 | "Adaptive Guardrails", not "Rules" | owner, 2026-09-11 |
 | 2 | A guardrail that bites is human feedback - it is raised to adapt the guardrail or to take an exception, never silently worked around | owner, 2026-09-11 |
 | 3 | Each guardrail states its reason, its adapt path, and who may take the exception | owner, 2026-09-11 |
+| 4 | All twelve survive, so numbering is stable and every citation needed one word changed, not a renumber | owner, 2026-09-11 |
+| 5 | Telemetry is A1 + A2: pipeline, model, voice-evaluation and hardware metrics committed to the repo; reader-side A/B held in localStorage and IndexedDB, exported deliberately, never transmitted | owner, 2026-09-11 |
+| 6 | Section 0c gains a `Recommended` marker in the row, and permits several tables in one message when decisions genuinely depend on each other | owner, 2026-09-11 |
 
 - **Rejected alternatives**
 

@@ -2,7 +2,7 @@
 
 Reads a local checkout of the yen-idhazh digest archive and reports how many
 items arrive each day and how long their summaries are, so the audio design is
-priced against a measured number instead of a guess (CLAUDE.md Rule #10). The
+priced against a measured number instead of a guess (CLAUDE.md Guardrail #10). The
 item count a day is what decides whether per-item audio is affordable at all.
 
 Usage:

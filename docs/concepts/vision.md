@@ -23,7 +23,7 @@ yen-idhazh publishes the digest; yen-oli-kalari voices it. A GitHub Actions job 
 
 ## What it refuses to be
 
-- **Not a service.** Nothing runs on a server we own - no runtime synthesis, no accounts, no personalisation, no notifications, no telemetry. Every clip is made in CI and committed (Rule #1, [../../CLAUDE.md](../../CLAUDE.md)).
+- **Not a service.** Nothing runs on a server we own - no runtime synthesis, no accounts, no personalisation, no notifications, no telemetry. Every clip is made in CI and committed (Guardrail #1, [../../CLAUDE.md](../../CLAUDE.md)).
 - **Not a republisher.** It plays our own summary and links to the source. The article body is never committed and never served, and the audio payload carries no second copy of the text either ([pipeline-loop.md](pipeline-loop.md)).
 - **Not a paste-your-text speech toy.** "Read aloud" means playing the clip the runner already made, not synthesising text a listener types. No speech model ships to the browser; why, and the rejected alternative, are in [pipeline-loop.md](pipeline-loop.md).
 - **Not a music or high-fidelity audio product.** It is speech at a news-read pace, priced against the runner and the 1 GB Pages cap, not sound quality for its own sake.
@@ -35,7 +35,7 @@ The full non-goal list is [../../CLAUDE.md](../../CLAUDE.md) section 0a.
 
 What reaches a listener is a committed bundle on GitHub Pages: the page, the payload, and the audio clips. This is not a deployment choice, it is the product boundary. It removes an entire category of design - runtime synthesis, a streaming server, accounts, telemetry - and it is why the project can run for years at no cost. The consequence that shapes everything else: the work happens on the runner, once, at build time, and the listener only ever receives finished bytes ([pipeline-loop.md](pipeline-loop.md)).
 
-Two ceilings are the platform, not a preference (Rule #2): a 6 h job and a **1 GB published site**. A measured day - a median 370 items, about 222 minutes of speech, 40 MB at opus@24k - fills the 1 GB cap in 26 days, so the archive cannot keep every clip ([benchmark](../reference/benchmarks/2026-09-11-input-volume-and-audio-cost.md)). How the loop holds the cap is [pipeline-loop.md](pipeline-loop.md).
+Two ceilings are the platform, not a preference (Guardrail #2): a 6 h job and a **1 GB published site**. A measured day - a median 370 items, about 222 minutes of speech, 40 MB at opus@24k - fills the 1 GB cap in 26 days, so the archive cannot keep every clip ([benchmark](../reference/benchmarks/2026-09-11-input-volume-and-audio-cost.md)). How the loop holds the cap is [pipeline-loop.md](pipeline-loop.md).
 
 ## See also
 

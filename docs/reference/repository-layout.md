@@ -14,7 +14,7 @@ Listen and Console. The topology below follows from that: `backend/` is a
 build-time producer that runs in CI and locally and never a service, `frontend/`
 is a static bundle, and `state/` is the operator ledger a run leaves for the
 next ([../concepts/pipeline-loop.md](../concepts/pipeline-loop.md),
-[../../CLAUDE.md](../../CLAUDE.md) Rule #1 and Rule #2).
+[../../CLAUDE.md](../../CLAUDE.md) Guardrail #1 and Guardrail #2).
 
 ## The skeleton today
 
@@ -33,9 +33,9 @@ already encode for when it becomes one, not a fact about the working tree today.
 | `.github/scripts/` | A shell step two or more workflow jobs share | a person | committed | empty - planned |
 | `.github/workflows/` | The CI jobs: voice synthesis, publish, prune | a person | committed | empty - no workflow yet |
 | `backend/utilities/` | Standalone measurement scripts (`measure_input.py`, `price_audio.py`) | a person | committed | created - 2 scripts |
-| `backend/oli/contracts/` | A Pydantic model for every persisted shape, before logic reads or writes it (Rule #3) | a person | committed | empty - planned |
+| `backend/oli/contracts/` | A Pydantic model for every persisted shape, before logic reads or writes it (Guardrail #3) | a person | committed | empty - planned |
 | `backend/oli/voices/` | The synthesis producer: read the day, voice each item, record what failed | a person | committed | empty - planned |
-| `config/` | Schema-validated tunable knobs: the caps, the codec, the prune window, voice and model refs (Rule #6) | a person | committed | empty - planned |
+| `config/` | Schema-validated tunable knobs: the caps, the codec, the prune window, voice and model refs (Guardrail #6) | a person | committed | empty - planned |
 | `docs/` | The canonical knowledge and the agent memory | a person | committed | created |
 | `frontend/` | The published static site - Listen and Console - and committed payloads under `public/` | a person, and the pipeline under `public/` | committed; build output gitignored | empty - planned |
 | `schemas/` | One generated JSON Schema per contract, exported from `backend/oli/contracts/` | a generator | committed | empty - planned |
@@ -83,4 +83,4 @@ to the right one rather than inventing a tenth.
 - [measurements.md](measurements.md) - the figures that size the caps these directories are shaped around.
 - [../how-to/run-the-gates.md](../how-to/run-the-gates.md) - which of these paths a local check touches today, and which wait on CI.
 - [../concepts/pipeline-loop.md](../concepts/pipeline-loop.md) - what one run leaves under `state/` and `frontend/public/`, and why nothing under `state/` is served.
-- [../../CLAUDE.md](../../CLAUDE.md) - section 3 (topology), Rule #1 (static-first), Rule #2 (the runner is the architecture).
+- [../../CLAUDE.md](../../CLAUDE.md) - section 3 (topology), Guardrail #1 (static-first), Guardrail #2 (the runner is the architecture).

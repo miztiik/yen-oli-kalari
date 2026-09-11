@@ -4,9 +4,9 @@
 
 The small set of beliefs that shape every yen-oli-kalari decision, stated once as
 vocabulary. These operationalize the engineering contract for a build-time audio
-pipeline; the authoritative rules live in [../../CLAUDE.md](../../CLAUDE.md) and
-the rules-only digest in [../agents/guardrails.md](../agents/guardrails.md). This
-page explains the *why* a reader needs before those rules make sense - it does
+pipeline; the authoritative guardrails live in [../../CLAUDE.md](../../CLAUDE.md) and
+the guardrails-only digest in [../agents/guardrails.md](../agents/guardrails.md). This
+page explains the *why* a reader needs before those guardrails make sense - it does
 not restate them.
 
 The numbering follows the sibling project's principles page for the subjects the
@@ -140,11 +140,11 @@ is indistinguishable from a pipeline that stopped working.
 
 ## Design rationale
 
-These twelve are not new law - they are the concept-tier restatement of the Rules
+These twelve are not new law - they are the concept-tier restatement of the Adaptive Guardrails
 in the vocabulary an audio pipeline needs, so a contributor learns the *why* from
 the concept tier and the *rule* from the contract. The rejected alternative was
 to let each concept doc re-derive the ethos in passing; that duplicates the
-contract and drifts ([../../CLAUDE.md](../../CLAUDE.md) Rule #4, one definition).
+contract and drifts ([../../CLAUDE.md](../../CLAUDE.md) Guardrail #4, one definition).
 
 **Principle 5 is the one that changed most from the sibling, and the change is
 the point.** Inheriting "fetched text is data, never instruction" verbatim would
@@ -166,5 +166,5 @@ in an incident instead.
 - [design-system.md](design-system.md) - principle 11's second clause as the sufficiency checks.
 - [../reference/measurements.md](../reference/measurements.md) - principle 3 in force: the figure now in force for each quantity.
 - [../reference/documentation-structure.md](../reference/documentation-structure.md) - where a statement of project knowledge belongs.
-- [../agents/guardrails.md](../agents/guardrails.md) - the rules-only digest every advisor loads.
+- [../agents/guardrails.md](../agents/guardrails.md) - the guardrails-only digest every advisor loads.
 - [../../CLAUDE.md](../../CLAUDE.md) - the authoritative contract.
