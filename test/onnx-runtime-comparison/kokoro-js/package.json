@@ -1,0 +1,12 @@
+{
+  "name": "onnx-comparison-kokoro-js",
+  "private": true,
+  "type": "module",
+  "description": "Arm one of the ONNX runtime comparison: kokoro-js.",
+  "scripts": {
+    "measure": "node synthesize-corpus.mjs"
+  },
+  "dependencies": {
+    "kokoro-js": "^1.2.1"
+  }
+}

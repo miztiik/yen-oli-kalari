@@ -1,0 +1,12 @@
+{
+  "name": "onnx-comparison-transformers-js",
+  "private": true,
+  "type": "module",
+  "description": "Arm two of the ONNX runtime comparison: transformers.js.",
+  "scripts": {
+    "measure": "node synthesize-corpus.mjs"
+  },
+  "dependencies": {
+    "@huggingface/transformers": "^4.2.0"
+  }
+}

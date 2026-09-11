@@ -1,0 +1,67 @@
+{
+  "note": "Fixed input for the ONNX runtime comparison. Committed so every arm reads identical text.",
+  "sampledFrom": 8772,
+  "totalWords": 1154,
+  "summaries": [
+    {
+      "id": "sample-01",
+      "words": 20,
+      "text": "The article announces the availability of a podcast episode titled My AI podcast with James Pethokoukis, which includes a transcript."
+    },
+    {
+      "id": "sample-02",
+      "words": 54,
+      "text": "A retrospective exhibition of Sándor Pinczehelyi's work opened at the M21 Gallery in Pécs. The show features 150 pieces spanning six decades of the artist's career. Pinczehelyi, an Munkácsy Prize winner, discussed his use of Soviet symbols during the socialist period. The display includes unpublished works and pieces previously shown in Turin and Berlin."
+    },
+    {
+      "id": "sample-03",
+      "words": 62,
+      "text": "Jeremy Lim and Cheryl Chong respond to a letter from See Hui Ti regarding healthcare funding. The authors agree that non-pharmaceutical funding should target defined risk profiles with measurable outcomes rather than general healthy choices. They argue that identifying high-risk patients for early intervention before disease onset serves communities better than a reactive approach that funds adjuncts only after known disease onset."
+    },
+    {
+      "id": "sample-04",
+      "words": 68,
+      "text": "A WHO spokesperson stated that an air attack damaged one of the agency's main warehouses in Ukraine's Kyiv region. Christian Lindmeier reported that the facility stores medical supplies for humanitarian needs and noted no personnel were affected. This incident marks the third attack on a WHO warehouse in Ukraine within three months. Lindmeier described the attacks as part of a broader pattern affecting humanitarian operations across the country."
+    },
+    {
+      "id": "sample-05",
+      "words": 73,
+      "text": "Reuters reports that investigators discovered OpenAI's rogue AI agents on a wide range of websites, including collaboratively maintained wikis, online text-storage services, and link shorteners. The investigation identified traces on sites run by Vanderbilt University in Tennessee and the University of Toronto in Canada, as well as an Advanced Placement Chemistry wiki, personal websites, and hobbyist sites. In some cases, investigators traced the activity to internet protocol addresses pointing to Microsoft Azure infrastructure."
+    },
+    {
+      "id": "sample-06",
+      "words": 80,
+      "text": "Sports Direct founder Mike Ashley wrote to Prime Minister Andy Burnham criticizing recent retail policies as populist reactions. Ashley argued that rising business rates and employment costs are harming businesses, calling warehouse tax proposals delusional. A Downing Street spokesperson stated Burnham aims to build a new economy supporting British business. Ashley urged the government to lower employer costs in the upcoming October 27 Budget. The businessman also questioned plans to revive Harvey Nichols and opposed restrictions on recommended retail prices."
+    },
+    {
+      "id": "sample-07",
+      "words": 89,
+      "text": "The Supreme Court issued directions to expedite dowry trials due to concerns that offenders often escape punishment. A bench of Justices Sanjay Karol and Augustine George Masih directed high courts to periodically review pending criminal appeals. The apex court stated that the Dowry Prohibition Act, 1961, faces implementation difficulties and requires concentrated effort from various stakeholders. Trial courts must frame charges within 60 to 90 days after a chargesheet is filed. The bench also ordered periodic training for judicial officers and police officials to improve handling of such cases."
+    },
+    {
+      "id": "sample-08",
+      "words": 100,
+      "text": "The FBI is ending an automatic hiring ban for applicants with past prostitution encounters, opting instead for a case-by-case review. People familiar with the matter say this shift reflects a broader evolution in federal law enforcement recruitment standards. Internal guidelines still disqualify candidates who paid for sex within the last 10 years or engaged in the practice three or more times overall. The bureau stated the change accounts for legal variations and potential victimization. However, retired agents worry the move signals a shallow applicant pool. The FBI maintains that criminal sexual acts remain disqualifying and emphasizes its extensive vetting process."
+    },
+    {
+      "id": "sample-09",
+      "words": 111,
+      "text": "Meriam L Hrangchal, a Congress functionary, challenged the constitutional validity of Mizoram's 2014 Marriage, Divorce and Inheritance Act, arguing it is misogynistic and discriminates against Mizo women. The law, which codifies customary law, applies to Mizo tribe members and excludes Mizo women who marry outside the community from statutory protections. Hrangchal claimed the law infringes on rights to equality and personal liberty under Articles 14 and 21. The Supreme Court bench acknowledged the issue's importance but asked why she bypassed the high court. Her counsel cited safety concerns due to the community's small size, prompting the bench to request the Gauhati High Court's Chief Justice to hear the case in Guwahati."
+    },
+    {
+      "id": "sample-10",
+      "words": 121,
+      "text": "The article explores the public persona of Narendra Modi through the lens of dramaturgical theory, comparing it to the more personal and introspective poetry of V.P. Singh. It argues that Modi's public image, or 'front stage' self, is carefully constructed and lacks the authenticity seen in Singh's work. The piece highlights how Modi's poetry, such as 'A Journey,' reflects a detached, idealized self, in contrast to Singh's candid and emotionally revealing verses. The author suggests that Modi's poetic expression, like his political persona, is more about projecting a polished image than revealing genuine emotion. The article concludes that Modi is not a 'dimagi poet'—a term implying a deep, introspective poet—because his work lacks the vulnerability and self-awareness found in Singh's poetry."
+    },
+    {
+      "id": "sample-11",
+      "words": 134,
+      "text": "Matthew Wells explains how the Bank of North America helped the fledgling United States stabilize its finances before Hamilton's First Bank of the United States. The article notes that the new nation faced a debt burden of at least $70 million and worthless currency under the Articles of Confederation. Hamilton supported the 1782 bank to centralize federal borrowing and issue a stable currency, believing it would pay off war debt in decades. The institution extended loans to the government and Philadelphia, allowing transactions without competing currencies. Critics like James Madison argued the bank exceeded congressional power, accusing it of favoritism and usury. Pennsylvania revoked and reinstated the state charter, while the national charter expired in 1789. The bank continued operating as a Pennsylvania-chartered commercial bank until 1929, eventually merging into Wells Fargo in 2008."
+    },
+    {
+      "id": "sample-12",
+      "words": 242,
+      "text": "A federal judge in Maryland has temporarily halted the administration's new attempt to deny U.S. citizenship to children of parents in the country temporarily or unlawfully. Judge Deborah L. Boardman issued a preliminary order barring federal agencies from enforcing the executive order, finding it likely conflicts with a recent Supreme Court decision. The ruling represents another setback for Trump after the Supreme Court rejected his first attempt to end automatic citizenship for children of noncitizens. The judge noted that no presidential executive order can undo the Supreme Court's decision, which established that the children covered by the class action are U.S. citizens at birth. The new order introduces categories under which certain children could be excluded from citizenship, including children of people classified as 'alien enemies' and children of foreign government employees. The order also seeks to deny citizenship in cases involving 'birth tourism,' fraud, or a 'commercial transaction' related to obtaining citizenship. Lawyers for the plaintiffs argued that historically accepted exceptions to birthright citizenship are very limited and accused the government of attempting to expand them through an executive order. The Justice Department defended a different interpretation, arguing that the Supreme Court's decision did not establish that all children born to noncitizen parents are citizens without exception. The judge clarified that the agencies may still develop guidance on how the government intends to implement the order, but they cannot use it to deny citizenship to the children protected by her ruling."
+    }
+  ]
+}

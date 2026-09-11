@@ -19,7 +19,7 @@
 | # | Row title | Depends-on | Parallel-group | Status | Worktree | PR | Subagent |
 | --- | --- | --- | --- | --- | --- | --- | --- |
 | 1 | Re-cut the rules as Adaptive Guardrails | - | A | DONE (no PR - pre-remote) | - | - | - |
-| 2 | ONNX runtime comparison: two libraries, one model, one corpus | - | A | PENDING | - | - | - |
+| 2 | ONNX runtime comparison: two libraries, one model, one corpus | - | A | DONE (built, unrun) | - | - | - |
 | 3 | Correct the storage intent across the docs | - | A | PENDING | - | - | - |
 | 4 | Restore the on-demand voice tab | 1 | B | PENDING | - | - | - |
 | 5 | Candidate ONNX voice models, shortlisted | 2 | B | PENDING | - | - | - |
@@ -86,11 +86,11 @@ The twelve as they stand, with a proposed verdict each. **The owner decides ever
 - **Scope:** A deliberately crude CI experiment that runs **one ONNX voice model** through **two ONNX inference libraries** on the same corpus and the same runner, so the library choice is settled by numbers rather than preference. Because the model is held constant, the difference between the arms is the library and nothing else.
 - **Files touched:**
   - `test/onnx-runtime-comparison/sample-summaries/` - a fixed sample of upstream summaries, spanning the measured word distribution
-  - `test/onnx-runtime-comparison/transformers-js/` - the first library arm
-  - `test/onnx-runtime-comparison/onnxruntime-node/` - the second library arm
+  - `test/onnx-runtime-comparison/kokoro-js/` - the first library arm
+  - `test/onnx-runtime-comparison/transformers-js/` - the second library arm
   - `test/onnx-runtime-comparison/measurements/` - committed raw output, one file per run
   - `test/onnx-runtime-comparison/README.md` - how to add a third arm
-  - `.github/workflows/compare-transformers-js.yml`, `.github/workflows/compare-onnxruntime-node.yml`
+  - `.github/workflows/compare-kokoro-js.yml`, `.github/workflows/compare-transformers-js.yml`
   - `backend/utilities/` - only what is genuinely shared
 - **Acceptance gates:** both workflows run to completion on `ubuntu-latest`; both emit the same measurement shape; the two workflow files differ only in the arm they invoke.
 - **Oracle:** a parity check - both arms synthesise the same corpus and their measurement files carry identical keys, so a diff of the two is a diff of the runtimes and of nothing else.
@@ -102,6 +102,8 @@ The twelve as they stand, with a proposed verdict each. **The owner decides ever
 | 1 | The experiment lives under `test/onnx-runtime-comparison/`; production code never lives there | owner, 2026-09-11 |
 | 2 | Scaffolding stays crude - this is a measurement, not a foundation | owner, 2026-09-11 |
 | 3 | Genuinely shared helpers - file open, persistence, telemetry - go to `backend/utilities/` and are used by both arms | owner, 2026-09-11 |
+| 7 | A raw ONNX Runtime binding is not a viable arm: a voice model needs a text front-end (tokenisation and phonemisation) that the raw binding does not supply, so the arm would measure our phonemiser rather than the runtime | agent, 2026-09-12 |
+| 8 | The two arms are `kokoro-js` and `@huggingface/transformers`, both running the same Kokoro ONNX weights. Kokoro is the reference model, not a production candidate | agent, 2026-09-12 |
 | 4 | The two workflow files are near-identical by design, so the diff between them is the experiment | owner, 2026-09-11 |
 | 5 | The comparable unit is real-time factor, which is seconds of compute for one second of audio. Tokens a second is undefined for a non-autoregressive model and is reported only where it exists | agent, pending owner review |
 | 6 | Measured per clip: input words, audio seconds out, wall clock, real-time factor median/p90/max, peak memory, model download bytes and seconds. Three repeats for spread, per guardrail 10 | agent, pending owner review |
