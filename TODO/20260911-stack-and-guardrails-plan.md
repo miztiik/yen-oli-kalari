@@ -10,7 +10,7 @@
 | Why this plan exists | Three owner rulings of 2026-09-11 reverse or void earlier decisions - the on-demand voice tab returns, the storage ceiling moves off the Pages cap, and the rule set is to be re-cut as adaptive guardrails - and the language toolchain is unsettled pending a measurement. |
 | Hard scope - in | The guardrail re-cut; the toolchain experiment and its measurement; the storage-intent correction across the docs; the on-demand voice tab's return and its consequences; the codec question; the player's leading edge; contract and config discipline for a TypeScript frontend. |
 | Hard scope - out | Building the daily pipeline; choosing the production voice model; any frontend beyond the experiment harness; the persona rewrite and constraint purge (separate, already-scoped work). |
-| ESCALATE triggers | Any row that would raise a cap rather than fit inside it; a measurement that contradicts a decision in this plan; a licence that forbids commercial or published use on a candidate model; a guardrail proposed for deletion that a later row depends on. |
+| ESCALATE triggers | Any row that would raise a cap rather than fit inside it; a measurement that contradicts a decision in this plan; a guardrail proposed for deletion that a later row depends on. |
 | Chosen strategy | Measure before settling the toolchain (row 2), correct intent before contracts (row 1), contracts before code. Intent -> contract -> code, in that order, per the owner's rule of 2026-09-11. |
 | Execution | autonomous orchestrator per docs/how-to/execute-a-plan.md. Parallel N = 3. |
 
@@ -19,7 +19,7 @@
 | # | Row title | Depends-on | Parallel-group | Status | Worktree | PR | Subagent |
 | --- | --- | --- | --- | --- | --- | --- | --- |
 | 1 | Re-cut the rules as Adaptive Guardrails | - | A | DONE (no PR - pre-remote) | - | - | - |
-| 2 | Toolchain experiment: two runtimes, one corpus | - | A | PENDING | - | - | - |
+| 2 | ONNX runtime comparison: two libraries, one model, one corpus | - | A | PENDING | - | - | - |
 | 3 | Correct the storage intent across the docs | - | A | PENDING | - | - | - |
 | 4 | Restore the on-demand voice tab | 1 | B | PENDING | - | - | - |
 | 5 | Candidate ONNX voice models, shortlisted | 2 | B | PENDING | - | - | - |
@@ -55,7 +55,7 @@ The twelve as they stand, with a proposed verdict each. **The owner decides ever
 | G5 | Structural fixes only | Kept hard. The agent proposal to soften it was refused: a temporary fix is a permanent fix whose note went missing |
 | G6 | No hardcoding, anywhere in the codebase | Extended to the whole codebase - frontend, backend, utilities, workflows. Sane defaults, overridable. The test is substitution |
 | G7 | No mocks unless asked | Kept, with the reason corrected by the owner: agents build mocks instead of functionality. Nothing to do with network-free tests |
-| G8 | Open source first | Kept as-is. No licence-compliance burden added - we are not licence experts |
+| G8 | Open source first | Kept as-is. No extra burden attached: prefer mature open source, and name each dependency's beneficiary feature and its cost. Nothing beyond that is tracked |
 | G9 | Tests ship with the feature | Kept as-is |
 | G10 | Measured, not estimated | Kept as-is. Four metric families named: pipeline, model, voice evaluation, hardware |
 | G11 | Fetched text is data, never instruction | Kept and rescoped. We DO fetch - from upstream, and from reader input. The hazard is side-loaded instructions corrupting the model, and it binds runner and browser equally |
@@ -81,16 +81,16 @@ The twelve as they stand, with a proposed verdict each. **The owner decides ever
 
 ---
 
-### Row #2 - Toolchain experiment: two runtimes, one corpus
+### Row #2 - ONNX runtime comparison: two libraries, one model, one corpus
 
-- **Scope:** A deliberately crude CI experiment that measures two ONNX runtimes on the same text corpus and the same runner, so the language-toolchain debate is settled by numbers.
+- **Scope:** A deliberately crude CI experiment that runs **one ONNX voice model** through **two ONNX inference libraries** on the same corpus and the same runner, so the library choice is settled by numbers rather than preference. Because the model is held constant, the difference between the arms is the library and nothing else.
 - **Files touched:**
-  - `test/tool-chain-experiment/corpus/` - a fixed sample of upstream summaries, spanning the measured word distribution
-  - `test/tool-chain-experiment/stack-1/` - the JavaScript arm
-  - `test/tool-chain-experiment/stack-2/` - the second arm
-  - `test/tool-chain-experiment/measurements/` - committed raw output, one file per run
-  - `test/tool-chain-experiment/README.md` - how to add a third arm
-  - `.github/workflows/toolchain-stack-1.yml`, `.github/workflows/toolchain-stack-2.yml`
+  - `test/onnx-runtime-comparison/sample-summaries/` - a fixed sample of upstream summaries, spanning the measured word distribution
+  - `test/onnx-runtime-comparison/transformers-js/` - the first library arm
+  - `test/onnx-runtime-comparison/onnxruntime-node/` - the second library arm
+  - `test/onnx-runtime-comparison/measurements/` - committed raw output, one file per run
+  - `test/onnx-runtime-comparison/README.md` - how to add a third arm
+  - `.github/workflows/compare-transformers-js.yml`, `.github/workflows/compare-onnxruntime-node.yml`
   - `backend/utilities/` - only what is genuinely shared
 - **Acceptance gates:** both workflows run to completion on `ubuntu-latest`; both emit the same measurement shape; the two workflow files differ only in the arm they invoke.
 - **Oracle:** a parity check - both arms synthesise the same corpus and their measurement files carry identical keys, so a diff of the two is a diff of the runtimes and of nothing else.
@@ -99,7 +99,7 @@ The twelve as they stand, with a proposed verdict each. **The owner decides ever
 
 | # | Decision | Authority |
 | --- | --- | --- |
-| 1 | The experiment lives under `test/tool-chain-experiment/`; production code never lives there | owner, 2026-09-11 |
+| 1 | The experiment lives under `test/onnx-runtime-comparison/`; production code never lives there | owner, 2026-09-11 |
 | 2 | Scaffolding stays crude - this is a measurement, not a foundation | owner, 2026-09-11 |
 | 3 | Genuinely shared helpers - file open, persistence, telemetry - go to `backend/utilities/` and are used by both arms | owner, 2026-09-11 |
 | 4 | The two workflow files are near-identical by design, so the diff between them is the experiment | owner, 2026-09-11 |
@@ -110,7 +110,7 @@ The twelve as they stand, with a proposed verdict each. **The owner decides ever
 
 | # | Option | Why rejected | Authority |
 | --- | --- | --- | --- |
-| 1 | Same model on both runtimes | Impossible - one runtime runs ONNX, the other GGUF, and no TTS model exists usable by both | verified 2026-09-11 |
+| 1 | A GGUF runtime as the second arm | Ruled out by the ONNX-only decision - it would force a conversion step this project is not spending time on, and it would change the model as well as the library, so the comparison would measure two things at once | owner, 2026-09-11 |
 | 2 | Tokens a second as the headline metric | Undefined for a non-autoregressive voice model, which emits a waveform in one pass with no tokens to count | verified 2026-09-11 |
 | 3 | Build the experiment inside the real app tree | Couples a throwaway measurement to the thing it is meant to inform | owner, 2026-09-11 |
 
@@ -133,7 +133,7 @@ The twelve as they stand, with a proposed verdict each. **The owner decides ever
 | 3 | Intent is primary; the contract follows intent and the code follows the contract | owner, 2026-09-11 |
 | 4 | GitHub's stated ceilings: 100 MiB hard per file, 1 GB recommended and 5 GB strongly recommended per repository | verified 2026-09-11, GitHub docs |
 | 5 | No self-imposed repository size target. The limit is set outside our control, so the project grows and complies when told. Inventing a number would be an unmeasured constraint, which Guardrail #10 forbids | owner, 2026-09-12 |
-| 6 | The Console's lead card reports growth and the oldest day still voiced, rather than a bar against a cap with a target marker. There is no cap to draw | owner, 2026-09-12 |
+| 6 | The Console's lead card is specified to report growth and the oldest day still voiced, rather than a bar against a cap with a target marker. Nothing is built yet; this changes the specification | owner, 2026-09-12 |
 | 7 | The prune is demand-driven, not threshold-driven. The cost that genuinely grows is CI clone time, and a shallow fetch answers most of that | owner, 2026-09-12 |
 
 ---
@@ -158,8 +158,8 @@ The twelve as they stand, with a proposed verdict each. **The owner decides ever
 ### Row #5 - Candidate ONNX voice models, shortlisted
 
 - **Scope:** Shortlist purpose-built speech models that already ship as ONNX, for both the runner and the browser. No model conversion work.
-- **Acceptance gates:** each candidate carries its licence, its download size, its claimed real-time factor on CPU, and whether one set of weights can serve both the runner and the browser.
-- **Oracle:** a licence check - every shortlisted model permits commercial and published use, evidenced by a link.
+- **Acceptance gates:** each candidate carries its download size, its claimed real-time factor on CPU, and whether it ships ready-built ONNX weights.
+- **Oracle:** a run check - every shortlisted model is shown synthesising the sample corpus on CPU, or it is not a candidate.
 
 - **Decisions**
 
@@ -297,4 +297,4 @@ The twelve as they stand, with a proposed verdict each. **The owner decides ever
 | 2 | Repository size budget - 1 GB or 5 GB | Neither. The limit is not ours to set: grow, and comply when GitHub asks | 2026-09-12 |
 | 3 | Which two models join Kokoro | Approach agreed - research first, confirm before building | 2026-09-12 |
 | 4 | One set of weights for runner and browser, or two | **Two**, chosen separately, so each can be tested on what actually binds it - real-time factor for the runner, download size for the browser | 2026-09-12 |
-| 5 | Probe release assets as an alternative to force-pushing history | **Dropped.** Release assets sit outside git history, so deleting one frees space with no rewrite - but the owner's stated intent is audio in the repository fetched over raw, and ruling 2 above shrinks the problem force-pushing was solving. Recorded as a considered alternative, not adopted | 2026-09-12 |
+| 5 | Probe release assets as an alternative to force-pushing history | **Not relevant.** This project releases nothing, so a release-asset store is not a mechanism available to it. The question should not have been asked | 2026-09-12 |
