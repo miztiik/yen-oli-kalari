@@ -10,11 +10,14 @@ concept doc disagree, the concept doc is right.
 
 It is kept rather than deleted for two reasons. Step 5 of
 [`../how-to/distill-a-plan.md`](../how-to/distill-a-plan.md) deletes a plan-doc
-*into* git history, and this checkout is not a git repository
-([`../reference/agent-notes.md`](../reference/agent-notes.md)) - so there is no
-ledger for a deletion to leave it in. And it was never a plan-doc to begin with:
-it carries rationale, which the plan-doc class forbids and the concept class
-owns.
+*into* git history, and when this page was archived the checkout was not yet a
+git repository, so there was no ledger for a deletion to leave it in. That
+changed on 2026-09-11 when the project moved off OneDrive and was initialised
+([`../reference/agent-notes.md`](../reference/agent-notes.md)) - but history
+starts at the seed commit, so a deletion now would still erase this rather than
+preserve it. The second reason is the durable one: it was never a plan-doc to
+begin with, because it carries rationale, which the plan-doc class forbids and
+the concept class owns.
 
 Page labels I use throughout (owner's internal names in parentheses): **Listen** (the cast), **Console** (the console). Payload words the reader never sees: `vertical` -> **Topic**, `lens` -> **Tag**, `band` -> **how well we checked it**, `shard`/`truncated` -> **"we could not read the whole source"**.
 > **Owner rulings, 2026-09-11 - read this before the sections below.** Four of the five open questions came back settled. **Tag** replaces "Angle" on the page. **Every item gets a voice**, and the 1 GB cap is held by an aggressive prune cycle in the Action rather than by voicing fewer items. **Ad-hoc TTS is struck** - "Read aloud" means playing the clip we generated, so no voice model ships to the browser. **Auto-advance is on by default.** Per-item waveform peaks are the one question still open. Struck sections are kept below with their reason rather than deleted. Full table at [Owner rulings - 2026-09-11](#owner-rulings---2026-09-11).

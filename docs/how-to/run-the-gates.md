@@ -84,7 +84,7 @@ you can type now.
 | --- | --- | --- |
 | Backend lint + types | a `pyproject.toml` configuring ruff and mypy | no config exists, so there is no project rule to enforce |
 | Backend tests | a `pytest` suite under `tests/` and `backend/` | `tests/` is empty; `pytest` collects 0 items |
-| Contract drift | the exporter that writes `schemas/` from `backend/oli/contracts/`, then `git diff --exit-code` | `backend/oli/contracts/` and `schemas/` are empty, and this checkout is not a git repository, so the diff step cannot run at all |
+| Contract drift | the exporter that writes `schemas/` from the contracts package, then `git diff --exit-code` | the contracts package and `schemas/` are both empty, so there is nothing to export yet; git itself works, so the diff step will run once an exporter exists |
 | Frontend build | `frontend/package.json` and the Svelte site | `frontend/` is empty; there is no `package.json`, so `npm run build` has nothing to build |
 | Browser suite | a Playwright suite over Listen and Console | the frontend does not exist yet; per [../../CLAUDE.md](../../CLAUDE.md) section 12 a published-site change is verified in a real browser once there is a page |
 | Site-weight cap | a check that the published site plus its audio stays under the 1 GB Pages cap | there is no published tree to weigh; the cap is held by the prune cycle in the Action ([../reference/measurements.md](../reference/measurements.md)) |

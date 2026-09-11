@@ -23,28 +23,32 @@ page; it has five entries and is nowhere near that, so it stays whole.
 
 ## git
 
-**`git log`, `git status` and `git rev-parse` all read as a broken git, and the
-truth is there is no git here.** This checkout is not a git repository: there is
-no `.git`, and every git command answers `fatal: not a git repository (or any of
-the parent directories): .git`. So any instruction that assumes history - the
-bootstrap step `git log --oneline -20`, a diff against `origin/main`, a
-contract-drift `git diff --exit-code` gate - cannot run in this checkout today.
-The tell that this is the repo state and not a corrupt `.git`: `Test-Path .git`
-returns `False`. The sibling `yen-idhazh` checkout beside it is a real git repo
-if you genuinely need one.
+**This is a git repository as of 2026-09-11, and it was not one before.** It was
+initialised in place after the move off OneDrive, so `git log`, `git status`,
+`git rev-parse` and a `git diff --exit-code` drift gate all work normally, and
+the bootstrap step `git log --oneline -20` runs. History starts at the seed
+commit rather than at the first design decision, so a question about why
+something was decided is answered by the docs and the archived ruling, not by
+`git log`. There is no remote yet, so anything that assumes `origin/main` -
+a diff against upstream, a pull-request gate - has nothing to compare against
+until one is added.
 
 ## The repository path
 
-**An unquoted path to this repo silently loses its tail, and a raw file URL will
-not open.** The path is
-`C:\Users\kumarsnaveen\OneDrive - Microsoft\Documents\Microsoft Scout\yen-oli-kalari`
-- two spaces and a hyphen. Unquoted, PowerShell splits on the first space and
-reads `- Microsoft\Documents\...` as extra arguments, so `Set-Location` lands
-somewhere else or errors. The tell is that the command acts on the wrong
-directory rather than failing outright. Always single-quote a path argument. A
-`file://` URL needs each space encoded as `%20`; build it with the type rather
-than by hand, which yields
-`file:///C:/Users/kumarsnaveen/OneDrive%20-%20Microsoft/Documents/Microsoft%20Scout/yen-oli-kalari`:
+**This repo lives outside OneDrive, at `C:\src\yen-oli-kalari`, and that is
+deliberate.** It was moved there on 2026-09-11, out of
+`...\OneDrive - Microsoft\Documents\Microsoft Scout\`, for two reasons that both
+bite a git repository. OneDrive sync and `.git` contend for the same files:
+sync can grab a loose object or a packfile mid-write, `git gc` meets file locks,
+and a sync conflict lands as a second copy with a machine name in it that git
+then reports as untracked. Files On-Demand can also leave a placeholder that git
+reads as an empty file. The old path additionally carried two spaces and a
+hyphen, so an unquoted argument split on the first space and a `file://` URL
+needed `%20` on every space.
+
+The current path has no space in it, so both of those traps are gone. Quote a
+path argument anyway - the habit costs nothing and the sibling checkout still
+lives under the old-style path. To build a file URL from wherever you are:
 
 ```powershell
 ([Uri]((Resolve-Path .).Path)).AbsoluteUri
