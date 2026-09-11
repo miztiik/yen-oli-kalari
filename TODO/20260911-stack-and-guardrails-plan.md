@@ -118,11 +118,11 @@ The twelve as they stand, with a proposed verdict each. **The owner decides ever
 
 ### Row #3 - Correct the storage intent across the docs
 
-- **Scope:** Replace the published-site ceiling with the real one. Audio is committed to the repository and served from `raw.githubusercontent.com`; it never enters the Pages bundle, so it counts against repository size, and the prune force-pushes so the bytes do not accumulate in history.
+- **Scope:** Remove the invented ceiling rather than replace it. Audio is committed to the repository and served from `raw.githubusercontent.com`; it never enters the Pages bundle. GitHub's 1 GB and 5 GB figures are recommendations rather than walls, and the only hard limit - 100 MiB a file - is three orders of magnitude away from a 108 KB clip. **So the project grows and complies when GitHub asks**, and no self-imposed byte target appears anywhere. Size becomes a reported figure, not a gate.
 - **Files touched:** `CLAUDE.md` (12 assertions), `docs/concepts/pipeline-loop.md` (6), `backend/utilities/price_audio.py` (5), `docs/reference/measurements.md` (4), `README.md` (4), `docs/concepts/principles.md`, `docs/concepts/vision.md`, `docs/concepts/ui-shell.md`, `docs/how-to/run-the-gates.md`, `docs/agents/guardrails.md`, `AGENTS.md`
 - **Not touched:** `docs/reference/benchmarks/2026-09-11-input-volume-and-audio-cost.md` is frozen and `docs/archive/2026-09-11-listen-and-console-design-ruling.md` is archived. Both are honest accounts of what was believed that day. The instrument log carries what is now in force.
-- **Acceptance gates:** no living doc asserts that audio counts against the 1 GB Pages cap; the instrument log states the corrected ceiling and why it changed; `price_audio.py` takes its ceiling from config rather than a constant.
-- **Oracle:** a grep for the old ceiling returns hits only in the frozen record and the archive.
+- **Acceptance gates:** no living doc asserts that audio counts against the 1 GB Pages cap; no living doc states a self-imposed size target; the instrument log records growth per day and what it is measured against; `price_audio.py` reports days-to-a-given-size as a what-if parameter rather than baking a ceiling in as a constant.
+- **Oracle:** a grep for the old ceiling returns hits only in the frozen record and the archive, and a grep for a new one returns nothing at all.
 
 - **Decisions**
 
@@ -132,6 +132,9 @@ The twelve as they stand, with a proposed verdict each. **The owner decides ever
 | 2 | The prune force-pushes, so committed audio does not accumulate in history | owner, 2026-09-11 |
 | 3 | Intent is primary; the contract follows intent and the code follows the contract | owner, 2026-09-11 |
 | 4 | GitHub's stated ceilings: 100 MiB hard per file, 1 GB recommended and 5 GB strongly recommended per repository | verified 2026-09-11, GitHub docs |
+| 5 | No self-imposed repository size target. The limit is set outside our control, so the project grows and complies when told. Inventing a number would be an unmeasured constraint, which Guardrail #10 forbids | owner, 2026-09-12 |
+| 6 | The Console's lead card reports growth and the oldest day still voiced, rather than a bar against a cap with a target marker. There is no cap to draw | owner, 2026-09-12 |
+| 7 | The prune is demand-driven, not threshold-driven. The cost that genuinely grows is CI clone time, and a shallow fetch answers most of that | owner, 2026-09-12 |
 
 ---
 
@@ -284,8 +287,14 @@ The twelve as they stand, with a proposed verdict each. **The owner decides ever
 
 | # | Question | Blocking |
 | --- | --- | --- |
-| 1 | Every verdict in row 1's guardrail table | row 1 |
-| 2 | Repository size budget - 1 GB or 5 GB - which sets the retention window at 26 or 128 days | row 3 |
-| 3 | Which two candidate models join Kokoro in the benchmark | rows 2, 5 |
-| 4 | Whether one set of weights must serve both the runner and the browser, or each picks its own | rows 4, 5 |
-| 5 | Whether release assets are probed as an alternative to force-pushing history | row 3 |
+| 1 | Which two candidate models join Kokoro in the benchmark - row 5 researches, owner confirms before any arm is built | rows 2, 5 |
+
+## Settled since this plan was written
+
+| # | Question | Ruling | Date |
+| --- | --- | --- | --- |
+| 1 | Every verdict in the guardrail table | All twelve ruled; row 1 executed | 2026-09-11 |
+| 2 | Repository size budget - 1 GB or 5 GB | Neither. The limit is not ours to set: grow, and comply when GitHub asks | 2026-09-12 |
+| 3 | Which two models join Kokoro | Approach agreed - research first, confirm before building | 2026-09-12 |
+| 4 | One set of weights for runner and browser, or two | **Two**, chosen separately, so each can be tested on what actually binds it - real-time factor for the runner, download size for the browser | 2026-09-12 |
+| 5 | Probe release assets as an alternative to force-pushing history | **Dropped.** Release assets sit outside git history, so deleting one frees space with no rewrite - but the owner's stated intent is audio in the repository fetched over raw, and ruling 2 above shrinks the problem force-pushing was solving. Recorded as a considered alternative, not adopted | 2026-09-12 |
