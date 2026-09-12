@@ -1,0 +1,158 @@
+{
+  "schemaVersion": "2026-09-12",
+  "generatedAt": "2026-09-12T10:31:41.499Z",
+  "model": "onnx-community/Kokoro-82M-v1.0-ONNX",
+  "voice": "af_heart",
+  "corpus": "https://miztiik.github.io/yen-idhazh/digest/2026/09/11/digest.json",
+  "samples": 6,
+  "repeats": 2,
+  "host": {
+    "isCi": false,
+    "platform": "win32",
+    "arch": "x64",
+    "cpuModel": "12th Gen Intel(R) Core(TM) i7-1265U",
+    "cpuCount": 12,
+    "totalMemoryGb": 31.8,
+    "nodeVersion": "v24.12.0"
+  },
+  "results": [
+    {
+      "dtype": "fp32",
+      "loadMs": 42338,
+      "audioSeconds": 213.05,
+      "wallSeconds": 116.6,
+      "realTimeFactor": 0.5474,
+      "wordsAMinute": 122.8,
+      "perClip": [
+        {
+          "id": "real-01",
+          "words": 20,
+          "audioSeconds": 9.45,
+          "wallClockMs": 5006
+        },
+        {
+          "id": "real-05",
+          "words": 58,
+          "audioSeconds": 26.63,
+          "wallClockMs": 13530
+        },
+        {
+          "id": "real-09",
+          "words": 70,
+          "audioSeconds": 35.13,
+          "wallClockMs": 19948
+        },
+        {
+          "id": "real-13",
+          "words": 82,
+          "audioSeconds": 39.3,
+          "wallClockMs": 19627
+        },
+        {
+          "id": "real-17",
+          "words": 96,
+          "audioSeconds": 49.45,
+          "wallClockMs": 27233
+        },
+        {
+          "id": "real-21",
+          "words": 110,
+          "audioSeconds": 53.1,
+          "wallClockMs": 31270
+        }
+      ]
+    },
+    {
+      "dtype": "q8",
+      "loadMs": 1580,
+      "audioSeconds": 213,
+      "wallSeconds": 252.1,
+      "realTimeFactor": 1.1837,
+      "wordsAMinute": 122.8,
+      "perClip": [
+        {
+          "id": "real-01",
+          "words": 20,
+          "audioSeconds": 9.47,
+          "wallClockMs": 13495
+        },
+        {
+          "id": "real-05",
+          "words": 58,
+          "audioSeconds": 26.68,
+          "wallClockMs": 31601
+        },
+        {
+          "id": "real-09",
+          "words": 70,
+          "audioSeconds": 34.88,
+          "wallClockMs": 39556
+        },
+        {
+          "id": "real-13",
+          "words": 82,
+          "audioSeconds": 39.1,
+          "wallClockMs": 45701
+        },
+        {
+          "id": "real-17",
+          "words": 96,
+          "audioSeconds": 49.42,
+          "wallClockMs": 59636
+        },
+        {
+          "id": "real-21",
+          "words": 110,
+          "audioSeconds": 53.45,
+          "wallClockMs": 62140
+        }
+      ]
+    },
+    {
+      "dtype": "q4",
+      "loadMs": 24331,
+      "audioSeconds": 215.02,
+      "wallSeconds": 142.4,
+      "realTimeFactor": 0.6624,
+      "wordsAMinute": 121.7,
+      "perClip": [
+        {
+          "id": "real-01",
+          "words": 20,
+          "audioSeconds": 9.57,
+          "wallClockMs": 3870
+        },
+        {
+          "id": "real-05",
+          "words": 58,
+          "audioSeconds": 27.02,
+          "wallClockMs": 12877
+        },
+        {
+          "id": "real-09",
+          "words": 70,
+          "audioSeconds": 35.63,
+          "wallClockMs": 22500
+        },
+        {
+          "id": "real-13",
+          "words": 82,
+          "audioSeconds": 39.65,
+          "wallClockMs": 33883
+        },
+        {
+          "id": "real-17",
+          "words": 96,
+          "audioSeconds": 49.7,
+          "wallClockMs": 37061
+        },
+        {
+          "id": "real-21",
+          "words": 110,
+          "audioSeconds": 53.45,
+          "wallClockMs": 32243
+        }
+      ]
+    }
+  ]
+}

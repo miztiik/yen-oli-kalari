@@ -23,7 +23,7 @@ Three rules govern this page:
   not: the same corpus read at 1.0112 on the runner and 2.576 on a laptop. A
   factor without a host attached may not be compared against the job cap.
 
-There are three records today:
+There are four records today:
 [2026-09-11 - Input volume and the price of audio](benchmarks/2026-09-11-input-volume-and-audio-cost.md)
 took the input census, and
 [2026-09-12 - Kokoro on a CI runner](benchmarks/2026-09-12-kokoro-on-a-ci-runner.md)
@@ -83,7 +83,9 @@ single readings, not a distribution.
 
 | Quantity | In force | Basis | Date |
 | --- | --- | --- | --- |
-| Real-time factor on the runner | 1.0112 | Kokoro-82M q8 via `kokoro-js`, `ubuntu-latest`, AMD EPYC 7763, 4 cores | 2026-09-12 |
+| Real-time factor on the runner, **q8** | 1.0112 | Kokoro-82M q8 via `kokoro-js`, `ubuntu-latest`, AMD EPYC 7763, 4 cores | 2026-09-12 |
+| Quantisation penalty, q8 against fp32 | **2.16x slower**, identical audio length | same corpus and machine, 2 repeats ([record](benchmarks/2026-09-12-quantisation-was-costing-not-saving.md)) | 2026-09-12 |
+| Real-time factor on the runner, **fp32** | **~0.47 - estimate** | the measured ratio applied to the measured q8 figure; not yet run on the runner | 2026-09-12 |
 | Wall-clock, median day (370 items) | 4.44 h - 74% of the cap, fits | measured factor | 2026-09-12 |
 | Wall-clock, busiest day (731 items) | 8.77 h - 146% of the cap, **busts** | measured factor | 2026-09-12 |
 | Budget RTF, one runner | 0.692 | arithmetic on the two rows above | 2026-09-12 |

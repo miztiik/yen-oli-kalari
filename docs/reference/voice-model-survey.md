@@ -115,22 +115,98 @@ today. That, not the arithmetic, is why none is a candidate yet.
 | Breeze, Fish | vocal-event tags need CFG scale 2-4 to fire, which costs a second forward pass per step and would roughly double the estimates above |
 | All four | trained for expressive multi-speaker work; this project reads fixed copy in one voice |
 
+## The systematic search, 2026-09-12
+
+The four models above were handed to this project one at a time and evaluated as
+they arrived. That is compliance with a request, not service of an intent, and it
+never asked the question that matters: **what is the best voice for reading fixed
+English news copy on a 4 vCPU CPU runner?** A systematic sweep of Hugging Face,
+the TTS Arena V2 leaderboard and 2026 arxiv answered it differently.
+
+### Kokoro is the best openly-licensed model there is
+
+**TTS Arena V2, read live 2026-09-12: Kokoro v1.0 is rank 30 of 39, Elo 1477
++/-23, 1033 votes - and it is the highest-rated model on the board flagged
+`open: true`.** The ranking is settled, being well past the 300-vote preliminary
+threshold. Everything above it is a proprietary API.
+
+Two corrections to widely repeated claims:
+
+- **The "Kokoro is #1" claim is stale and from a different arena.** It refers to
+  v0.19 in December 2024, in the smaller TTS Spaces Arena, self-reported on the
+  model's own card. It is not the current standing.
+- **There is no Kokoro paper and no published MOS.** An arxiv search returns one
+  result and it is a different model that borrows the recipe. The Elo is the only
+  hard quality number that exists.
+
+### The candidates the earlier pass never looked at
+
+| Model | Params | Arch | Licence | ONNX | Evidence |
+| --- | --- | --- | --- | --- | --- |
+| **KittenTTS nano 0.8** | **15M** | feed-forward, **same StyleTTS2 + ISTFTNet family as Kokoro** | **Apache-2.0** | native | won a blind listening test at 71.2 percent; best intelligibility of the compact set at 3.06 percent WER |
+| **Inflect-Micro-v2** | 9.36M | feed-forward VITS | **Apache-2.0** | verified fp32 export | highest UTMOS22 of the compact set at 4.395; publishes a 4-thread CPU RTF of 0.1593 |
+| KittenTTS mini 0.8 | 80M | feed-forward | Apache-2.0 | native | **size-matched to Kokoro and benchmarked nowhere** |
+| Supertonic 3 | ~99M | feed-forward flow-matching | OpenRAIL-M | native | best WER at 2.81 percent, and needs **no G2P at all** - but the repository is **archived** and the licence carries use restrictions |
+| Piper | ~15M | feed-forward VITS | **GPL-3.0**, "personal use and research only" | native | fastest measured of all - and licence-blocked |
+
+**KittenTTS nano is the strongest challenger**: same architecture family as the
+incumbent, so it is a like-for-like swap in the existing onnxruntime path, at a
+fifth of the parameters and a permissive licence.
+
+### Traps confirmed
+
+Almost every high-profile 2026 release - Qwen3-TTS, VoxCPM2, MOSS-TTS-Nano,
+Higgs, Orpheus, Sesame CSM, Dia, Zonos, IndexTTS - is autoregressive and
+publishes no CPU real-time factor. MOSS-TTS-Nano self-describes as "pure
+autoregressive" despite marketing itself for CPU and browser. Separately,
+`facebook/mms-tts-eng`, XTTS-v2, F5-TTS, E2-TTS and OuteTTS are all
+non-commercial licences.
+
+No 2026 arxiv paper ships English open weights that beat Kokoro on a
+CPU-RTF-against-quality basis. StellarTTS claims 83M at RTF 0.08 but released no
+weights.
+
 ## What would change the verdict
 
-In rough order of how much each would move it:
+In order. The first two are cheap and change everything; the rest only matter if
+those two fail.
 
-1. **Run Kokoro sharded on the runner and confirm the budget maths.** The
-   4-runner figure of 2.15 h is arithmetic on a single-runner reading, not a
-   sharded measurement. `.github/workflows/measure-voice.yml` does this.
-2. **Judge Kokoro's quality.** If the incumbent is good enough, this whole survey
-   is moot. The listening harness exists and has never been used.
-3. **Measure one AR candidate rather than estimating it.** Voxtral has the
-   strongest runtime story; building `CrispASR` and timing 24 real summaries
-   would replace four estimates with one reading.
-4. **Test whether Step-Audio-EditX converts to ONNX.** It is the only
-   Apache-2.0 candidate, so it is the only one that survives a commercial
-   question. A 3B AR backbone plus flow decoder plus HiFi-GAN is a substantial
-   conversion, so this is worth attempting only if the licence matters.
+1. **Stop using `q8`.** Measured 2026-09-12, `q8` is **2.16 times slower than
+   `fp32`** on identical audio - every voice figure this project holds was taken
+   on the slowest of three available quantisations
+   ([record](benchmarks/2026-09-12-quantisation-was-costing-not-saving.md)).
+   Applying the ratio puts the runner at about **0.47**, below the
+   single-runner budget of 0.692. This is a config change, not a model change.
+2. **Judge the incumbent's quality.** Kokoro is the highest-rated open model on
+   TTS Arena V2. If it sounds good enough, the search is over and everything
+   below is wasted work. 24 real clips exist, hazard-tagged, and nobody has
+   listened to one.
+3. **Benchmark KittenTTS nano 0.8 against it.** Same architecture family, a
+   fifth of the parameters, Apache-2.0, native ONNX, and it won a blind
+   listening test against the compact field. Benchmark **fp32**, never the int8
+   build, which upstream itself warns about.
+4. **Add an automated intelligibility gate.** An ASR round-trip - transcribe the
+   generated audio with `faster-whisper`, score against the normalised source
+   with `jiwer` - is cheap, runs on CPU, needs no reference audio, and catches
+   the failure that matters most here: a proper noun read wrongly, or a chunk
+   silently dropped.
+5. **Only then consider an AR candidate.** Voxtral has the strongest runtime
+   story of the four, but every runtime is a third-party reimplementation and
+   the incumbent has not yet been shown to be insufficient.
+
+## A silent failure mode worth knowing about
+
+Kokoro's G2P front-end, `misaki`, falls back to `espeak-ng` for words outside
+its lexicon. When espeak is unavailable it logs `EspeakFallback not Enabled: OOD
+words will be skipped` and **drops those words from the audio** rather than
+failing. For a news corpus full of unfamiliar proper nouns, that is a data-loss
+path that produces a clip which sounds fine and is missing a name.
+
+`misaki` handles `$`, `£`, `€`, `%`, cardinals, ordinals, years and acronyms. It
+does **not** handle Roman numerals or unit abbreviations - an open issue reports
+`II` read as "ai ai" and `10 m` as separate letters. The escape hatch is inline
+IPA via markdown-link syntax, `[word](/ipa/)`, which makes a curated
+pronunciation dictionary for recurring names the cheapest available quality win.
 
 ## Rejected
 

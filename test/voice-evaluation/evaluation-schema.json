@@ -2,7 +2,7 @@
   "$schema": "http://json-schema.org/draft-07/schema#",
   "$id": "https://github.com/miztiik/yen-oli-kalari/test/voice-evaluation/evaluation-schema.json",
   "title": "Voice evaluation",
-  "description": "One listener's verdict on one voice over the sample corpus. The four score dimensions are not generic audio-quality axes - each answers a question the CI-runner benchmark left open, so a filled-in evaluation closes a named gap rather than producing a number nobody asked for.",
+  "description": "One listener's verdict on one voice over the sample corpus. NOT A MOS. ITU-T P.800.2 forbids comparing mean-opinion scores across experiments, P.808 removes outliers across raters at |z|>=3.29 which one rater cannot do, and TTS Arena requires 100 votes before publishing a rating at all. This instrument is a within-harness engineering signal: a regression tripwire and a go/no-go on one voice, valid only against another run of this same harness with the same rater, instructions and playback device. It is never reported as a MOS and never compared to a published MOS. The four axes answer questions the CI-runner benchmark left open; two of them (intelligibility, prosody) map onto recognised constructs, one (seams) is a named long-form-TTS artefact, and one (pronunciation) is really text-normalisation correctness with an objective ground truth, which is why an automated ASR round-trip should eventually replace the human on that axis.",
   "type": "object",
   "required": ["schemaVersion", "ratedAt", "subject", "clips"],
   "additionalProperties": false,
@@ -67,7 +67,7 @@
               "type": ["integer", "null"],
               "minimum": 1,
               "maximum": 5,
-              "description": "Names, numbers, acronyms and tickers. The corpus is news summaries, so proper nouns are the load-bearing case and a model that reads them wrong is unusable regardless of how pleasant it sounds."
+              "description": "Names, numbers, acronyms and tickers. The corpus is news summaries, so proper nouns are the load-bearing case and a model that reads them wrong is unusable regardless of how pleasant it sounds. Unlike the other three this is NOT a perceptual judgement - it has an objective ground truth, because the text says what the words are. It sits here only until an automated ASR round-trip replaces it, and a human score on this axis should be read as a placeholder for a measurement."
             },
             "prosody": {
               "type": ["integer", "null"],
