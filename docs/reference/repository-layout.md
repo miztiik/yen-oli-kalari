@@ -32,7 +32,7 @@ already encode for when it becomes one, not a fact about the working tree today.
 | `.github/agents/` | The seven persona advisor files (andre, carmack, editor, fowler, jony, reader, susan) | a person | committed | created - 7 files |
 | `.github/scripts/` | A shell step two or more workflow jobs share | a person | committed | empty - planned |
 | `.github/workflows/` | The CI jobs: voice synthesis, publish, prune | a person | committed | empty - no workflow yet |
-| `backend/utilities/` | Standalone measurement scripts (`measure_input.py`, `price_audio.py`) | a person | committed | created - 2 scripts |
+| `backend/utilities/` | Standalone measurement scripts (`measure_input.py`, `calculate_audio_budget.py`) | a person | committed | created - 2 scripts |
 | `backend/oli/contracts/` | A Pydantic model for every persisted shape, before logic reads or writes it (Guardrail #3) | a person | committed | empty - planned |
 | `backend/oli/voices/` | The synthesis producer: read the day, voice each item, record what failed | a person | committed | empty - planned |
 | `config/` | Schema-validated tunable knobs: the caps, the codec, the prune window, voice and model refs (Guardrail #6) | a person | committed | empty - planned |

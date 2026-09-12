@@ -35,7 +35,7 @@ This is the storage-and-compute model behind the one benchmark record. It has
 the measured inputs baked in and takes no arguments.
 
 ```powershell
-python backend/utilities/price_audio.py
+python backend/utilities/calculate_audio_budget.py
 ```
 
 - **Validation:** prints the megabytes-a-day and days-until-cap tables. Every-item audio at opus@24k reads 40.0 MB a day and 26 days to fill the 1 GB Pages cap, matching [../reference/measurements.md](../reference/measurements.md).
@@ -109,7 +109,7 @@ The only project-specific gate commands that run today:
 
 ```powershell
 # the audio price model, inputs baked in
-python backend/utilities/price_audio.py
+python backend/utilities/calculate_audio_budget.py
 
 # the input census, one argument: a yen-idhazh checkout
 python backend/utilities/measure_input.py <path-to-yen-idhazh-checkout>

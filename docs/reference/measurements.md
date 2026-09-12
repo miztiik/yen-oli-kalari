@@ -54,7 +54,7 @@ only figures on this page that are measurements.
 ## Measured - audio duration and storage
 
 Arithmetic on the counts above plus the **measured** pace, from
-[`price_audio.py`](../../backend/utilities/price_audio.py). The codec in force is
+[`calculate_audio_budget.py`](../../backend/utilities/calculate_audio_budget.py). The codec in force is
 opus@24k and the scope in force is every item, because the owner ruled every item
 gets a voice and the 1 GB cap is held by an aggressive prune cycle rather than by
 voicing fewer items (2026-09-11, see the record).
@@ -77,7 +77,7 @@ the log carries only the in-force scope and codec.
 ## Compute - one runner reading, no spread
 
 Wall-clock against the 6 h job cap, from
-[`price_audio.py`](../../backend/utilities/price_audio.py) at the measured
+[`calculate_audio_budget.py`](../../backend/utilities/calculate_audio_budget.py) at the measured
 factor. **One repeat on shared hardware, so there is no spread**: these are
 single readings, not a distribution.
 

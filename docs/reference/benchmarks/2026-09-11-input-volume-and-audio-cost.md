@@ -9,7 +9,7 @@ every item can carry audio. It cannot.
 
 - Measured 2026-09-11 on a local checkout of `miztiik/yen-idhazh` at `main`,
   22 committed days (`frontend/public/digest/*/*/*/digest.json`).
-- Tools: `backend/utilities/measure_input.py`, `backend/utilities/price_audio.py`.
+- Tools: `backend/utilities/measure_input.py`, `backend/utilities/calculate_audio_budget.py`.
 - Ceilings are GitHub's, not ours: 1 GB published Pages site, 6 h a job.
 - Speaking pace is an assumption, declared: 150 words a minute, a normal
   news-read pace. Everything downstream of it is an estimate, not a measurement.
@@ -84,4 +84,4 @@ contract this project owes.
 ## See also
 
 - `backend/utilities/measure_input.py` - the item and word census.
-- `backend/utilities/price_audio.py` - the storage and wall-clock model.
+- `backend/utilities/calculate_audio_budget.py` - the storage and wall-clock model.

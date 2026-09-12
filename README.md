@@ -90,7 +90,7 @@ The daily pipeline (`python -m oli ...`) is being built. What runs today is the 
 
 ```bash
 python backend/utilities/measure_input.py <path-to-yen-idhazh-checkout>   # items a day, summary length
-python backend/utilities/price_audio.py                                   # storage and time vs the caps
+python backend/utilities/calculate_audio_budget.py                                   # storage and time vs the caps
 ```
 
 The first counts how many items arrive a day and how long their summaries are; the second prices what a day costs to store and to generate. Both print measured figures with the one assumption - the speaking pace - declared. The voice-model weights and any runtime binaries are downloaded, never committed.
