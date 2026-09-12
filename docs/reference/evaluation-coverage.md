@@ -19,9 +19,9 @@ currency, quarters, tickers and names, and a model that reads `EUR 12.5bn` as
 
 | # | Metric | State | Instrument |
 | --- | --- | --- | --- |
-| 1 | **Verbalization accuracy** - numbers, dates, decimals, currencies, units, symbols | **Test set built, never run** | [`verbalization-suite.json`](../../test/onnx-runtime-comparison/verbalization-suite.json) - 28 cases, each with the exact expected spoken form |
-| 2 | **Pronunciation accuracy** - acronyms, names, companies, URLs, initialisms | **Test set built, never run** | Same suite, categories `acronym-initialism`, `proper-noun`, `url-identifier` |
-| 3 | **Text fidelity / WER** - skipped, added or substituted words | **Not built** | Needs an ASR round-trip: `faster-whisper` to transcribe, `jiwer` to score against normalised source |
+| 1 | **Verbalization accuracy** - numbers, dates, decimals, currencies, units, symbols | **MEASURED** | [`verbalization-suite.json`](../../test/onnx-runtime-comparison/verbalization-suite.json) - 28 cases, graded by ASR in CI, reported per category |
+| 2 | **Pronunciation accuracy** - acronyms, names, companies, URLs, initialisms | **MEASURED** | Same suite, categories `acronym-initialism`, `proper-noun`, `url-identifier`, `code-switching` |
+| 3 | **Text fidelity / WER** - skipped, added or substituted words | **MEASURED** | `faster-whisper` transcribes, a token-level Levenshtein scores against the normalised source |
 
 **Why the suite is deterministic rather than a listening task.** Every case
 carries `expectedSpoken`, so it is graded against a ground truth instead of an
@@ -65,7 +65,7 @@ because the class of failure has not gone away.
 | # | Metric | State | Instrument |
 | --- | --- | --- | --- |
 | 10 | **RTF and cost** | **Measured on the production runner** | fp32 **0.4321**, q8 **1.0039** - [record](benchmarks/2026-09-12-quantisation-was-costing-not-saving.md) |
-| 11 | **Memory and CPU** | **Not measured** | Needs a peak-RSS probe around the voicing loop |
+| 11 | **Memory and CPU** | **MEASURED** | Peak resident set around the voicing loop, reported per arm |
 | 12 | **Time to first byte** | **Deliberately not measured** | Everything is built ahead of time and served as a static file. Latency to first audio is a property of a streaming service this project does not run. |
 
 **The figure that matters and how it was nearly missed.** Every reading before
@@ -87,16 +87,39 @@ added was dequantise work. The tell was visible for a day - 1.0112 against the
 | Verbalization and pronunciation accuracy | **needs an ASR pass** | suite built, unrun |
 | Peak memory | **needs a probe** | not built |
 
+## The first graded result, and what it cost to trust
+
+Supertonic, on the runner, 2026-09-13. **12.19x faster than real time** - and it
+reads `GBP 8.75m` as "8.75 bps", `08:30` as "0.830", `AI/ML` as the single word
+"AML", and `Q3 FY26` as "Q3FI26".
+
+That is the finding the whole exercise was built for. **A voice can be an order
+of magnitude faster than the incumbent and still be unusable**, and no amount of
+naturalness compensates for a currency amount read as a different unit. Speed
+was never the hard problem.
+
+**The first grading run was itself wrong, and the reason is worth keeping.** It
+reported 18.5 percent accuracy, and most of those failures were the grader's.
+Whisper re-normalises spoken numbers back into digits: a model that correctly
+says "twelve point five billion euros" is transcribed as "EUR 12.5 billion", and
+comparing that against the expected spoken form fails a model that did exactly
+the right thing. Both sides are now normalised toward words, and order is not
+required because a currency symbol is written first and spoken last.
+
+Seven behaviours are pinned in
+[`../../tests/test_verbalization_grader.py`](../../tests/test_verbalization_grader.py) -
+four where a model was right and three where it was wrong - because a grader
+nobody grades is an opinion with a percentage sign.
+
 ## The next three things, in order
 
-1. **Run the verbalization suite.** The test set exists and has never been
-   voiced. It is the highest-value unrun instrument, because it measures the
-   failure this corpus actually has.
-2. **Wire the ASR round-trip.** `faster-whisper` plus `jiwer`, in CI, scoring
-   the suite against `expectedSpoken`. That turns metrics 1, 2 and 3 from a
-   human task into a gate.
-3. **Listen to one clip.** Thirty-six exist across two runs. Nobody has heard
-   one, and no instrument above replaces that.
+1. **Listen to one clip.** Every instrument above is built and running, and
+   none of them replaces a person with headphones on. Nobody has heard one.
+2. **Grade the incumbent.** Supertonic is graded; Kokoro is not yet, so there is
+   no baseline to judge that 12x against.
+3. **Unblock the remaining runtimes.** Qwen3-TTS at 1.5 GB is the most plausible
+   autoregressive candidate on size, and KittenTTS needs an adapter over raw
+   onnxruntime because it ships no tokenizer.json.
 
 ## See also
 
