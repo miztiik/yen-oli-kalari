@@ -78,6 +78,19 @@ jobs:
       - name: Install
         run: npm ci --no-audit --no-fund
 
+      # Voicing the corpus costs 22 minutes on this runner, and the audio is
+      # deterministic: the same model at the same quantisation over the same
+      # committed corpus produces byte-identical output. So a re-publish that
+      # changes only the page does not pay for the audio again. The key carries
+      # everything that changes the audio - model, quantisations, corpus, and
+      # the builder that made it.
+      - name: Cache the voiced audio
+        id: voiced
+        uses: actions/cache@v6
+        with:
+          path: test/voice-evaluation/results
+          key: voiced-${{ inputs.quantisations }}-${{ inputs.corpus }}-${{ hashFiles('test/voice-evaluation/build-evaluation-clips.mjs', 'test/onnx-runtime-comparison/*-summaries/summaries.json') }}
+
       # Every figure carries the hardware it ran on, because wall clock is a
       # property of the machine and audio duration is not (Guardrail #10).
       - name: Record the runner
@@ -93,6 +106,7 @@ jobs:
       - name: Voice the corpus
         env:
           CORPUS: ${{ inputs.corpus }}
+        if: steps.voiced.outputs.cache-hit != 'true'
         run: |
           set -euo pipefail
           IFS=',' read -ra QUANTS <<< "${{ inputs.quantisations }}"
@@ -102,9 +116,19 @@ jobs:
           done
 
       # WAV is the synthesiser's output, not a publishing format: 24 summaries
-      # is 42 MB of it. Opus at 24k is the codec the design already chose, and
-      # it lands the same audio in roughly 3 MB. The container is `.ogg` because
-      # a bare `.opus` file is served as text/plain by some static hosts.
+      # is 42 MB of it per run. Opus at 24k is the codec the design already
+      # chose, and it lands the same audio in roughly 3 MB. The container is
+      # `.ogg` because a bare `.opus` file is served as text/plain by some
+      # static hosts.
+      #
+      # ffmpeg is not on the ubuntu-latest image, so it is installed rather than
+      # assumed. `-y` on apt only; the encode itself must not overwrite silently.
+      - name: Install ffmpeg
+        run: |
+          sudo apt-get update -qq
+          sudo apt-get install -y -qq ffmpeg
+          ffmpeg -version | head -1
+
       - name: Encode for the web
         env:
           BITRATE: ${{ inputs.bitrate }}
