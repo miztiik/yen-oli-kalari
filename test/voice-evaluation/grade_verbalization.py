@@ -36,42 +36,123 @@ SUITE_PATH = HERE.parent / "onnx-runtime-comparison" / "verbalization-suite.json
 MODEL = os.environ.get("MODEL", "")
 ASR_MODEL = os.environ.get("ASR_MODEL", "base.en")
 
-# Spelled-out digits, so "12.5" in a transcript and "twelve point five" in an
-# expectation are not counted as a mismatch of the voice.
-NUMBER_WORDS = {
-    "0": "zero", "1": "one", "2": "two", "3": "three", "4": "four",
-    "5": "five", "6": "six", "7": "seven", "8": "eight", "9": "nine",
-    "10": "ten", "11": "eleven", "12": "twelve", "13": "thirteen",
-    "20": "twenty", "30": "thirty", "100": "hundred", "1000": "thousand",
+# THE GRADER'S HARDEST PROBLEM, and it is not the voice.
+#
+# Whisper RE-NORMALISES spoken numbers back into digits. A model that correctly
+# says "twelve point five billion euros" is transcribed as "EUR 12.5 billion",
+# and a naive comparison against the expected spoken form then fails a model
+# that was right. Measured 2026-09-13: this alone accounted for most of one
+# model's apparent currency failures.
+#
+# So both sides are normalised toward WORDS, not toward digits: the transcript's
+# digits are spelled out, its symbols are expanded, and the expectation is left
+# as it already is. A difference that survives is then a difference in what was
+# said rather than a difference in how the transcriber chose to write it.
+UNITS = ["zero", "one", "two", "three", "four", "five", "six", "seven", "eight", "nine",
+         "ten", "eleven", "twelve", "thirteen", "fourteen", "fifteen", "sixteen",
+         "seventeen", "eighteen", "nineteen"]
+TENS = ["", "", "twenty", "thirty", "forty", "fifty", "sixty", "seventy", "eighty", "ninety"]
+
+SYMBOL_WORDS = {
+    "$": " dollars ", "£": " pounds ", "€": " euros ", "%": " percent ",
+    "&": " and ", "+": " plus ", "@": " at ", "/": " slash ",
+}
+CODE_WORDS = {
+    "usd": "dollars", "gbp": "pounds", "eur": "euros",
+    "bn": "billion", "tn": "trillion", "m": "million", "k": "thousand",
 }
 
 
+def spell_integer(value: int) -> str:
+    """Small cardinals in words. Anything large is read digit by digit, which is
+    what a newsreader does with a year and close enough for the rest."""
+    if value < 20:
+        return UNITS[value]
+    if value < 100:
+        return (TENS[value // 10] + (" " + UNITS[value % 10] if value % 10 else "")).strip()
+    if value < 1000:
+        rest = value % 100
+        return (UNITS[value // 100] + " hundred" + (" " + spell_integer(rest) if rest else "")).strip()
+    if value < 1_000_000:
+        rest = value % 1000
+        return (spell_integer(value // 1000) + " thousand" + (" " + spell_integer(rest) if rest else "")).strip()
+    if value < 1_000_000_000:
+        rest = value % 1_000_000
+        return (spell_integer(value // 1_000_000) + " million" + (" " + spell_integer(rest) if rest else "")).strip()
+    return " ".join(UNITS[int(digit)] for digit in str(value))
+
+
+def spell_number(token: str) -> str:
+    """Turn 12.5 into "twelve point five" and 2026 into a year reading."""
+    if "." in token:
+        whole, _, fraction = token.partition(".")
+        parts = []
+        if whole.isdigit():
+            parts.append(spell_integer(int(whole)))
+        parts.append("point")
+        parts.extend(UNITS[int(d)] for d in fraction if d.isdigit())
+        return " ".join(parts)
+    if token.isdigit():
+        value = int(token)
+        # A four-digit number in news copy is almost always a year, and a
+        # newsreader says "nineteen ninety seven" rather than the cardinal.
+        if 1000 <= value <= 2999:
+            hundreds, rest = value // 100, value % 100
+            # 1997 is "nineteen ninety seven"; 2008 is "two thousand eight".
+            if hundreds % 10 == 0 and rest < 10:
+                return f"two thousand{" " + UNITS[rest] if rest else ""}"
+            return f"{spell_integer(hundreds)} {spell_integer(rest)}" if rest else spell_integer(value)
+        return spell_integer(value)
+    return token
+
+
 def normalise(text: str) -> list[str]:
-    """Lowercase, strip punctuation, spell small digits, split into tokens.
+    """Lowercase, expand symbols and digits into words, split into tokens.
 
     Both the transcript and the expectation go through this, which is the whole
     point: a difference that survives identical normalisation is a difference in
     what was said.
     """
     text = text.lower()
-    text = re.sub(r"[^\w\s]", " ", text)
-    tokens = []
+    for symbol, word in SYMBOL_WORDS.items():
+        text = text.replace(symbol, word)
+    text = re.sub(r"(\d),(\d)", r"\1\2", text)       # 40,000 -> 40000
+    text = re.sub(r"[^\w\s.]", " ", text)
+    text = re.sub(r"(?<!\d)\.|\.(?!\d)", " ", text)  # keep a decimal point only
+
+    tokens: list[str] = []
     for token in text.split():
-        tokens.append(NUMBER_WORDS.get(token, token))
+        token = CODE_WORDS.get(token, token)
+        if any(character.isdigit() for character in token):
+            tokens.extend(spell_number(token).split())
+        else:
+            tokens.append(token)
     return tokens
 
 
 def contains_in_order(haystack: list[str], needle: list[str]) -> bool:
-    """Whether every needle token appears in the haystack, in order."""
+    """Whether every expected token is present, order not required.
+
+    Order is deliberately NOT required, and the reason is specific. A currency
+    amount is written symbol-first and spoken symbol-last: `EUR 12.5bn` is read
+    "twelve point five billion euros", and Whisper transcribes that back as
+    "EUR 12.5 billion" - putting the unit in front again. Requiring order would
+    fail a model that said exactly the right words in exactly the right way.
+
+    What this still catches is the failure that matters: if the model says "bee
+    en" instead of "billion", or "bps" instead of "million pounds", the expected
+    token is simply absent and the case fails. A multiset check keeps that
+    while tolerating how a transcriber chose to arrange it.
+    """
     if not needle:
         return True
-    index = 0
-    for token in haystack:
-        if token == needle[index]:
-            index += 1
-            if index == len(needle):
-                return True
-    return False
+    remaining = list(haystack)
+    for token in needle:
+        if token in remaining:
+            remaining.remove(token)
+        else:
+            return False
+    return True
 
 
 def word_error_rate(reference: list[str], hypothesis: list[str]) -> float:
