@@ -1,0 +1,11 @@
+{
+  "name": "voice-evaluation-sample-builder",
+  "private": true,
+  "type": "module",
+  "description": "Generates audio clips from the sample corpus so a person can listen and judge them.",
+  "scripts": {
+    "build-clips": "node build-evaluation-clips.mjs && node build-page-manifest.mjs",
+    "build-page": "node build-page-manifest.mjs"
+  },
+  "dependencies": { "kokoro-js": "^1.2.1" }
+}

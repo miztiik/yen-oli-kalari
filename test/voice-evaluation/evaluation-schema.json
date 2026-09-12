@@ -1,0 +1,116 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "https://github.com/miztiik/yen-oli-kalari/test/voice-evaluation/evaluation-schema.json",
+  "title": "Voice evaluation",
+  "description": "One listener's verdict on one voice over the sample corpus. The four score dimensions are not generic audio-quality axes - each answers a question the CI-runner benchmark left open, so a filled-in evaluation closes a named gap rather than producing a number nobody asked for.",
+  "type": "object",
+  "required": ["schemaVersion", "ratedAt", "subject", "clips"],
+  "additionalProperties": false,
+  "properties": {
+    "schemaVersion": {
+      "type": "string",
+      "description": "The date this schema shape was fixed. A reader that does not know this version must refuse the file rather than guess.",
+      "const": "2026-09-12"
+    },
+    "ratedAt": { "type": "string", "format": "date-time" },
+    "rater": {
+      "type": "string",
+      "description": "Who listened. A verdict with no name behind it cannot be followed up, and two raters disagreeing is a finding rather than a problem."
+    },
+    "listeningConditions": {
+      "type": "string",
+      "description": "Headphones, laptop speakers, phone. The same clip is a different clip on each, so the condition is part of the reading.",
+      "enum": ["headphones", "laptop-speakers", "external-speakers", "phone", "unstated"]
+    },
+    "subject": {
+      "type": "object",
+      "description": "What was listened to. Copied from the clip manifest so an evaluation stands alone once the clips are gone.",
+      "required": ["model", "voice"],
+      "additionalProperties": false,
+      "properties": {
+        "model": { "type": "string" },
+        "voice": { "type": "string" },
+        "quantisation": { "type": "string" },
+        "library": { "type": "string" },
+        "maxWordsAChunk": { "type": "integer" },
+        "sampleRate": { "type": "integer" }
+      }
+    },
+    "clips": {
+      "type": "array",
+      "items": { "$ref": "#/definitions/clipVerdict" }
+    }
+  },
+  "definitions": {
+    "clipVerdict": {
+      "type": "object",
+      "required": ["id"],
+      "additionalProperties": false,
+      "properties": {
+        "id": { "type": "string" },
+        "verdict": {
+          "description": "The one answer the project actually needs. null means not yet judged, which is different from a reject and must never be counted as one.",
+          "enum": ["publishable", "borderline", "reject", null]
+        },
+        "scores": {
+          "type": "object",
+          "description": "Five-point scales. 3 is the pass mark: a 3 ships, a 2 does not.",
+          "additionalProperties": false,
+          "properties": {
+            "intelligibility": {
+              "type": ["integer", "null"],
+              "minimum": 1,
+              "maximum": 5,
+              "description": "Could every word be made out without replaying? Answers the benchmark's open question of whether the audio is good enough to publish at all."
+            },
+            "pronunciation": {
+              "type": ["integer", "null"],
+              "minimum": 1,
+              "maximum": 5,
+              "description": "Names, numbers, acronyms and tickers. The corpus is news summaries, so proper nouns are the load-bearing case and a model that reads them wrong is unusable regardless of how pleasant it sounds."
+            },
+            "prosody": {
+              "type": ["integer", "null"],
+              "minimum": 1,
+              "maximum": 5,
+              "description": "Sentence rhythm, emphasis and pauses. Does it read like a person reading news, or like a list of words?"
+            },
+            "seams": {
+              "type": ["integer", "null"],
+              "minimum": 1,
+              "maximum": 5,
+              "description": "Are the chunk joins audible? The pipeline splits every summary over 40 words, so a seam is an artefact this project creates and therefore one it owns. 5 means no join could be heard."
+            }
+          }
+        },
+        "defects": {
+          "type": "array",
+          "description": "Where it went wrong, timestamped. This is what turns 'sounds a bit off' into something that can be fixed - a defect without a timestamp cannot be found again.",
+          "items": {
+            "type": "object",
+            "required": ["kind", "atSeconds"],
+            "additionalProperties": false,
+            "properties": {
+              "kind": {
+                "enum": [
+                  "mispronunciation",
+                  "audible-seam",
+                  "truncation",
+                  "artifact",
+                  "wrong-pace",
+                  "wrong-emphasis",
+                  "other"
+                ]
+              },
+              "atSeconds": { "type": "number", "minimum": 0 },
+              "heard": { "type": "string", "description": "What the listener heard." },
+              "expected": { "type": "string", "description": "What the text says it should have been." },
+              "note": { "type": "string" }
+            }
+          }
+        },
+        "note": { "type": "string" }
+      }
+    }
+  }
+}

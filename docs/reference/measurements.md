@@ -1,6 +1,6 @@
 # Measurements
 
-**Last Updated**: 2026-09-11
+**Last Updated**: 2026-09-12
 
 The instrument log: the figure now in force for each quantity the audio design
 rests on, with the date it was taken, what took it, and a link to the record
@@ -13,18 +13,24 @@ Three rules govern this page:
   frozen record under `benchmarks/`, named for what it measured and the date;
   this page carries the one figure in force and links to it. The naming rule is
   in [documentation-structure.md](documentation-structure.md).
-- **A figure that rests on the speaking-pace assumption is an estimate, and its
-  row says so.** The whole audio-cost model hangs off 150 words a minute, which
-  is an assumption and not a measurement. A model that speaks at 130 words a
-  minute moves every estimate below by about 15 percent.
-- **No model has run on the target runner**, so every real-time-factor figure is
-  a what-if and not a reading.
+- **The speaking pace is now measured, and the figures that rest on it are no
+  longer estimates.** It was assumed at 150 words a minute until 2026-09-12,
+  when a model read the corpus on the runner at **129.5**. Every byte and hour
+  figure below was re-taken at the measured pace; the superseded values are in
+  the earlier record, not here.
+- **A real-time factor names the machine that read it.** Audio duration and pace
+  are host-independent because the model is deterministic, but wall clock is
+  not: the same corpus read at 1.0112 on the runner and 2.576 on a laptop. A
+  factor without a host attached may not be compared against the job cap.
 
-There is exactly one record today:
-[2026-09-11 - Input volume and the price of audio](benchmarks/2026-09-11-input-volume-and-audio-cost.md).
-Every figure below comes from it. The measured counts were taken over 22
-committed yen-idhazh digest days on a developer machine; a count of items, words
-or bytes travels and names no machine, so none is stated.
+There are two records today:
+[2026-09-11 - Input volume and the price of audio](benchmarks/2026-09-11-input-volume-and-audio-cost.md)
+took the input census, and
+[2026-09-12 - Kokoro on a CI runner](benchmarks/2026-09-12-kokoro-on-a-ci-runner.md)
+took the pace and the first runner reading, superseding the first record's
+derived figures. The measured counts were taken over 22 committed yen-idhazh
+digest days on a developer machine; a count of items, words or bytes travels and
+names no machine, so none is stated.
 
 ## Measured - the input census
 
@@ -43,41 +49,47 @@ only figures on this page that are measurements.
 | Words a summary, p90 | 132 words | `measure_input.py` | 2026-09-11 |
 | Words a summary, max | 242 words | `measure_input.py` | 2026-09-11 |
 
-## Estimated - audio duration and storage
+## Measured - audio duration and storage
 
-Arithmetic on the counts above plus the assumed pace, from
+Arithmetic on the counts above plus the **measured** pace, from
 [`price_audio.py`](../../backend/utilities/price_audio.py). The codec in force is
 opus@24k and the scope in force is every item, because the owner ruled every item
 gets a voice and the 1 GB cap is held by an aggressive prune cycle rather than by
-voicing fewer items (2026-09-11, see the record). **Every row here is an estimate
-that rests on the 150-words-a-minute assumption.**
+voicing fewer items (2026-09-11, see the record).
 
 | Quantity | In force | Basis | Date |
 | --- | --- | --- | --- |
-| Speaking pace | 150 words/minute | **assumption, not measured** - the load-bearing input | 2026-09-11 |
-| Speech, one mean 90-word item | about 36 seconds | estimate on the 150 wpm assumption | 2026-09-11 |
-| Speech, a median day (370 items) | 222 minutes (3.7 hours) | estimate on the 150 wpm assumption | 2026-09-11 |
-| Storage, every item at opus@24k | 40.0 MB a day | estimate on the 150 wpm assumption | 2026-09-11 |
-| Days to fill the 1 GB Pages cap, every item at opus@24k | 26 days | estimate; **the binding constraint** | 2026-09-11 |
+| Speaking pace | 129.5 words/minute | **measured** on the runner - the load-bearing input | 2026-09-12 |
+| Speech, one mean 90-word item | about 41.8 seconds | measured pace | 2026-09-12 |
+| Speech, a median day (370 items) | 257.7 minutes (4.3 hours) | measured pace | 2026-09-12 |
+| Speech, the busiest day (731 items) | 509.2 minutes (8.5 hours) | measured pace | 2026-09-12 |
+| Storage, every item at opus@24k | 46.4 MB a day | measured pace; modelled encoder | 2026-09-12 |
+| Days to fill the 1 GB Pages cap, every item at opus@24k | 22 days | **the binding constraint** | 2026-09-12 |
 
-Storage is the binding constraint, not compute: at 40 MB a day the published
-site is full in 26 days, which is why the prune cycle is load-bearing. The record
-holds the same figures for the other codecs (opus@16k, opus@32k, mp3@64k) and the
-narrower scopes (top 50, 20, 10); those are alternatives the owner ruling did not
-take, so the log carries only the in-force scope and codec.
+Storage is the binding constraint: at 46 MB a day the published site is full in
+22 days, which is why the prune cycle is load-bearing. The record holds the same
+figures for the other codecs (opus@16k, opus@32k, mp3@64k) and the narrower
+scopes (top 50, 20, 10); those are alternatives the owner ruling did not take, so
+the log carries only the in-force scope and codec.
 
-## Compute - a what-if until the runner speaks
+## Compute - one runner reading, no spread
 
 Wall-clock against the 6 h job cap, from
-[`price_audio.py`](../../backend/utilities/price_audio.py). No text-to-speech
-model has run on `ubuntu-latest`, so the real-time factor is chosen, not read.
-**Every row here is a what-if, and also rests on the 150 wpm assumption.**
+[`price_audio.py`](../../backend/utilities/price_audio.py) at the measured
+factor. **One repeat on shared hardware, so there is no spread**: these are
+single readings, not a distribution.
 
 | Quantity | In force | Basis | Date |
 | --- | --- | --- | --- |
-| Wall-clock, every item at RTF 1.0 | 3.71 h - under the 6 h cap | what-if; no runner reading | 2026-09-11 |
-| Wall-clock, every item at RTF 3.0 | 11.12 h - busts the 6 h cap | what-if; the only scope and factor that busts | 2026-09-11 |
-| Real-time factor on the runner | unmeasured | no model has run on `ubuntu-latest` | 2026-09-11 |
+| Real-time factor on the runner | 1.0112 | Kokoro-82M q8 via `kokoro-js`, `ubuntu-latest`, AMD EPYC 7763, 4 cores | 2026-09-12 |
+| Wall-clock, median day (370 items) | 4.34 h - 72% of the cap, fits | measured factor | 2026-09-12 |
+| Wall-clock, busiest day (731 items) | 8.58 h - 143% of the cap, **busts** | measured factor | 2026-09-12 |
+| Factor needed to fit the busiest day | 0.707 or better - 1.43x faster | arithmetic on the two rows above | 2026-09-12 |
+| Real-time factor on a developer laptop | 2.576 - **not comparable to the cap** | same model and corpus, Intel i7-1265U | 2026-09-12 |
+
+The laptop row is here so it is never mistaken for a runner reading. It is 2.55
+times slower on identical work, which is close enough to look plausible and far
+enough to price the design on hardware it will never run on.
 
 ## Still unmeasured
 
@@ -86,11 +98,13 @@ design decision.
 
 | Quantity | Current basis | What settles it |
 | --- | --- | --- |
-| Speaking pace of a real voice model | assumed 150 wpm | run the chosen text-to-speech model and time its output against the word count |
-| Real-time factor on `ubuntu-latest` | unmeasured; RTF figures above are what-ifs | run the model on the runner and read wall-clock against audio seconds produced |
+| Whether the audio is good enough to publish | unjudged | listen to the clips beside their source text and score them ([`../../test/voice-evaluation`](../../test/voice-evaluation/README.md)) |
+| Spread on the runner real-time factor | one repeat, no spread | run the same corpus several times on `ubuntu-latest` and read the distribution |
+| Whether a faster library changes the factor | one library measured | run `@huggingface/transformers` over the same weights, the comparison's other arm |
 | Bytes per clip from a real encoder | modelled as bitrate times duration | encode real speech at opus@24k and measure the file |
 | Opus bitrate for acceptable speech quality | untested | encode and listen at 16k, 24k, 32k |
 | Steady-state site size under every-item plus prune | not built | run the prune cycle over several published days and weigh the tree |
+| Pace and factor of any production candidate | only the reference model has run | the pace is model-specific and must be re-measured, never carried across |
 
 ## How to add a row here
 
@@ -103,7 +117,9 @@ record where it is.
 
 ## See also
 
-- [2026-09-11 - Input volume and the price of audio](benchmarks/2026-09-11-input-volume-and-audio-cost.md) - the one record behind every figure here.
+- [2026-09-12 - Kokoro on a CI runner](benchmarks/2026-09-12-kokoro-on-a-ci-runner.md) - the run that measured the pace and the first runner factor.
+- [2026-09-11 - Input volume and the price of audio](benchmarks/2026-09-11-input-volume-and-audio-cost.md) - the input census, and the derived figures the run above superseded.
+- [../../test/voice-evaluation/README.md](../../test/voice-evaluation/README.md) - the listening harness that will settle whether the audio is good enough to publish.
 - [documentation-structure.md](documentation-structure.md) - why a run gets its own record and never the log's name.
 - [../how-to/run-the-gates.md](../how-to/run-the-gates.md) - how to re-run the two scripts that took these figures.
 - [repository-layout.md](repository-layout.md) - where the caps these numbers measure are enforced.

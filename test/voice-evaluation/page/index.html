@@ -1,0 +1,193 @@
+<!doctype html>
+<html lang="en" data-theme="dark">
+	<head>
+		<meta charset="utf-8" />
+		<meta name="viewport" content="width=device-width, initial-scale=1" />
+		<title>Voice evaluation - yen-oli-kalari</title>
+		<link rel="stylesheet" href="styles.css" />
+	</head>
+	<body>
+		<header class="masthead">
+			<div class="frame">
+				<h1 class="wordmark">Voice evaluation</h1>
+				<p class="tagline">
+					Speed is not quality. The benchmarks say how fast a voice runs and then throw the audio
+					away &mdash; this page keeps it, beside the text it was made from, so the judgement can be
+					made by a person with headphones on.
+				</p>
+				<div class="subject-bar">
+					<span>Model <code id="subject-model">&mdash;</code></span>
+					<span>Voice <code id="subject-voice">&mdash;</code></span>
+					<span>Chunked at <code id="subject-chunk">&mdash;</code> words</span>
+					<span>Built <code id="subject-built">&mdash;</code></span>
+					<button class="theme-toggle" id="theme-toggle" type="button">Light</button>
+				</div>
+
+				<nav class="tabs" role="tablist" aria-label="Evaluation sections">
+					<button class="tab" role="tab" id="tab-listen" aria-controls="panel-listen" aria-selected="true">
+						Listen &amp; score
+					</button>
+					<button class="tab" role="tab" id="tab-measure" aria-controls="panel-measure" aria-selected="false">
+						Measurements
+					</button>
+					<button class="tab" role="tab" id="tab-schema" aria-controls="panel-schema" aria-selected="false">
+						What is being asked
+					</button>
+				</nav>
+			</div>
+		</header>
+
+		<main class="frame">
+			<!-- ---------------------------------------------------------------- -->
+			<section class="panel" role="tabpanel" id="panel-listen" aria-labelledby="tab-listen">
+				<div class="metrics" id="verdict-metrics"></div>
+				<ul class="clip-list" id="clip-list"></ul>
+
+				<div class="export-bar">
+					<input
+						id="rater"
+						type="text"
+						placeholder="Your name"
+						aria-label="Rater name"
+						autocomplete="name"
+					/>
+					<select id="conditions" aria-label="Listening conditions">
+						<option value="headphones">Headphones</option>
+						<option value="laptop-speakers">Laptop speakers</option>
+						<option value="external-speakers">External speakers</option>
+						<option value="phone">Phone</option>
+						<option value="unstated">Unstated</option>
+					</select>
+					<button id="export" type="button">Download evaluation</button>
+					<button id="reset" class="secondary" type="button">Clear all scores</button>
+					<span class="export-status" id="export-status"></span>
+				</div>
+			</section>
+
+			<!-- ---------------------------------------------------------------- -->
+			<section class="panel" role="tabpanel" id="panel-measure" aria-labelledby="tab-measure" hidden>
+				<p class="host-note" id="host-note"></p>
+				<div class="metrics" id="run-metrics"></div>
+
+				<div class="chart-panel">
+					<h2 class="chart-panel__title">Real-time factor by summary length</h2>
+					<p class="chart-panel__why" id="chart-rtf-why"></p>
+					<div class="chart" id="chart-rtf"></div>
+				</div>
+
+				<div class="chart-panel">
+					<h2 class="chart-panel__title">Speaking pace by summary length</h2>
+					<p class="chart-panel__why">
+						Pace decides how many bytes a day costs, because a slower voice says the same words over
+						more seconds. The marked line is the aggregate this corpus measured. A pace that drifts
+						with length would mean the figure cannot be carried across the corpus as one number.
+					</p>
+					<div class="chart" id="chart-wpm"></div>
+				</div>
+
+				<div class="chart-panel">
+					<h2 class="chart-panel__title">Every clip</h2>
+					<p class="chart-panel__why">
+						The reading behind the charts. Chunks are the count the pipeline split a summary into;
+						each one pays a fixed cost, which is the likeliest reason the shortest sample is the
+						slowest in real-time terms.
+					</p>
+					<div class="prose"><table id="measure-table"></table></div>
+				</div>
+			</section>
+
+			<!-- ---------------------------------------------------------------- -->
+			<section class="panel prose" role="tabpanel" id="panel-schema" aria-labelledby="tab-schema" hidden>
+				<h2>Four scores, four open questions</h2>
+				<p>
+					These are not generic audio-quality axes. Each one closes a gap the CI-runner benchmark
+					left open in writing, so a filled-in evaluation answers a question somebody already asked
+					rather than producing a number nobody wanted. Three is the pass mark: a three ships, a two
+					does not.
+				</p>
+				<table>
+					<thead>
+						<tr><th>Score</th><th>The question it closes</th></tr>
+					</thead>
+					<tbody>
+						<tr>
+							<td><b>Intelligibility</b></td>
+							<td>Could every word be made out without replaying? The benchmark says nothing yet about whether the audio is good enough to publish at all.</td>
+						</tr>
+						<tr>
+							<td><b>Pronunciation</b></td>
+							<td>Names, numbers, acronyms, tickers. The corpus is news summaries, so proper nouns are the load-bearing case &mdash; a voice that reads them wrong is unusable however pleasant it sounds.</td>
+						</tr>
+						<tr>
+							<td><b>Prosody</b></td>
+							<td>Sentence rhythm, emphasis, pauses. Does it read like a person reading news, or like a list of words?</td>
+						</tr>
+						<tr>
+							<td><b>Seams</b></td>
+							<td>Are the chunk joins audible? The pipeline splits every summary over forty words, so a seam is an artefact this project creates and therefore one it owns. Five means no join could be heard.</td>
+						</tr>
+					</tbody>
+				</table>
+
+				<h2>Defects carry a timestamp</h2>
+				<p>
+					A note saying &ldquo;sounds a bit off&rdquo; cannot be acted on. A defect pinned to
+					<code>at 12.4s</code> with what was heard and what was expected can be found again, fixed,
+					and checked. The <b>Mark</b> button stamps the dock&rsquo;s current position, so the way to
+					log one is to listen until it happens and press it.
+				</p>
+
+				<h2>Where the scores go</h2>
+				<p>
+					Nothing leaves this page on its own. Scores persist to this browser&rsquo;s local storage as
+					you work, and <b>Download evaluation</b> writes a JSON file shaped by
+					<code>evaluation-schema.json</code>. That file is the artefact &mdash; it stands alone once
+					the clips are gone, because it copies the subject it judged.
+				</p>
+
+				<h2>What this page is not</h2>
+				<p>
+					It does not drive CI and it is not the published Listen surface. It reuses that
+					surface&rsquo;s component vocabulary &mdash; one docked player rather than one per row, the
+					<code>ProgressTrack</code> groove, the inherited tokens &mdash; so what is learned here
+					transfers instead of being thrown away.
+				</p>
+			</section>
+		</main>
+
+		<!-- PlayerDock: exactly one player, shared. A median day is 370 rows and a
+		     max day 731, so a player per row is a wall of media elements. -->
+		<div class="dock">
+			<div class="frame dock__inner">
+				<div class="dock__head">
+					<button id="prev" type="button" aria-label="Previous clip" disabled>&#9664;&#9664;</button>
+					<button id="toggle" type="button" aria-label="Play or pause" disabled>&#9654;</button>
+					<button id="next" type="button" aria-label="Next clip" disabled>&#9654;&#9654;</button>
+					<span class="dock__title" id="dock-title" data-idle="true">Nothing playing</span>
+					<span class="dock__slow" id="dock-slow" hidden>Fetching audio&hellip;</span>
+					<label class="dock__advance">
+						<input type="checkbox" id="auto-advance" checked />
+						Auto-advance
+					</label>
+					<button id="mark" type="button" title="Mark a defect at the current position" disabled>
+						&#9873;
+					</button>
+				</div>
+				<div class="track" id="track" role="slider" tabindex="0" aria-label="Seek"
+					aria-valuemin="0" aria-valuemax="100" aria-valuenow="0">
+					<div class="track__buffered" id="track-buffered"></div>
+					<div class="track__elapsed" id="track-elapsed"></div>
+				</div>
+				<div class="dock__times">
+					<span id="time-now">0:00</span>
+					<span id="time-total">0:00</span>
+				</div>
+			</div>
+		</div>
+
+		<audio id="audio" preload="none"></audio>
+
+		<script src="manifest.js"></script>
+		<script src="app.js"></script>
+	</body>
+</html>

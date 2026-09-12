@@ -1,0 +1,175 @@
+{
+  "schemaVersion": "2026-09-12",
+  "library": "kokoro-js@^1.2.1",
+  "model": "onnx-community/Kokoro-82M-v1.0-ONNX (q8)",
+  "startedAt": "2026-09-12T00:01:06.929Z",
+  "runner": {
+    "node": "v24.20.0",
+    "platform": "linux 6.17.0-1022-azure",
+    "cpuModel": "AMD EPYC 7763 64-Core Processor",
+    "cpuCount": 4,
+    "totalMemoryMb": 15990
+  },
+  "modelLoad": {
+    "wallClockMs": 1844
+  },
+  "chunking": {
+    "maxWordsAChunk": 40,
+    "totalChunks": 42
+  },
+  "clips": [
+    {
+      "id": "sample-01",
+      "words": 20,
+      "chunks": 1,
+      "audioSeconds": 9.475,
+      "wallClockMs": 11359,
+      "realTimeFactor": 1.1988,
+      "wordsAMinute": 126.6,
+      "bytes": 909600,
+      "peakMemoryMb": 614
+    },
+    {
+      "id": "sample-02",
+      "words": 54,
+      "chunks": 2,
+      "audioSeconds": 25.975,
+      "wallClockMs": 26404,
+      "realTimeFactor": 1.0165,
+      "wordsAMinute": 124.7,
+      "bytes": 2493600,
+      "peakMemoryMb": 671
+    },
+    {
+      "id": "sample-03",
+      "words": 62,
+      "chunks": 2,
+      "audioSeconds": 29.2,
+      "wallClockMs": 29390,
+      "realTimeFactor": 1.0065,
+      "wordsAMinute": 127.4,
+      "bytes": 2803200,
+      "peakMemoryMb": 733
+    },
+    {
+      "id": "sample-04",
+      "words": 68,
+      "chunks": 2,
+      "audioSeconds": 28.925,
+      "wallClockMs": 28925,
+      "realTimeFactor": 1,
+      "wordsAMinute": 141.1,
+      "bytes": 2776800,
+      "peakMemoryMb": 734
+    },
+    {
+      "id": "sample-05",
+      "words": 73,
+      "chunks": 3,
+      "audioSeconds": 37.3,
+      "wallClockMs": 37701,
+      "realTimeFactor": 1.0108,
+      "wordsAMinute": 117.4,
+      "bytes": 3580800,
+      "peakMemoryMb": 741
+    },
+    {
+      "id": "sample-06",
+      "words": 80,
+      "chunks": 3,
+      "audioSeconds": 39.275,
+      "wallClockMs": 39340,
+      "realTimeFactor": 1.0017,
+      "wordsAMinute": 122.2,
+      "bytes": 3770400,
+      "peakMemoryMb": 897
+    },
+    {
+      "id": "sample-07",
+      "words": 89,
+      "chunks": 3,
+      "audioSeconds": 43.1,
+      "wallClockMs": 43204,
+      "realTimeFactor": 1.0024,
+      "wordsAMinute": 123.9,
+      "bytes": 4137600,
+      "peakMemoryMb": 899
+    },
+    {
+      "id": "sample-08",
+      "words": 100,
+      "chunks": 3,
+      "audioSeconds": 45.75,
+      "wallClockMs": 45528,
+      "realTimeFactor": 0.9951,
+      "wordsAMinute": 131.1,
+      "bytes": 4392000,
+      "peakMemoryMb": 899
+    },
+    {
+      "id": "sample-09",
+      "words": 111,
+      "chunks": 4,
+      "audioSeconds": 51.175,
+      "wallClockMs": 51327,
+      "realTimeFactor": 1.003,
+      "wordsAMinute": 130.1,
+      "bytes": 4912800,
+      "peakMemoryMb": 949
+    },
+    {
+      "id": "sample-10",
+      "words": 121,
+      "chunks": 5,
+      "audioSeconds": 54.95,
+      "wallClockMs": 56017,
+      "realTimeFactor": 1.0194,
+      "wordsAMinute": 132.1,
+      "bytes": 5275200,
+      "peakMemoryMb": 949
+    },
+    {
+      "id": "sample-11",
+      "words": 134,
+      "chunks": 5,
+      "audioSeconds": 63.25,
+      "wallClockMs": 63554,
+      "realTimeFactor": 1.0048,
+      "wordsAMinute": 127.1,
+      "bytes": 6072000,
+      "peakMemoryMb": 1120
+    },
+    {
+      "id": "sample-12",
+      "words": 242,
+      "chunks": 9,
+      "audioSeconds": 106.375,
+      "wallClockMs": 107964,
+      "realTimeFactor": 1.0149,
+      "wordsAMinute": 136.5,
+      "bytes": 10212000,
+      "peakMemoryMb": 1135
+    }
+  ],
+  "totals": {
+    "clipCount": 12,
+    "words": 1154,
+    "audioSeconds": 534.75,
+    "wallClockMs": 540713,
+    "bytes": 51336000,
+    "peakMemoryMb": 1135
+  },
+  "realTimeFactor": {
+    "median": 1.0065,
+    "p90": 1.0194,
+    "max": 1.1988,
+    "min": 0.9951
+  },
+  "wordsAMinute": {
+    "median": 127.4,
+    "p90": 136.5,
+    "max": 141.1,
+    "min": 117.4
+  },
+  "aggregateRealTimeFactor": 1.0112
+}

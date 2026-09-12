@@ -1,23 +1,32 @@
 """Price the audio: storage and runner time against the ceilings GitHub sets.
 
 Answers two questions the audio design cannot proceed without. How many bytes a
-day does voicing cost, and how long does making them take? Storage turns out to
-be the binding constraint: at opus@24k a median day is about 40 MB, which fills
-the 1 GB published site in 26 days, while compute only busts the 6 h job cap at
-a real-time factor of 3.0 and above.
+day does voicing cost, and how long does making them take? Storage is the
+binding constraint: at opus@24k a median day is about 46 MB, which fills the
+1 GB published site in 22 days. Compute is a real constraint too - at the
+measured real-time factor of 1.0112 the busiest observed day does not fit inside
+one 6 h job.
 
 Usage:
     python backend/utilities/price_audio.py
 
-Inputs are measured, not estimated - 2026-09-11, over 22 committed days of
+Every input is measured. The item census is 2026-09-11 over 22 committed days of
 yen-idhazh digests (8,772 items, mean 90.2 words a summary). The speaking pace
-is the one assumption, and it is declared. Ceilings are GitHub's: a 1 GB
-published Pages site and 6 h a job.
+was an assumption until 2026-09-12, when Kokoro-82M on the production runner read
+the same corpus at 129.5 words a minute - 13.7 percent slower than the 150 that
+had been assumed, which makes the same text take 15.8 percent longer to say.
+Ceilings are GitHub's: a 1 GB published Pages site and 6 h a job.
 """
 
 MEDIAN_ITEMS_A_DAY = 370
+BUSIEST_ITEMS_A_DAY = 731
 MEAN_WORDS_A_SUMMARY = 90.2
-WORDS_PER_MINUTE = 150  # assumption: a normal news-read pace
+
+# Measured 2026-09-12 on the production runner, not assumed. Changing this moves
+# every byte and hour figure below, which is why the reading that set it is
+# named: docs/reference/benchmarks/2026-09-12-kokoro-on-a-ci-runner.md.
+WORDS_PER_MINUTE = 129.5
+MEASURED_REAL_TIME_FACTOR = 1.0112
 
 # Codec bitrates in kbps, mono, speech.
 CODEC_BITRATES_KBPS = {"opus@16k": 16, "opus@24k": 24, "opus@32k": 32, "mp3@64k": 64}
@@ -35,7 +44,7 @@ SCOPES = [
 
 
 def compute_speech_seconds_an_item():
-    """Return how long one summary takes to speak at the assumed pace."""
+    """Return how long one summary takes to speak at the measured pace."""
     return MEAN_WORDS_A_SUMMARY / WORDS_PER_MINUTE * 60
 
 
@@ -103,11 +112,37 @@ def print_wall_clock_table():
         print()
 
 
+def print_measured_verdict():
+    """Print the median and busiest day at the pace and factor actually measured.
+
+    The table above sweeps a range of real-time factors because none had been
+    measured when it was written. One has been now, so this states the answer
+    rather than leaving the reader to find their column.
+    """
+    print(f"\n--- at the measured factor of {MEASURED_REAL_TIME_FACTOR} ---")
+    bitrate_kbps = CODEC_BITRATES_KBPS[BUDGET_CODEC]
+    for label, item_count in (
+        ("median day", MEDIAN_ITEMS_A_DAY),
+        ("busiest day", BUSIEST_ITEMS_A_DAY),
+    ):
+        hours = compute_wall_clock_hours(item_count, MEASURED_REAL_TIME_FACTOR)
+        share = hours / JOB_CAP_H * 100
+        fits = "fits" if hours < JOB_CAP_H else "BUSTS"
+        print(
+            f"{label:<14}{item_count:>5} items"
+            f"{compute_speech_minutes_a_day(item_count):>8.1f} min"
+            f"{compute_megabytes_a_day(item_count, bitrate_kbps):>8.1f} MB"
+            f"{hours:>8.2f}h  {share:>5.0f}% of cap  {fits}"
+        )
+
+
 def main():
+    print(f"speaking pace = {WORDS_PER_MINUTE} wpm (measured 2026-09-12)")
     print(f"seconds of audio per item = {compute_speech_seconds_an_item():.1f}")
     print_storage_table()
     print_days_until_cap()
     print_wall_clock_table()
+    print_measured_verdict()
 
 
 if __name__ == "__main__":
