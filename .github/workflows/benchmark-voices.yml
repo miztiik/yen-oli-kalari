@@ -46,7 +46,7 @@ jobs:
         run: |
           set -euo pipefail
           if [ "${{ inputs.models }}" = "all" ]; then
-            MATRIX=$(node -e "import('./test/voice-evaluation/adapters.mjs').then(m=>console.log(JSON.stringify(Object.keys(m.ADAPTERS))))")
+            MATRIX=$(node -e "import('./test/voice-evaluation/adapters.mjs').then(m=>console.log(JSON.stringify(m.enabledModels())))")
           else
             MATRIX=$(echo '${{ inputs.models }}' | tr ',' '\n' | jq -R . | jq -sc .)
           fi
@@ -110,10 +110,11 @@ jobs:
         if: always()
         run: |
           set -euo pipefail
-          F="results/${{ matrix.model }}/manifest.json"
-          [ -f "$F" ] || { echo "### ${{ matrix.model }} produced no manifest" >> "$GITHUB_STEP_SUMMARY"; exit 0; }
+          MANIFEST="results/${{ matrix.model }}/manifest.json"
+          [ -f "$MANIFEST" ] || { echo "### ${{ matrix.model }} produced no manifest" >> "$GITHUB_STEP_SUMMARY"; exit 0; }
+          export MANIFEST
           node -e "
-            const m = require('./' + process.env.F);
+            const m = require('./' + process.env.MANIFEST);
             const x = m.metrics;
             const row = (k, v) => console.log('| ' + k + ' | ' + v + ' |');
             console.log('### ' + m.model + '  \`' + m.runtime + '\`');

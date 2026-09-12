@@ -23,7 +23,7 @@
 import { readFileSync, writeFileSync, mkdirSync } from "node:fs";
 import { fileURLToPath } from "node:url";
 import { cpus, totalmem, platform, arch } from "node:os";
-import { ADAPTERS } from "./adapters.mjs";
+import { adapterFor, enabledModels } from "./adapters.mjs";
 import { summariseRun } from "./metrics.mjs";
 import { splitIntoChunks } from "../../backend/utilities/measurement-recorder.mjs";
 
@@ -31,8 +31,8 @@ const MODEL = process.env.MODEL;
 const MAX_WORDS_A_CHUNK = Number(process.env.MAX_WORDS_A_CHUNK ?? 40);
 const REPEATS = Number(process.env.REPEATS ?? 1);
 
-if (!MODEL || !ADAPTERS[MODEL]) {
-  console.error(`MODEL must be one of: ${Object.keys(ADAPTERS).join(", ")}`);
+if (!MODEL) {
+  console.error(`MODEL must be one of: ${enabledModels().join(", ")}`);
   process.exit(1);
 }
 
@@ -85,9 +85,16 @@ const suite = JSON.parse(readFileSync(SUITE_PATH, "utf8"));
 mkdirSync(`${RESULT_DIR}summaries/`, { recursive: true });
 mkdirSync(`${RESULT_DIR}verbalization/`, { recursive: true });
 
-const adapter = ADAPTERS[MODEL]();
+let adapter;
+try {
+  adapter = adapterFor(MODEL);
+} catch (error) {
+  console.error(error.message);
+  process.exit(1);
+}
 console.log(`model ${MODEL}`);
-console.log(`  runtime ${adapter.runtime}   weights ${adapter.modelId} (${adapter.dtype})   voice ${adapter.voice}`);
+console.log(`  runtime ${adapter.runtime}   weights ${adapter.modelId} (${adapter.dtype})`);
+console.log(`  voice ${adapter.voice}   accent ${adapter.accent}${adapter.accentKnown ? "" : " (unverified)"}`);
 
 const loadStarted = Date.now();
 await adapter.load();
@@ -201,7 +208,15 @@ const manifest = {
   schemaVersion: "2026-09-13",
   generatedAt: new Date().toISOString(),
   model: MODEL,
+  name: adapter.name,
   modelId: adapter.modelId,
+  accent: adapter.accent,
+  accentKnown: adapter.accentKnown,
+  licence: adapter.licence,
+  commercialUse: adapter.commercialUse,
+  params: adapter.params,
+  architecture: adapter.architecture,
+  sizeGb: adapter.sizeGb,
   modelSlug: MODEL,
   quantisation: adapter.dtype,
   runtime: adapter.runtime,
