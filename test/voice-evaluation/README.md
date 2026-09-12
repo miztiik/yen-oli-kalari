@@ -88,12 +88,12 @@ without a budget it cannot be compared against.
 
 | Path | What it is |
 | --- | --- |
-| `build-evaluation-clips.mjs` | Synthesises one WAV a summary and writes `clips/manifest.json`. |
-| `build-page-manifest.mjs` | Turns that manifest into `page/manifest.js` for a page with no server. |
+| `build-evaluation-clips.mjs` | Synthesises one WAV a summary into `results/<model>/<quant>/`. Never overwrites another run. |
+| `build-page-data.mjs` | Scans every run and emits `page/data.js` for a page with no server. |
 | `serve.mjs` | Static server with range support, for browser checks only. |
 | `evaluation-schema.json` | The shape a downloaded evaluation takes. |
 | `page/` | The listening surface. No framework, no build step. |
-| `clips/` | Generated audio and its manifest. Not committed. |
+| `results/` | Generated audio and one manifest per run. Not committed. |
 
 ## It reuses the shell, it does not reinvent it
 
@@ -113,3 +113,38 @@ page must open from a file path with no bundle and twelve bars do not justify
 - [`../../docs/reference/benchmarks/2026-09-12-kokoro-on-a-ci-runner.md`](../../docs/reference/benchmarks/2026-09-12-kokoro-on-a-ci-runner.md) - the run that measured the pace and left quality open.
 - [`../../docs/concepts/ui-shell.md`](../../docs/concepts/ui-shell.md) - the component vocabulary this page borrows.
 - [`../../docs/concepts/design-system.md`](../../docs/concepts/design-system.md) - the tokens, and where the three audio tokens come from.
+
+## Every run is kept, which is what makes a comparison possible
+
+A run is one model at one quantisation, and it is written to
+`results/<model-slug>/<quantisation>/`. Nothing is overwritten - two models
+cannot be compared if only the most recent survives, and the first version of
+this harness overwrote one manifest on every run, so the fp32, q8 and q4
+readings of the same model ended up scattered across three different files.
+
+The page reads every run it finds and puts them beside each other: a model panel
+down the left, cross-run charts, and an A/B tab.
+
+**A/B is there because pairwise beats absolute scoring.** "Which of these two is
+better" is a more reliable judgement than scoring one clip out of context, which
+is why TTS Arena ranks that way and why a mean-opinion score cannot be compared
+between experiments at all. Blind is on by default, so a listener is not told
+which run they are hearing until they have chosen.
+
+## Follow-the-text is exact between chunks and interpolated within one
+
+Each chunk is its own inference call, so where it begins in the finished clip is
+known exactly and costs nothing to record. **Within a chunk the highlight is
+interpolated by character position, not measured.** The ONNX export publishes
+`waveform` as its only output, so the duration predictor inside the graph cannot
+be reached; word-level timing would need the model re-exported from PyTorch with
+`pred_dur` as a second output. The chunk boundary itself is exact, which matters
+because it is the one place a seam can be heard.
+
+## Publishing
+
+`.github/workflows/publish-listening-page.yml` voices the corpus on the runner,
+encodes the WAV to opus, and deploys to Pages. The clips are not committed - 24
+summaries is 42 MB of WAV per run - so the publish job has to make them, which
+turns it into a measurement: the runner voices the day, and the figures it
+produces are the only ones that may be compared against the job cap.

@@ -1,0 +1,148 @@
+# Publish the listening page to GitHub Pages.
+#
+# The clips are not committed - 24 summaries is 42 MB of WAV, and they are
+# deterministic from a committed corpus, so a clone regenerates them rather than
+# carrying them forever. That means this job has to make them, which turns the
+# publish into a measurement: the runner voices the day, and the figures it
+# produces are the only ones that may be compared against the job cap.
+#
+# It runs at fp32 rather than q8. Measured 2026-09-12, q8 is 2.16x slower on
+# identical audio, so the quantisation that every earlier figure was taken on is
+# the slowest of the three available
+# (docs/reference/benchmarks/2026-09-12-quantisation-was-costing-not-saving.md).
+name: publish the listening page
+
+on:
+  workflow_dispatch:
+    inputs:
+      quantisations:
+        description: Comma-separated quantisations to voice and compare
+        default: fp32,q8
+        type: string
+      corpus:
+        description: Which corpus to voice
+        default: real
+        type: choice
+        options:
+          - real
+          - sample
+      bitrate:
+        description: Opus bitrate for the published audio
+        default: 24k
+        type: string
+
+# Pages needs these two; `contents: read` is the default and stays least-
+# privilege because nothing here commits.
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+# One publish at a time, and a newer one wins. Two deploys racing would leave
+# whichever finished last on the site regardless of which was newer.
+concurrency:
+  group: pages
+  cancel-in-progress: true
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    defaults:
+      run:
+        working-directory: test/voice-evaluation
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          fetch-depth: 1
+
+      - uses: actions/setup-node@v5
+        with:
+          node-version: "24"
+          cache: npm
+          cache-dependency-path: test/voice-evaluation/package-lock.json
+
+      # The model is ~330 MB at fp32 and is NOT covered by `cache: npm` -
+      # kokoro-js fetches it from Hugging Face on first use. Without this every
+      # run pays that download before the first word is spoken.
+      - name: Cache the model weights
+        uses: actions/cache@v6
+        with:
+          path: ~/.cache/huggingface
+          key: kokoro-${{ inputs.quantisations }}-v1
+          restore-keys: kokoro-
+
+      - name: Install
+        run: npm ci --no-audit --no-fund
+
+      # Every figure carries the hardware it ran on, because wall clock is a
+      # property of the machine and audio duration is not (Guardrail #10).
+      - name: Record the runner
+        run: |
+          echo "cores: $(nproc)"
+          lscpu | grep -E 'Model name' || true
+          free -g | head -2
+
+      # Voice the corpus at every quantisation asked for, so the published page
+      # can put them side by side. A run writes to results/<model>/<quant>/ and
+      # never overwrites another - two models cannot be compared if only the
+      # most recent survives.
+      - name: Voice the corpus
+        env:
+          CORPUS: ${{ inputs.corpus }}
+        run: |
+          set -euo pipefail
+          IFS=',' read -ra QUANTS <<< "${{ inputs.quantisations }}"
+          for q in "${QUANTS[@]}"; do
+            echo "=== $q ==="
+            QUANTISATION="$q" node build-evaluation-clips.mjs
+          done
+
+      # WAV is the synthesiser's output, not a publishing format: 24 summaries
+      # is 42 MB of it. Opus at 24k is the codec the design already chose, and
+      # it lands the same audio in roughly 3 MB. The container is `.ogg` because
+      # a bare `.opus` file is served as text/plain by some static hosts.
+      - name: Encode for the web
+        env:
+          BITRATE: ${{ inputs.bitrate }}
+        run: |
+          set -euo pipefail
+          before=$(du -sm results | cut -f1)
+          find results -name '*.wav' -print0 | while IFS= read -r -d '' wav; do
+            ffmpeg -nostdin -loglevel error -i "$wav" \
+              -c:a libopus -b:a "$BITRATE" -vbr on -application voip \
+              "${wav%.wav}.ogg"
+          done
+          after=$(du -sm --exclude='*.wav' results | cut -f1)
+          echo "WAV ${before} MB -> opus@${BITRATE} ${after} MB"
+
+      - name: Assemble the site
+        env:
+          CLIP_BASE: ./results/
+          CLIP_EXTENSION: .ogg
+        run: |
+          set -euo pipefail
+          node build-page-data.mjs
+          mkdir -p _site
+          cp page/index.html page/styles.css page/app.js page/data.js _site/
+          # Mirror results/, carrying the encoded audio and the manifests only.
+          # Each manifest is the measurement its own audio produced, published
+          # beside it so a figure on the page can be checked against its source.
+          rsync -a --include='*/' --include='*.ogg' --include='manifest.json' \
+            --exclude='*' results/ _site/results/
+          du -sh _site
+
+      - uses: actions/upload-pages-artifact@v4
+        with:
+          path: test/voice-evaluation/_site
+
+  deploy:
+    needs: build
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - id: deployment
+        uses: actions/deploy-pages@v4

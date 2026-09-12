@@ -80,4 +80,6 @@ tests/fixtures/reference/parts/
 # carrying 24 MB of WAV forever. The measurement JSON beside it is small and
 # IS the reading, so that one is committed.
 test/voice-evaluation/clips/
-test/voice-evaluation/page/manifest.js
+test/voice-evaluation/results/
+test/voice-evaluation/page/data.js
+test/voice-evaluation/_site/

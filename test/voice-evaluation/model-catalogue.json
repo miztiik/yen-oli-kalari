@@ -1,0 +1,60 @@
+{
+  "note": "What is known about each model from its card and licence, separate from what this project measured. A row here is a claim with a source; a figure in results/ is a measurement with a host. Keeping them apart is what stops a vendor's number being read as ours.",
+  "schemaVersion": "2026-09-13",
+  "models": {
+    "kokoro-82m-v1-0-onnx": {
+      "name": "Kokoro-82M",
+      "params": "82M",
+      "architecture": "feed-forward",
+      "architectureNote": "StyleTTS2 + ISTFTNet. One pass produces the whole utterance, so nothing is sequential across the audio.",
+      "licence": "Apache-2.0",
+      "commercialUse": true,
+      "card": "https://huggingface.co/hexgrad/Kokoro-82M",
+      "onnx": "https://huggingface.co/onnx-community/Kokoro-82M-v1.0-ONNX",
+      "arenaElo": 1477,
+      "arenaRank": 30,
+      "arenaNote": "TTS Arena V2, read 2026-09-12. Highest-rated model on the board flagged open.",
+      "incumbent": true
+    },
+    "kitten-tts-nano-0-8": {
+      "name": "KittenTTS nano 0.8",
+      "params": "15M",
+      "architecture": "feed-forward",
+      "architectureNote": "StyleTTS2 + ISTFTNet + mini-ALBERT - the same family as the incumbent, at a fifth the size.",
+      "licence": "Apache-2.0",
+      "commercialUse": true,
+      "card": "https://huggingface.co/KittenML/kitten-tts-nano-0.8",
+      "onnx": "https://huggingface.co/onnx-community/KittenTTS-Nano-v0.8-ONNX",
+      "arenaElo": null,
+      "arenaRank": null,
+      "arenaNote": "Not in TTS Arena V2. Won a blind listening test against the compact field at 71.2 percent.",
+      "warning": "Do not use the int8 build - upstream reports open issues, and an independent port measured altered durations."
+    },
+    "chatterbox": {
+      "name": "Chatterbox",
+      "params": "0.5B",
+      "architecture": "autoregressive",
+      "architectureNote": "Llama backbone plus S3Gen flow decoder. One forward pass per audio frame, which is what makes an AR model slow on a CPU.",
+      "licence": "MIT",
+      "commercialUse": true,
+      "card": "https://huggingface.co/ResembleAI/chatterbox",
+      "onnx": null,
+      "arenaElo": 1480,
+      "arenaRank": 28,
+      "arenaNote": "TTS Arena V2, read 2026-09-12. Ranks ABOVE the incumbent, and the licence is more permissive."
+    },
+    "inflect-micro-v2": {
+      "name": "Inflect-Micro-v2",
+      "params": "9.36M",
+      "architecture": "feed-forward",
+      "architectureNote": "VITS.",
+      "licence": "Apache-2.0",
+      "commercialUse": true,
+      "card": "https://huggingface.co/owensong/Inflect-Micro-v2",
+      "onnx": "https://huggingface.co/owensong/Inflect-Micro-v2-ONNX",
+      "arenaElo": null,
+      "arenaRank": null,
+      "arenaNote": "Not in TTS Arena V2. Highest UTMOS22 of the compact set in its own published benchmark."
+    }
+  }
+}

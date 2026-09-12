@@ -1,5 +1,5 @@
 /**
- * Generate audio clips from the sample corpus so a person can listen to them.
+ * Voice a corpus with one model at one quantisation, and keep the audio.
  *
  * The speed harness in ../onnx-runtime-comparison measures how fast a model
  * runs and then throws the audio away. Speed is not quality, and nothing in
@@ -7,12 +7,17 @@
  * script keeps the audio, beside the text it was made from, so the judgement
  * can be made by a person with headphones on.
  *
- * It writes one WAV a summary, plus a manifest pairing each clip with its
- * source text - which is the thing a listener has to check against.
+ * Results are written per model and per quantisation, so a second run never
+ * overwrites a first. That is the point: two models cannot be compared if only
+ * the most recent one survives.
+ *
+ *   results/<model-slug>/<quantisation>/
+ *     manifest.json
+ *     <clip-id>.wav
  *
  * Usage:
- *   npm install
  *   npm run build-clips
+ *   MODEL_ID=... QUANTISATION=fp32 npm run build-clips
  */
 
 import { readFileSync, writeFileSync, mkdirSync } from "node:fs";
@@ -42,9 +47,14 @@ if (!CORPUS_PATHS[CORPUS]) {
   process.exit(1);
 }
 
+/** A directory name from a model id: `onnx-community/Kokoro-82M-v1.0-ONNX` -> `kokoro-82m-v1-0-onnx`. */
+function slugify(modelId) {
+  return modelId.split("/").pop().toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "");
+}
+
+const MODEL_SLUG = slugify(MODEL_ID);
 const CORPUS_PATH = new URL(CORPUS_PATHS[CORPUS], import.meta.url);
-const CLIP_DIR = fileURLToPath(new URL("./clips/", import.meta.url));
-const MANIFEST_PATH = fileURLToPath(new URL("./clips/manifest.json", import.meta.url));
+const RESULT_DIR = fileURLToPath(new URL(`./results/${MODEL_SLUG}/${QUANTISATION}/`, import.meta.url));
 
 /** Write mono 16-bit PCM samples as a WAV file a browser can play. */
 function encodeWav(samples, sampleRate) {
@@ -82,16 +92,13 @@ function concatenateSamples(pieces) {
 }
 
 const corpus = JSON.parse(readFileSync(CORPUS_PATH, "utf8"));
-mkdirSync(CLIP_DIR, { recursive: true });
+mkdirSync(RESULT_DIR, { recursive: true });
 
 /* Sharding, so a day can be split across runners. Every summary is independent,
    so N shards cut wall clock by N - a shard is a whole runner with its own 4
-   vCPU, not a slice of one machine's cores.
-
-   Round-robin rather than contiguous blocks: the corpus is sorted by length, so
-   giving shard 0 the first quarter would hand it every short summary and shard
-   3 every long one, and the shards would finish at wildly different times. The
-   run costs its slowest shard, so balance is the whole point. */
+   vCPU, not a slice of one machine's cores. Round-robin rather than contiguous
+   blocks, because the corpus is sorted by length and the run costs its slowest
+   shard. */
 const SHARD_INDEX = Number(process.env.SHARD_INDEX ?? 0);
 const SHARD_TOTAL = Number(process.env.SHARD_TOTAL ?? 1);
 const REPEATS = Number(process.env.REPEATS ?? 1);
@@ -99,22 +106,24 @@ const REPEATS = Number(process.env.REPEATS ?? 1);
 const slice = corpus.summaries.filter((_, i) => i % SHARD_TOTAL === SHARD_INDEX);
 
 console.log(`model ${MODEL_ID} (${QUANTISATION})   voice ${VOICE}   corpus ${CORPUS}`);
+console.log(`writing results/${MODEL_SLUG}/${QUANTISATION}/`);
 if (SHARD_TOTAL > 1) {
   console.log(`shard ${SHARD_INDEX} of ${SHARD_TOTAL}: ${slice.length} of ${corpus.summaries.length} summaries`);
 }
 console.log(`${slice.reduce((s, x) => s + x.words, 0)} words, ${REPEATS} repeat(s)\n`);
 
+const modelLoadStarted = Date.now();
 const tts = await KokoroTTS.from_pretrained(MODEL_ID, { dtype: QUANTISATION, device: "cpu" });
+const modelLoadMs = Date.now() - modelLoadStarted;
 
 const entries = [];
 for (const sample of slice) {
   const chunks = splitIntoChunks(sample.text, MAX_WORDS_A_CHUNK);
 
   /* Repeats give the spread. A GitHub runner is shared hardware, so one reading
-     is a single sample of a noisy process - the 2026-09-12 record names the
-     absence of spread as its own first limitation. The audio is kept from the
-     last repeat because every repeat produces identical audio (the model is
-     deterministic); only the clock differs. */
+     is a single sample of a noisy process. The audio is kept from the last
+     repeat because every repeat produces identical audio - the model is
+     deterministic; only the clock differs. */
   const wallClocks = [];
   let pieces = [];
   for (let repeat = 0; repeat < REPEATS; repeat += 1) {
@@ -127,10 +136,29 @@ for (const sample of slice) {
     wallClocks.push(Date.now() - startedMs);
   }
 
+  /* Where each chunk starts in the finished clip, in seconds. This is EXACT and
+     costs nothing: every chunk is its own inference call, so its sample count
+     is known before the pieces are joined. It is what makes follow-the-text
+     highlighting possible at all - the ONNX export publishes `waveform` as its
+     only output, so the duration predictor inside the graph cannot be reached,
+     and word-level timing would need the model re-exported from PyTorch with
+     `pred_dur` as a second output. Within a chunk the page interpolates by
+     character position, and says on screen that it is doing so. */
+  const chunkTimings = [];
+  let runningSamples = 0;
+  for (let i = 0; i < chunks.length; i += 1) {
+    chunkTimings.push({
+      text: chunks[i],
+      startSeconds: Number((runningSamples / SAMPLE_RATE).toFixed(3)),
+      endSeconds: Number(((runningSamples + pieces[i].length) / SAMPLE_RATE).toFixed(3)),
+    });
+    runningSamples += pieces[i].length;
+  }
+
   const samples = concatenateSamples(pieces);
   const audioSeconds = samples.length / SAMPLE_RATE;
   const fileName = `${sample.id}.wav`;
-  writeFileSync(`${CLIP_DIR}${fileName}`, encodeWav(samples, SAMPLE_RATE));
+  writeFileSync(`${RESULT_DIR}${fileName}`, encodeWav(samples, SAMPLE_RATE));
 
   const sortedClocks = [...wallClocks].sort((a, b) => a - b);
   const medianWallClockMs = sortedClocks[Math.floor(sortedClocks.length / 2)];
@@ -144,7 +172,7 @@ for (const sample of slice) {
     vertical: sample.vertical ?? null,
     clip: fileName,
     chunks: chunks.length,
-    chunkBoundaries: chunks.slice(0, -1).map((c) => c.slice(-40)),
+    chunkTimings,
     audioSeconds: Number(audioSeconds.toFixed(2)),
     wallClockMs: medianWallClockMs,
     wallClockRepeatsMs: wallClocks,
@@ -163,21 +191,27 @@ for (const sample of slice) {
   );
 }
 
+const audioSeconds = entries.reduce((s, e) => s + e.audioSeconds, 0);
+const words = entries.reduce((s, e) => s + e.words, 0);
+const wallSeconds = entries.reduce((s, e) => s + e.wallClockMs, 0) / 1000;
+
 const manifest = {
-  schemaVersion: "2026-09-12",
+  schemaVersion: "2026-09-13",
   generatedAt: new Date().toISOString(),
+  modelId: MODEL_ID,
+  modelSlug: MODEL_SLUG,
+  quantisation: QUANTISATION,
   model: `${MODEL_ID} (${QUANTISATION})`,
-  corpus: { name: CORPUS, sampledFrom: corpus.sampledFrom ?? null, note: corpus.note ?? null },
-  shard: { index: SHARD_INDEX, total: SHARD_TOTAL, repeats: REPEATS },
   voice: VOICE,
   sampleRate: SAMPLE_RATE,
   maxWordsAChunk: MAX_WORDS_A_CHUNK,
+  corpus: { name: CORPUS, sampledFrom: corpus.sampledFrom ?? null, note: corpus.note ?? null },
+  shard: { index: SHARD_INDEX, total: SHARD_TOTAL, repeats: REPEATS },
+  modelLoadMs,
   /* The host is part of the reading, not a footnote. Audio duration and
-     speaking pace are host-independent because the model is deterministic, but
-     wall clock is not: measured 2026-09-12 the same corpus ran at a real-time
-     factor of 2.576 on a laptop and 1.0112 on the CI runner. A manifest that
-     did not name its host would let a laptop timing be read against the
-     runner's budget, which is how a design gets priced on the wrong number. */
+     speaking pace are host-independent because the model is deterministic; wall
+     clock is not. Measured 2026-09-12 the same corpus ran at a real-time factor
+     of 2.576 on a laptop and 1.0112 on the CI runner. */
   host: {
     isCi: Boolean(process.env.CI),
     platform: platform(),
@@ -189,16 +223,20 @@ const manifest = {
   },
   totals: {
     clipCount: entries.length,
-    words: entries.reduce((s, e) => s + e.words, 0),
-    audioSeconds: Number(entries.reduce((s, e) => s + e.audioSeconds, 0).toFixed(2)),
+    words,
+    audioSeconds: Number(audioSeconds.toFixed(2)),
+    wallSeconds: Number(wallSeconds.toFixed(1)),
+    realTimeFactor: Number((wallSeconds / audioSeconds).toFixed(4)),
+    wordsAMinute: Number(((words / audioSeconds) * 60).toFixed(1)),
     bytes: entries.reduce((s, e) => s + e.bytes, 0),
   },
   clips: entries,
 };
-writeFileSync(MANIFEST_PATH, `${JSON.stringify(manifest, null, 2)}\n`, "utf8");
+writeFileSync(`${RESULT_DIR}manifest.json`, `${JSON.stringify(manifest, null, 2)}\n`, "utf8");
 
 console.log(`\nwrote ${entries.length} clips and manifest.json`);
 console.log(
   `${manifest.totals.audioSeconds}s of audio, ` +
-    `${(manifest.totals.bytes / 1024 / 1024).toFixed(1)} MB as WAV`,
+    `${(manifest.totals.bytes / 1024 / 1024).toFixed(1)} MB as WAV, ` +
+    `RTF ${manifest.totals.realTimeFactor}, ${manifest.totals.wordsAMinute} wpm`,
 );
