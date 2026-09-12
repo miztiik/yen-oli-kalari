@@ -72,6 +72,33 @@ def test_every_page_carries_a_last_updated_stamp():
     )
 
 
+def test_no_document_links_to_a_deleted_page():
+    """No markdown file anywhere links at a path that is not there.
+
+    The map test above only checks the map. This checks every page, because the
+    failure that prompted it was a deleted file still referenced from eleven
+    others - including three agent files outside `docs/` entirely, which no
+    docs-only check would have seen.
+
+    `TODO/` is excluded: a plan-doc is a frozen record of what was true when it
+    was written, and rewriting its links would falsify it.
+    """
+    broken = []
+    for page in REPOSITORY_ROOT.rglob("*.md"):
+        parts = set(page.relative_to(REPOSITORY_ROOT).parts)
+        if parts & {"node_modules", ".git", "TODO"}:
+            continue
+        for target in MARKDOWN_LINK.findall(page.read_text(encoding="utf-8")):
+            path = target.split("#", 1)[0]
+            # A template placeholder, a phonetic respelling and a shell snippet
+            # all match the link regex without ever being links. Check only what
+            # claims to be a path to a real markdown page.
+            if not path.endswith(".md") or "<" in path or path.startswith("/"):
+                continue
+            if not (page.parent / path).resolve().exists():
+                broken.append(f"{page.relative_to(REPOSITORY_ROOT)} -> {target}")
+    assert not broken, "links pointing at paths that do not exist:\n" + "\n".join(sorted(broken))
+
 def test_no_page_references_a_renamed_script():
     """A retired name must not survive as a live reference.
 

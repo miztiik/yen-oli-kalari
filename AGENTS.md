@@ -29,7 +29,7 @@ Every table in every answer is lettered in the order it appears - `Table A`, `Ta
 Before any non-trivial work:
 
 1. Read [`CLAUDE.md`](CLAUDE.md) - the engineering contract.
-2. Run the ritual in [`docs/agents/bootstrap.md`](docs/agents/bootstrap.md); honour [`docs/agents/guardrails.md`](docs/agents/guardrails.md).
+2. Run the ritual in [`docs/agents/bootstrap.md`](docs/agents/bootstrap.md).
 3. Start at [`docs/getting-started/where-the-project-stands.md`](docs/getting-started/where-the-project-stands.md) for what is settled and what is next, and [`docs/reference/documentation-map.md`](docs/reference/documentation-map.md) for every page and the question it answers. **A new page is listed in the map in the commit that creates it; a page nobody can navigate to is a page nobody will find.** Route it by [`docs/reference/documentation-structure.md`](docs/reference/documentation-structure.md). **A page answers one question and has no maximum length; a split names a question, never a sequence, so `-part2.md` is never the answer. A benchmark run gets its own record under `docs/reference/benchmarks/`, named for what it measured and the date, and the instrument log links to it rather than absorbing it.**
 4. For plan execution, follow [`docs/how-to/execute-a-plan.md`](docs/how-to/execute-a-plan.md).
 5. Before claiming a change is done, read [`docs/how-to/run-the-gates.md`](docs/how-to/run-the-gates.md). Run the selected local checks; CI runs the full suite. Do not repeat a worker's unchanged check. A documentation-only closure needs no local application suite.

@@ -45,3 +45,4 @@ Two ceilings are the platform, not a preference (Guardrail #2): a 6 h job and a 
 - [../reference/benchmarks/2026-09-11-input-volume-and-audio-cost.md](../reference/benchmarks/2026-09-11-input-volume-and-audio-cost.md) - what one day costs to voice, measured.
 - [../how-to/ship-to-github-pages.md](../how-to/ship-to-github-pages.md) - how the static bundle reaches a reader.
 - [../../CLAUDE.md](../../CLAUDE.md) - the engineering contract, including the full non-goals.
+

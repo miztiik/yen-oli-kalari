@@ -5,7 +5,7 @@
 The small set of beliefs that shape every yen-oli-kalari decision, stated once as
 vocabulary. These operationalize the engineering contract for a build-time audio
 pipeline; the authoritative guardrails live in [../../CLAUDE.md](../../CLAUDE.md) and
-the guardrails-only digest in [../agents/guardrails.md](../agents/guardrails.md). This
+the guardrails in [../../CLAUDE.md](../../CLAUDE.md) section 1. This
 page explains the *why* a reader needs before those guardrails make sense - it does
 not restate them.
 
@@ -166,5 +166,5 @@ in an incident instead.
 - [design-system.md](design-system.md) - principle 11's second clause as the sufficiency checks.
 - [../reference/measurements.md](../reference/measurements.md) - principle 3 in force: the figure now in force for each quantity.
 - [../reference/documentation-structure.md](../reference/documentation-structure.md) - where a statement of project knowledge belongs.
-- [../agents/guardrails.md](../agents/guardrails.md) - the guardrails-only digest every advisor loads.
+- [../../CLAUDE.md](../../CLAUDE.md) - section 1 carries the guardrails every advisor loads.
 - [../../CLAUDE.md](../../CLAUDE.md) - the authoritative contract.

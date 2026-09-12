@@ -71,7 +71,6 @@ record stays where it is.
 | [`CLAUDE.md`](../../CLAUDE.md) | The engineering contract: guardrails, naming, definition of done |
 | [`AGENTS.md`](../../AGENTS.md) | The short pointer version for coding agents |
 | [bootstrap.md](../agents/bootstrap.md) | The ritual an agent runs at session start |
-| [guardrails.md](../agents/guardrails.md) | The guardrails, restated for agents |
 
 ## Harnesses - code with its own README
 

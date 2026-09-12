@@ -42,7 +42,7 @@ This is the canonical writing rule. It binds every agent, every persona under `.
 - **A third-party product name is not a design vocabulary.** Name the artefact and the property - "a determinate buffer fill", "a target marker on a bar", "a docked player" - never the vendor whose screenshot it came from. This binds a design doc, a plan-doc, a code comment, a commit message, a branch name and a filename equally. Naming the artefact is also the more useful sentence: it says what to look at, where the product name only said where somebody once saw it.
 - Use ASD-STE100.
 
-Everywhere else restates this section rather than inventing its own style rule (Guardrail #4): [`docs/agents/guardrails.md`](docs/agents/guardrails.md) carries it for the personas that run the bootstrap ritual, and [`AGENTS.md`](AGENTS.md) carries it for agent tools that read that file instead of this one.
+Everywhere else cites this section rather than inventing its own style rule (Guardrail #4).
 
 ### Design rationale
 
@@ -68,7 +68,7 @@ When you need the user to choose, ask in one message, in this order, and put not
 
 A message with no options is a status update, not a decision request, and does not use the five-part shape.
 
-[`docs/agents/guardrails.md`](docs/agents/guardrails.md) and [`AGENTS.md`](AGENTS.md) restate this section; they do not extend it (Guardrail #4).
+[`AGENTS.md`](AGENTS.md) points at this section rather than restating it.
 
 ## 1. Adaptive Guardrails (Read First, Every Session)
 
@@ -144,31 +144,14 @@ In-memory `Path` objects for local I/O may stay platform-native. Rule applies at
 
 ## 3. Repository Topology
 
-| Directory            | Status     | Purpose                                                                                                     |
-| -------------------- | ---------- | ----------------------------------------------------------------------------------------------------------- |
-| `CLAUDE.md`          | created    | This file - the engineering contract.                                                                        |
-| `README.md`          | created    | Entry point.                                                                                                 |
-| `AGENTS.md`          | created    | The derived pointer coding-agent tools start from.                                                          |
-| `docs/`              | created    | Canonical knowledge (Diataxis tiers, 3-level depth).                                                         |
-| `.claude/skills/`    | created    | Claude Code skill wrappers (bootstrap, prepare-plan) that point at `docs/`.                                  |
-| `.github/agents/`    | created    | The seven persona advisors (Andre, Carmack, Editor, Fowler, Jony, Reader, Susan).                            |
-| `.github/scripts/`   | planned    | A shell step two or more workflow jobs run. Empty today; written once so a test can execute it, never imported by `backend/`. |
-| `.github/workflows/` | planned    | CI, the daily voicing pipeline, the prune/retention job (section 8), and the GitHub Pages deploy. Empty today. |
-| `config/`            | planned    | Human-edited tunable knobs, schema-validated. Empty today. Read by `backend/` and shipped to `frontend/` where a reader-facing surface needs one. |
-| `schemas/`           | planned    | Generated JSON Schema, one file per contract model. Empty today. Never hand-edited (Guardrail #3, section 1a).   |
-| `backend/`           | partial    | The build-time producer (Python). `backend/oli/` is the package; `backend/oli/contracts/` holds the Pydantic models and `backend/oli/voices/` holds the voice adapters (both empty and planned); `backend/utilities/` holds `measure_input.py` and `calculate_audio_budget.py`, the two scripts that are the only backend code that exists today. NOT a runtime server (Guardrail #1). |
-| `backend/models/`    | gitignored | Local voice-model weights - multi-gigabyte, downloaded, never committed.                                     |
-| `backend/bin/`       | gitignored | Local third-party binaries (the voice runtime, the encoder) - downloaded, not authored.                     |
-| `backend/var/`       | gitignored | Reproducible run output, caches and benchmark artifacts. Never the committed record of a run.               |
-| `frontend/`          | planned    | The published static site: the Listen page and the Console. Empty today. `frontend/public/` will hold the committed clips and payloads the site renders; `frontend/src/contracts/` will hold the generated types. |
-| `frontend/dist/`     | gitignored | Built bundle for GitHub Pages.                                                                               |
-| `state/`             | planned    | Everything one run commits for a later run to read: the generation ledger, the retention record, feed health. Empty today. Appended by CI, never recomputed at runtime, never served to a reader. |
-| `tests/`             | planned    | Cross-cutting fixtures: captured digest days, golden audio manifests, a committed sample clip, the built canary day. Empty today. |
-| `TODO/`              | created    | Active plan-docs and design panels. Non-authoritative working material.                                      |
+[`docs/reference/repository-layout.md`](docs/reference/repository-layout.md)
+owns this: every top-level directory, what it holds, who writes it, and whether
+it is committed. A directory table here was a second copy that drifted from the
+first, and routing rule 7 in
+[`docs/reference/documentation-structure.md`](docs/reference/documentation-structure.md)
+already sends the question there.
 
-Folders are created only when real code is about to land. Do not pre-create empty modules.
-
-The empty directories above (`config/`, `frontend/`, `schemas/`, `state/`, `tests/`, `.github/scripts/`, `.github/workflows/`, and the two under `backend/oli/`) predate that rule being written down here. They are marked `planned` rather than deleted so their intended home is on record; the next real code that lands in one is what earns it, and nothing new is pre-created beside them.
+**A new top-level directory states its reason on that page before it exists.**
 
 ## 4. Layer and Dependency Rules
 
@@ -349,38 +332,32 @@ Per tier:
 
 ## 14. Agent Roster
 
-Seven persona advisors live under `.github/agents/`, each at a distinct altitude:
+Seven persona advisors live in [`.github/agents/`](.github/agents/). **Each
+file's `description` frontmatter says when to reach for it, and that field is
+what the tooling reads - so it is the only copy.** A roster table here went stale
+the first time an agent's remit changed.
 
-| Agent                               | File               | Altitude                                                                      |
-| ----------------------------------- | ------------------ | ----------------------------------------------------------------------------- |
-| Reader                              | `reader.agent.md`  | the person the audio is for - is it worth their listen, is the language plain, does it work on a slow connection and a small screen? |
-| Editor                              | `editor.agent.md`  | what gets voiced and at what length - read order, whether the whole summary is spoken or a lead, what to trade when a budget binds |
-| Jony (UI/UX)                        | `jony.agent.md`    | the published surface: the Listen page, an item's row and the docked player, the Console, chart-vs-diagram |
-| Susan (Craft & Delight)             | `susan.agent.md`   | whether a surface is good enough to ship - the player's craft, elevation and colour, empty and degraded states, the demand side of design review |
-| Andre (AI / LLM)                    | `andre.agent.md`   | the voice-model pick on quality grounds, prompt and voice strategy, eval design, the injection surface where the day's text reaches a model |
-| Fowler (Architecture & Engineering) | `fowler.agent.md`  | architecture + contracts + commits + tests                                    |
-| Carmack (Engine & Runtime)          | `carmack.agent.md` | the voice runtime, the runner budget, real-time factor, output bytes against the 1 GB cap, cache and shard economics |
+What does not live in those files, because no single one of them can hold it, is
+who decides when two disagree:
 
-Rule: adding a new agent requires justifying a distinct altitude not already covered. Two agents at the same altitude collapse into one.
+| Decision class | Authority |
+| --- | --- |
+| Inference runtime / model quantisation and fit / runner budget / throughput / cache and shard economics / job timeouts | **Carmack** (Engine & Runtime) |
+| Architecture / persisted contracts (stage payloads, eval ledger, run manifest, config, published payloads) / schema versioning / test tiers / refactor safety / module structure / when to delete | **Fowler** (Architecture & Engineering) |
+| Model pick on quality grounds / prompt strategy / constrained decoding / eval design and metric choice / the prompt-injection surface | **Andre** (AI / LLM) |
+| The published surface: page and typography, chart vs diagram vs nothing, the eval dashboard, what a visual must earn | **Jony** (UI/UX) |
+| Whether a surface is good enough to ship: the sufficiency checks, elevation and colour systems, icon and chart craft, both themes, empty and degraded states | **Susan** (Craft & Delight) |
+| What the digest covers and at what length: story selection, where a cut may fall by kind of writing, which themes to trade when a budget binds, whether a source earns its slot | **Editor** |
+| Reader reality check (is this worth two minutes? is the language plain? does the page work on a slow connection?) | **Reader** |
+Where Carmack and Andre both touch the model: **Andre owns whether a model is good enough, Carmack owns whether it fits.** A model that fails either test is not the pick. Where Andre and Carmack both touch injection: **Andre owns the prompt and schema shape, Carmack owns the process boundary** (no model output becomes a shell argument, a file path, or a URL to fetch). Where Editor and Andre both touch quality: **Editor names the content failure, Andre chooses the instrument that measures it.** Where Editor and Reader both touch content: **Reader reports what reading it was like, Editor rules what should have run.** Where Jony and Susan both touch the page: **Jony rules what survives on the page, Susan rules whether what survived is good enough to ship.** Susan never overrules Carmack on bytes, Reader on plain language, or Editor on what runs.
 
-Where Reader and Editor both touch content: **Reader reports what listening to it was like, Editor rules what should have been voiced and at what length.** Reader does not propose; Editor does not speak for the reader's experience of the page.
-
-Where Jony and Susan both touch the page: **Jony rules what survives on the page, Susan rules whether what survived is good enough to ship.** They are the two halves of one review and neither is sufficient alone. The player is the clearest case: Jony's one docked player over N inline ones is right, and Susan's ruling that it must be a raised, made-this-year surface rather than a flat strip is also right.
-
-Where Andre and Carmack both touch the model: **Andre owns whether a voice is good enough, Carmack owns whether it fits.** A model that fails either test is not the pick - and because no model ships to the browser (owner ruling 3), "fits" is measured only against the runner: real-time factor under the 6 h cap and output bytes under the 1 GB cap.
-
-### Design rationale
-
-**Susan holds the demand mandate because a roster of pure vetoes converges on the minimum that passes every veto.** A system of removal-only reviewers shrinks a surface until nobody would choose to look at it, and every one of those cuts passes a review. Susan fails a page for being too little; that is the counterweight, and a veto that removes must name what the reader loses.
-
-Giving Jony the demand mandate too was rejected: one head holding both "remove before adding" and "this is not enough" resolves to the veto every time. Making sufficiency advisory was rejected because an advisory check is the one skipped on the day it would have bitten.
-
+**Personas gather facts and argue; they are not an approval surface.** The
+authority to accept a design is the user's (section 0).
 ## See also
 
 - [`README.md`](README.md) - what yen-oli-kalari is.
 - [`AGENTS.md`](AGENTS.md) - the pointer coding-agent tools start from.
 - [`docs/agents/bootstrap.md`](docs/agents/bootstrap.md) - the load ritual every persona runs before answering.
-- [`docs/agents/guardrails.md`](docs/agents/guardrails.md) - the guardrails-only digest of this contract.
 - [`docs/how-to/run-the-gates.md`](docs/how-to/run-the-gates.md) - the environment and the commands behind sections 9 and 12.
 - [`docs/reference/agent-notes.md`](docs/reference/agent-notes.md) - environment and tool quirks that make a command lie.
 - [`docs/reference/documentation-structure.md`](docs/reference/documentation-structure.md) - where each kind of doc lives.

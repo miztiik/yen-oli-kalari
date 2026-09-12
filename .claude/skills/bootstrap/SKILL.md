@@ -18,6 +18,6 @@ The wrapper exists so the `.claude/` harness can invoke the same loading behavio
 
 ## See also
 
-- [`docs/agents/guardrails.md`](../../../docs/agents/guardrails.md) - the guardrails every persona must honour, loaded as part of bootstrap.
+- [`CLAUDE.md`](../../../CLAUDE.md) - section 1 carries the guardrails every persona must honour.
 - [`docs/concepts/pipeline-loop.md`](../../../docs/concepts/pipeline-loop.md) - the stages and what each one owns.
 - [`CLAUDE.md`](../../../CLAUDE.md) - the engineering contract.

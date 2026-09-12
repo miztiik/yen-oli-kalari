@@ -114,5 +114,5 @@ longer fire is deleted, not archived.
 - [../how-to/run-the-gates.md](../how-to/run-the-gates.md) - the checks these traps interfere with, and the state of each gate.
 - [documentation-structure.md](documentation-structure.md) - routing rule 8, which sends a tool quirk here rather than into private memory.
 - [repository-layout.md](repository-layout.md) - the directory map these commands run against.
-- [../agents/guardrails.md](../agents/guardrails.md) - the guardrails digest that points here for the memory contract (Guardrail #4).
+- [../../CLAUDE.md](../../CLAUDE.md) - the contract that sends a reader here for a tool quirk.
 - [../../CLAUDE.md](../../CLAUDE.md) - section 5 (Documentation Discipline) and Guardrail #10.

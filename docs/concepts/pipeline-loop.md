@@ -68,6 +68,6 @@ One consequence is worth stating, because it frees a real choice: the runner mod
 - [design-system.md](design-system.md) - the visual language of those surfaces.
 - [../reference/benchmarks/2026-09-11-input-volume-and-audio-cost.md](../reference/benchmarks/2026-09-11-input-volume-and-audio-cost.md) - what one day costs to voice, measured.
 - [../reference/measurements.md](../reference/measurements.md) - the instrument log of figures now in force.
-- [../agents/guardrails.md](../agents/guardrails.md) - the guardrails every stage honours.
+- [../../CLAUDE.md](../../CLAUDE.md) - section 1 carries the guardrails every stage honours.
 - [../how-to/run-the-gates.md](../how-to/run-the-gates.md) - the checks a pipeline change runs before it merges.
 - [../../CLAUDE.md](../../CLAUDE.md) - the engineering contract, including the layer rules for stages.
