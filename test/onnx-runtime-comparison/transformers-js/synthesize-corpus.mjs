@@ -7,6 +7,7 @@
  */
 
 import { readFileSync } from "node:fs";
+import { fileURLToPath } from "node:url";
 import { StyleTextToSpeech2Model, AutoTokenizer, Tensor } from "@huggingface/transformers";
 import { runComparisonArm } from "../../../backend/utilities/measurement-recorder.mjs";
 
@@ -15,7 +16,7 @@ const QUANTISATION = process.env.QUANTISATION ?? "q8";
 const VOICE = process.env.VOICE ?? "af_heart";
 const SAMPLE_RATE = 24000;
 const CORPUS_PATH = new URL("../sample-summaries/summaries.json", import.meta.url);
-const OUTPUT_PATH = new URL("../measurements/transformers-js.json", import.meta.url).pathname.replace(/^\//, "");
+const OUTPUT_PATH = fileURLToPath(new URL("../measurements/transformers-js.json", import.meta.url));
 
 const corpus = JSON.parse(readFileSync(CORPUS_PATH, "utf8"));
 
@@ -38,7 +39,8 @@ await runComparisonArm(
       return { model, tokenizer, voiceData: new Float32Array(voices) };
     },
     synthesise: async ({ model, tokenizer, voiceData }, text) => {
-      const { input_ids } = tokenizer(text, { truncation: true });
+      // No truncation: the recorder chunks the text so every word reaches the model.
+      const { input_ids } = tokenizer(text);
       const tokenCount = input_ids.dims.at(-1) - 2;
       const offset = tokenCount * 256;
       const style = new Tensor("float32", voiceData.slice(offset, offset + 256), [1, 256]);

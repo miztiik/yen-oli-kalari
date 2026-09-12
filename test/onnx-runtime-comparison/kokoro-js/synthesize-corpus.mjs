@@ -7,6 +7,7 @@
  */
 
 import { readFileSync } from "node:fs";
+import { fileURLToPath } from "node:url";
 import { KokoroTTS } from "kokoro-js";
 import { runComparisonArm } from "../../../backend/utilities/measurement-recorder.mjs";
 
@@ -14,7 +15,7 @@ const MODEL_ID = process.env.MODEL_ID ?? "onnx-community/Kokoro-82M-v1.0-ONNX";
 const QUANTISATION = process.env.QUANTISATION ?? "q8";
 const VOICE = process.env.VOICE ?? "af_heart";
 const CORPUS_PATH = new URL("../sample-summaries/summaries.json", import.meta.url);
-const OUTPUT_PATH = new URL("../measurements/kokoro-js.json", import.meta.url).pathname.replace(/^\//, "");
+const OUTPUT_PATH = fileURLToPath(new URL("../measurements/kokoro-js.json", import.meta.url));
 
 const corpus = JSON.parse(readFileSync(CORPUS_PATH, "utf8"));
 
