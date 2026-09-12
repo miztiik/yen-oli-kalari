@@ -39,29 +39,25 @@
 
 	// ---------------------------------------------------------------- state
 
-	var state = load();
+	var state = { runs: {}, pairs: [] };
 	var activeRunId = DATA.runs[0].runId;
 	var current = -1;
 	var abIndex = 0;
 	var abBlind = true;
 
-	function load() {
-		try {
-			var raw = localStorage.getItem(STORE_KEY);
-			if (raw) return JSON.parse(raw);
-		} catch (e) {
-			/* A browser with storage disabled still gets a working page; it just
-			   does not remember. That is strictly better than refusing to run. */
-		}
-		return { runs: {}, pairs: [] };
-	}
+	/* State is held in memory and mirrored to IndexedDB. Writes are debounced
+	   because a listener dragging across five score buttons should cost one
+	   write rather than five, and a failed write must never lose the click that
+	   caused it. */
+	var saveTimer = null;
 
 	function save() {
-		try {
-			localStorage.setItem(STORE_KEY, JSON.stringify(state));
-		} catch (e) {
-			/* ignore - see load() */
-		}
+		clearTimeout(saveTimer);
+		saveTimer = setTimeout(function () {
+			window.EvaluationStore.put('state', state).then(function (ok) {
+				if (!ok) $('storage-status').textContent = 'Could not save - storage is full or blocked.';
+			});
+		}, 250);
 	}
 
 	function entry(runId, clipId) {
@@ -154,7 +150,7 @@
 	// --------------------------------------------------------- model panel
 
 	function tallyFor(runId, run) {
-		var counts = { publishable: 0, borderline: 0, reject: 0, unjudged: 0, defects: 0 };
+		var counts = { publishable: 0, borderline: 0, reject: 0, unjudged: 0, defects: 0, up: 0, down: 0 };
 		run.clips.forEach(function (c) {
 			var e = state.runs[runId] && state.runs[runId][c.id];
 			var v = e && e.verdict;
@@ -162,7 +158,11 @@
 			else if (v === 'borderline') counts.borderline += 1;
 			else if (v === 'reject') counts.reject += 1;
 			else counts.unjudged += 1;
-			if (e) counts.defects += (e.defects || []).length;
+			if (e) {
+				counts.defects += (e.defects || []).length;
+				if (e.thumb === 'up') counts.up += 1;
+				if (e.thumb === 'down') counts.down += 1;
+			}
 		});
 		return counts;
 	}
@@ -193,6 +193,7 @@
 					run.totals.wordsAMinute + ' wpm \u00b7 ' +
 					(run.host.isCi ? 'runner' : 'laptop') }),
 				el('span', { class: 'model-card__judged', text:
+					(counts.up || counts.down ? counts.up + ' up / ' + counts.down + ' down \u00b7 ' : '') +
 					judged + ' of ' + run.clips.length + ' judged' +
 					(counts.defects ? ' \u00b7 ' + counts.defects + ' defect' + (counts.defects === 1 ? '' : 's') : '') }),
 				meta.incumbent ? el('span', { class: 'model-card__tag', text: 'incumbent' }) : null,
@@ -389,6 +390,31 @@
 		return grid;
 	}
 
+	/* A thumb is the fastest possible first pass: a listener can get through
+	   twenty-four clips on one axis in the time four scales take for six. It
+	   does not replace the scores - it is what gets filled in when somebody has
+	   ten minutes rather than an hour. */
+	function thumbsBlock(runId, clip) {
+		var row = el('div', { class: 'thumbs' });
+		[['up', '\u25b2 Good'], ['down', '\u25bc Poor']].forEach(function (pair) {
+			var b = el('button', {
+				class: 'thumb', type: 'button', 'data-thumb': pair[0], text: pair[1],
+				'aria-pressed': entry(runId, clip.id).thumb === pair[0] ? 'true' : 'false'
+			});
+			b.addEventListener('click', function () {
+				var e = entry(runId, clip.id);
+				e.thumb = e.thumb === pair[0] ? null : pair[0];
+				save();
+				Array.prototype.forEach.call(row.querySelectorAll('.thumb'), function (sib) {
+					sib.setAttribute('aria-pressed', e.thumb === sib.getAttribute('data-thumb') ? 'true' : 'false');
+				});
+				renderModelPanel();
+			});
+			row.appendChild(b);
+		});
+		return row;
+	}
+
 	function verdictBlock(runId, clip) {
 		var row = el('div', { class: 'verdict-row' }, [el('span', { text: 'Verdict' })]);
 		[['publishable', '\u25b2 publishable'], ['borderline', 'borderline'], ['reject', '\u25bc reject']]
@@ -492,6 +518,7 @@
 								' the pipeline cut this summary. Listen for a join there.' }) : null
 						]),
 						el('div', { class: 'clip__judgement' }, [
+							thumbsBlock(run.runId, clip),
 							scoreBlock(run.runId, clip), verdictBlock(run.runId, clip),
 							defectBlock(run.runId, clip), note
 						])
@@ -589,6 +616,43 @@
 		});
 	}
 
+	/* The scrubber, drawn from peaks the build computed. Two colours and a
+	   playhead: bars behind the head are played, bars ahead are not. The peaks
+	   are in the payload rather than decoded here, because decoding client-side
+	   means downloading the whole clip before the first pixel and inflating it
+	   about sixtyfold in memory. */
+	function paintWaveform() {
+		var canvas = $('waveform');
+		if (!canvas) return;
+		var clip = current >= 0 ? activeRun().clips[current] : null;
+		var peaks = clip && clip.peaks;
+		if (!peaks || !peaks.length) { canvas.hidden = true; return; }
+		canvas.hidden = false;
+
+		var ratio = window.devicePixelRatio || 1;
+		var width = canvas.clientWidth || canvas.parentNode.clientWidth;
+		if (canvas.width !== Math.floor(width * ratio)) {
+			canvas.width = Math.floor(width * ratio);
+			canvas.height = Math.floor(48 * ratio);
+		}
+		var ctx = canvas.getContext('2d');
+		var styles = getComputedStyle(document.documentElement);
+		var played = styles.getPropertyValue('--audio-elapsed').trim() || '#8b8bf5';
+		var unplayed = styles.getPropertyValue('--audio-track').trim() || '#333d4f';
+
+		ctx.clearRect(0, 0, canvas.width, canvas.height);
+		var duration = durationOf(current) || clip.audioSeconds;
+		var through = duration ? audio.currentTime / duration : 0;
+		var barWidth = canvas.width / peaks.length;
+		var mid = canvas.height / 2;
+
+		for (var i = 0; i < peaks.length; i += 1) {
+			var height = Math.max(2 * ratio, peaks[i] * canvas.height * 0.92);
+			ctx.fillStyle = i / peaks.length < through ? played : unplayed;
+			ctx.fillRect(i * barWidth + barWidth * 0.18, mid - height / 2, barWidth * 0.64, height);
+		}
+	}
+
 	function paintBuffered() {
 		var d = durationOf(current);
 		if (!audio.buffered.length || !d) return;
@@ -610,6 +674,7 @@
 		$('time-now').textContent = clock(audio.currentTime);
 		paintBuffered();
 		paintFollow();
+		paintWaveform();
 	});
 	['progress', 'loadeddata', 'canplay', 'canplaythrough', 'suspend'].forEach(function (name) {
 		audio.addEventListener(name, paintBuffered);
@@ -639,7 +704,14 @@
 		row.scrollIntoView({ block: 'center', behavior: 'smooth' });
 	});
 
-	$('track').addEventListener('click', function (e) {
+	waveform.addEventListener('click', function (e) {
+		var d = durationOf(current);
+		if (current < 0 || !d) return;
+		var box = this.getBoundingClientRect();
+		audio.currentTime = ((e.clientX - box.left) / box.width) * d;
+	});
+
+	track.addEventListener('click', function (e) {
 		var d = durationOf(current);
 		if (current < 0 || !d) return;
 		var box = this.getBoundingClientRect();
@@ -842,6 +914,7 @@
 		$('reset').addEventListener('click', function () {
 			if (!window.confirm('Clear every score, verdict, defect and A/B vote on this page?')) return;
 			state = { runs: {}, pairs: [] };
+			window.EvaluationStore.clear();
 			save();
 			renderAll();
 			$('export-status').textContent = 'Cleared.';
@@ -862,5 +935,31 @@
 	wireTabs();
 	wireTheme();
 	wireExport();
+
+	/* Render once immediately so the page is usable while storage opens, then
+	   again with whatever was remembered. A listener should never watch a
+	   spinner to see a list that is already in the payload. */
 	renderAll();
+
+	window.EvaluationStore.ready
+		.then(function (info) {
+			if (info.usingFallback) {
+				$('storage-status').textContent = 'Using local storage - IndexedDB is unavailable in this browser.';
+			}
+			return window.EvaluationStore.get('state');
+		})
+		.then(function (saved) {
+			if (saved && saved.runs) {
+				state = saved;
+				renderAll();
+			}
+			return window.EvaluationStore.estimate();
+		})
+		.then(function (estimate) {
+			if (estimate && estimate.quota) {
+				var usedMb = (estimate.usage / 1024 / 1024).toFixed(1);
+				var quotaMb = (estimate.quota / 1024 / 1024).toFixed(0);
+				$('storage-status').textContent = usedMb + ' MB of ' + quotaMb + ' MB used';
+			}
+		});
 })();

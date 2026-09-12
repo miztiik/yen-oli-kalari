@@ -53,6 +53,7 @@
 				<!-- ------------------------------------------------------------ -->
 				<section class="panel" role="tabpanel" id="panel-listen" aria-labelledby="tab-listen">
 					<p class="host-note" id="host-note"></p>
+					<div class="readouts" id="run-readout"></div>
 					<div class="metrics" id="verdict-metrics"></div>
 					<ul class="clip-list" id="clip-list"></ul>
 
@@ -68,6 +69,7 @@
 						<button id="export" type="button">Download evaluation</button>
 						<button id="reset" class="secondary" type="button">Clear all scores</button>
 						<span class="export-status" id="export-status"></span>
+						<span class="export-status" id="storage-status"></span>
 					</div>
 				</section>
 
@@ -189,6 +191,7 @@
 					<label class="dock__advance"><input type="checkbox" id="auto-advance" checked /> Auto-advance</label>
 					<button id="mark" type="button" title="Mark a defect at the current position" disabled>&#9873;</button>
 				</div>
+				<canvas class="waveform" id="waveform" height="48" aria-hidden="true"></canvas>
 				<div class="track" id="track" role="slider" tabindex="0" aria-label="Seek"
 					aria-valuemin="0" aria-valuemax="100" aria-valuenow="0">
 					<div class="track__buffered" id="track-buffered"></div>
@@ -201,6 +204,7 @@
 		<audio id="audio" preload="none"></audio>
 		<audio id="audio-b" preload="none"></audio>
 
+		<script src="store.js"></script>
 		<script src="data.js"></script>
 		<script src="app.js"></script>
 	</body>

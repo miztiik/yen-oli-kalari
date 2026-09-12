@@ -1260,3 +1260,105 @@ body {
 	border-color: var(--color-accent);
 	color: var(--color-on-accent);
 }
+/* --- Run readout ------------------------------------------------------- */
+
+/* The figures a dashboard shows first, on one line each. Both real-time
+   conventions appear together - the factor and its reciprocal - because vendors
+   publish each and a card claiming "RTF 0.32, about 3.1x real time" is stating
+   one number twice. */
+.readouts {
+	display: grid;
+	grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+	gap: var(--space-3);
+	margin-bottom: var(--space-5);
+	padding: var(--space-4);
+	background: var(--gradient-panel);
+	border-radius: var(--radius-lg);
+	box-shadow: var(--shadow-panel);
+}
+
+.readout {
+	display: grid;
+	gap: 0.15rem;
+	min-width: 0;
+}
+
+.readout__label {
+	font-size: var(--text-xs);
+	color: var(--color-text-tertiary);
+	letter-spacing: 0.03em;
+	text-transform: uppercase;
+}
+
+.readout__value {
+	font-size: var(--text-lg);
+	font-weight: 650;
+	font-variant-numeric: tabular-nums;
+	color: var(--color-text);
+}
+
+.readout__foot {
+	font-size: var(--text-xs);
+	color: var(--color-text-tertiary);
+}
+
+/* --- Thumbs ------------------------------------------------------------ */
+
+/* The fastest first pass. A listener can get through two dozen clips on one
+   axis in the time four scales take for six, so this is what gets filled in
+   when somebody has ten minutes rather than an hour. */
+.thumbs {
+	display: flex;
+	gap: var(--space-2);
+	margin-bottom: var(--space-3);
+}
+
+.thumb {
+	appearance: none;
+	flex: 1;
+	cursor: pointer;
+	font: inherit;
+	font-size: var(--text-sm);
+	padding: var(--space-2) var(--space-3);
+	border-radius: var(--radius-md);
+	border: 1px solid var(--color-rule);
+	background: var(--color-surface-sunken);
+	color: var(--color-text-secondary);
+	transition: all var(--dur-fast) var(--ease-standard);
+}
+
+.thumb:hover {
+	border-color: var(--color-rule-strong);
+	color: var(--color-text);
+}
+
+.thumb[aria-pressed='true'][data-thumb='up'] {
+	background: var(--tint-good);
+	border-color: var(--band-high);
+	color: var(--band-high);
+	font-weight: 600;
+}
+
+.thumb[aria-pressed='true'][data-thumb='down'] {
+	background: var(--tint-bad);
+	border-color: var(--band-low);
+	color: var(--band-low);
+	font-weight: 600;
+}
+
+/* --- Waveform ---------------------------------------------------------- */
+
+/* Drawn from peaks the build computed, not from audio decoded here: decoding
+   client-side means downloading the whole clip before the first pixel, and
+   inflating it about sixtyfold in memory to do it. */
+.waveform {
+	display: block;
+	width: 100%;
+	height: 48px;
+	cursor: pointer;
+	margin-bottom: var(--space-2);
+}
+
+.waveform[hidden] {
+	display: none;
+}

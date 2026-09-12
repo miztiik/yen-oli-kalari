@@ -63,6 +63,31 @@ function encodeWav(samples, sampleRate) {
   return buffer;
 }
 
+/**
+ * A coarse loudness envelope for the scrubber, computed here rather than in the
+ * browser.
+ *
+ * Decoding audio client-side to draw a waveform means downloading the whole
+ * clip before the first pixel, and `decodeAudioData` inflates a compressed clip
+ * to float32 PCM at roughly sixty times its file size. 64 peaks is about 500
+ * bytes of JSON and draws instantly.
+ */
+function peaksOf(samples, buckets = 64) {
+  const width = Math.floor(samples.length / buckets) || 1;
+  const peaks = [];
+  for (let b = 0; b < buckets; b += 1) {
+    let peak = 0;
+    const start = b * width;
+    const end = Math.min(samples.length, start + width);
+    for (let i = start; i < end; i += 1) {
+      const magnitude = Math.abs(samples[i]);
+      if (magnitude > peak) peak = magnitude;
+    }
+    peaks.push(Number(peak.toFixed(3)));
+  }
+  return peaks;
+}
+
 function concatenate(pieces) {
   const total = pieces.reduce((sum, p) => sum + p.length, 0);
   const joined = new Float32Array(total);
@@ -164,6 +189,7 @@ for (const sample of corpus.summaries) {
     clip: fileName,
     chunks: out.chunks,
     chunkTimings: out.chunkTimings,
+    peaks: peaksOf(out.samples),
     audioSeconds: Number(audioSeconds.toFixed(2)),
     wallClockMs: out.wallClockMs,
     wallClockRepeatsMs: out.wallClockRepeatsMs,

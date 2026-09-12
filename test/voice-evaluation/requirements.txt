@@ -1,0 +1,17 @@
+# Pinned so a benchmark is reproducible: an inference runtime that changes
+# between two runs makes the two figures incomparable, which is the whole point
+# of the exercise.
+#
+# onnxruntime is pinned to the version Chatterbox's own model card names.
+onnxruntime==1.22.1
+huggingface_hub>=0.34.4
+transformers>=4.46.3
+numpy>=2.0
+librosa>=0.11.0
+soundfile>=0.13.1
+tqdm>=4.67.1
+
+# Grading the verbalization suite: transcribe what the model said, so the
+# comparison against the expected spoken form is against a ground truth rather
+# than an opinion.
+faster-whisper>=1.0.0
