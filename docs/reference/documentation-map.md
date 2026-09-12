@@ -34,6 +34,7 @@ For the state of the project rather than a page, see
 | --- | --- |
 | [measurements.md](measurements.md) | **What figure is in force right now for each quantity?** |
 | [voice-model-survey.md](voice-model-survey.md) | Which text-to-speech models were considered, and what is known about each? |
+| [evaluation-coverage.md](evaluation-coverage.md) | Which quality metrics are measured, which are built but unrun, and which are not measured at all? |
 | [repository-layout.md](repository-layout.md) | Which directory holds what? |
 | [documentation-structure.md](documentation-structure.md) | Where does a new page go, and what must it contain? |
 | [documentation-map.md](documentation-map.md) | Which page answers my question? (this page) |

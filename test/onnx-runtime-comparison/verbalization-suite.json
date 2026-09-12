@@ -1,0 +1,245 @@
+{
+  "note": "A deterministic test set for the failure a news voice actually has. Standard TTS benchmarks measure naturalness on clean prose and under-measure verbalization, which is where a newscast breaks: a model that says 'twelve point five bee en' instead of 'twelve point five billion euros' is unusable however pleasant it sounds. Every case carries the EXACT expected spoken form, so this is scored against a ground truth rather than an opinion - an ASR round-trip can grade it without a human.",
+  "schemaVersion": "2026-09-13",
+  "scoring": {
+    "method": "Transcribe the generated audio, normalise both sides identically, then compare against expectedSpoken. A case is correct only if every token in expectedSpoken appears in order.",
+    "why": "expectedSpoken is what a competent newsreader would say. It is not the only acceptable reading - 'two thousand twenty six' and 'twenty twenty six' are both fine for a year - so acceptableAlternatives carries the ones that must also pass. Anything else is an error, and the error is attributable to a category."
+  },
+  "categories": {
+    "currency": "Amounts with a symbol, a scale word, or both. The scale word is the usual failure: 'bn' read as letters.",
+    "percent-ratio": "Percentages, multipliers and ratios. A multiplier sign is silently dropped by most models.",
+    "date-quarter": "ISO dates, fiscal quarters and years. A fiscal quarter is domain vocabulary a general model has never seen.",
+    "acronym-initialism": "Strings read letter-by-letter, and the ones that must NOT be - 'NASDAQ' is a word, 'ABN AMRO' is letters then a word.",
+    "unit-measure": "Units and their abbreviations. Roman numerals live here too; misaki is known to read 'II' as 'ai ai'.",
+    "url-identifier": "URLs, file names, version strings and model names. A dot is 'dot' in a URL and a decimal point in a number.",
+    "proper-noun": "Company and person names, including non-English ones. The hardest category to fix and the most visible when wrong.",
+    "code-switching": "A foreign-language name or phrase inside English copy. A model with one phoneme set will either anglicise it or drop it.",
+    "long-form-drift": "Long passages that test whether pace, pitch and energy hold from first sentence to last. Scored on the spread across the clip rather than on any one word."
+  },
+  "cases": [
+    {
+      "id": "cur-01",
+      "category": "currency",
+      "text": "The fund raised EUR 12.5bn in its third close.",
+      "expectedSpoken": "twelve point five billion euros",
+      "acceptableAlternatives": ["twelve and a half billion euros", "euro twelve point five billion"],
+      "trap": "'bn' read as the letters B N, or dropped entirely."
+    },
+    {
+      "id": "cur-02",
+      "category": "currency",
+      "text": "Micron will pay NT$1 million per engineer, about S$40,000.",
+      "expectedSpoken": "one million Taiwan dollars",
+      "acceptableAlternatives": ["N T one million dollars"],
+      "trap": "A prefixed currency code. Most models read the digits and drop the prefix."
+    },
+    {
+      "id": "cur-03",
+      "category": "currency",
+      "text": "Revenue fell to $1.2tn from $1.4tn a year earlier.",
+      "expectedSpoken": "one point two trillion dollars",
+      "acceptableAlternatives": [],
+      "trap": "'tn' is rarer than 'bn' and fails more often."
+    },
+    {
+      "id": "cur-04",
+      "category": "currency",
+      "text": "The settlement was GBP 8.75m, down from EUR 20m.",
+      "expectedSpoken": "eight point seven five million pounds",
+      "acceptableAlternatives": ["eight point seventy five million pounds"],
+      "trap": "An ISO currency code rather than a symbol."
+    },
+    {
+      "id": "pct-01",
+      "category": "percent-ratio",
+      "text": "Inflation rose 3.7% against a 2% target.",
+      "expectedSpoken": "three point seven percent",
+      "acceptableAlternatives": [],
+      "trap": "The decimal read as a date, or the percent sign dropped."
+    },
+    {
+      "id": "pct-02",
+      "category": "percent-ratio",
+      "text": "The model runs at 1.2x real time on a single core.",
+      "expectedSpoken": "one point two times real time",
+      "acceptableAlternatives": ["one point two ex real time"],
+      "trap": "The multiplier sign read as the letter X, or dropped."
+    },
+    {
+      "id": "pct-03",
+      "category": "percent-ratio",
+      "text": "Margins compressed by 120 basis points to 4.25%.",
+      "expectedSpoken": "four point two five percent",
+      "acceptableAlternatives": ["four point twenty five percent"],
+      "trap": "Two numbers of different kinds in one sentence."
+    },
+    {
+      "id": "pct-04",
+      "category": "percent-ratio",
+      "text": "Coverage improved from 0.8x to 2.5x within the quarter.",
+      "expectedSpoken": "zero point eight times",
+      "acceptableAlternatives": ["point eight times", "nought point eight times"],
+      "trap": "A leading zero before a decimal."
+    },
+    {
+      "id": "dat-01",
+      "category": "date-quarter",
+      "text": "The filing is dated 2026-09-12 and covers Q3 FY26.",
+      "expectedSpoken": "the twelfth of September twenty twenty six",
+      "acceptableAlternatives": ["September twelfth twenty twenty six", "September twelve two thousand twenty six"],
+      "trap": "An ISO date read as three separate numbers."
+    },
+    {
+      "id": "dat-02",
+      "category": "date-quarter",
+      "text": "Guidance for Q3 FY26 was withdrawn.",
+      "expectedSpoken": "third quarter fiscal twenty twenty six",
+      "acceptableAlternatives": ["Q three F Y twenty six", "queue three fiscal year twenty six"],
+      "trap": "Fiscal-quarter vocabulary a general model has never seen."
+    },
+    {
+      "id": "dat-03",
+      "category": "date-quarter",
+      "text": "Between 1997 and 2008 the index doubled.",
+      "expectedSpoken": "nineteen ninety seven",
+      "acceptableAlternatives": ["one thousand nine hundred ninety seven"],
+      "trap": "A year read as a cardinal rather than a year."
+    },
+    {
+      "id": "dat-04",
+      "category": "date-quarter",
+      "text": "The window runs 08:30 to 17:00 CET.",
+      "expectedSpoken": "eight thirty",
+      "acceptableAlternatives": ["oh eight thirty", "zero eight thirty"],
+      "trap": "A 24-hour clock read as a ratio or a decimal."
+    },
+    {
+      "id": "acr-01",
+      "category": "acronym-initialism",
+      "text": "ABN AMRO was cut by NASDAQ analysts.",
+      "expectedSpoken": "A B N AMRO",
+      "acceptableAlternatives": ["A B N Amro"],
+      "trap": "The hardest mixed case: initialism then a word, in one name."
+    },
+    {
+      "id": "acr-02",
+      "category": "acronym-initialism",
+      "text": "NASDAQ and NYSE both closed lower.",
+      "expectedSpoken": "NASDAQ",
+      "acceptableAlternatives": ["nasdaq"],
+      "trap": "NASDAQ is a WORD and must not be spelled out; NYSE in the same sentence must be."
+    },
+    {
+      "id": "acr-03",
+      "category": "acronym-initialism",
+      "text": "The AI/ML team reports to the CTO.",
+      "expectedSpoken": "A I slash M L",
+      "acceptableAlternatives": ["A I M L", "A I and M L"],
+      "trap": "A slash between two initialisms."
+    },
+    {
+      "id": "acr-04",
+      "category": "acronym-initialism",
+      "text": "NATO, UNESCO and the WHO issued a joint statement.",
+      "expectedSpoken": "NATO",
+      "acceptableAlternatives": ["nato"],
+      "trap": "Three acronyms with three different conventions in one sentence."
+    },
+    {
+      "id": "uni-01",
+      "category": "unit-measure",
+      "text": "The tunnel runs 2km at a depth of 30m.",
+      "expectedSpoken": "two kilometres",
+      "acceptableAlternatives": ["two kilometers", "two K M"],
+      "trap": "A unit abbreviation with no space. Known to fail on misaki."
+    },
+    {
+      "id": "uni-02",
+      "category": "unit-measure",
+      "text": "Output reached 2GW, up from 450MW.",
+      "expectedSpoken": "two gigawatts",
+      "acceptableAlternatives": ["two G W"],
+      "trap": "An SI prefix inside a unit."
+    },
+    {
+      "id": "uni-03",
+      "category": "unit-measure",
+      "text": "Chapter II of the report covers Article IV.",
+      "expectedSpoken": "chapter two",
+      "acceptableAlternatives": ["chapter the second"],
+      "trap": "A Roman numeral. misaki reads 'II' as 'ai ai' - an open issue since 2025."
+    },
+    {
+      "id": "url-01",
+      "category": "url-identifier",
+      "text": "Details are at reuters.com/markets and on the SEC site.",
+      "expectedSpoken": "reuters dot com slash markets",
+      "acceptableAlternatives": ["reuters dot com markets"],
+      "trap": "A dot is 'dot' here and a decimal point three cases above."
+    },
+    {
+      "id": "url-02",
+      "category": "url-identifier",
+      "text": "The release upgrades Qwen3.5-9B to v2.1.0.",
+      "expectedSpoken": "version two point one point zero",
+      "acceptableAlternatives": ["V two point one point zero", "two point one point oh"],
+      "trap": "A three-part version string read as one decimal."
+    },
+    {
+      "id": "url-03",
+      "category": "url-identifier",
+      "text": "They shipped Kokoro-82M and Voxtral-4B the same week.",
+      "expectedSpoken": "Kokoro eighty two M",
+      "acceptableAlternatives": ["Kokoro eighty two million", "Kokoro dash eighty two M"],
+      "trap": "A model name: a word, a hyphen, a number and a scale letter."
+    },
+    {
+      "id": "pro-01",
+      "category": "proper-noun",
+      "text": "Pethokoukis and Nakagawa disagreed on the forecast.",
+      "expectedSpoken": "Pethokoukis",
+      "acceptableAlternatives": [],
+      "trap": "An unfamiliar surname. The espeak fallback DROPS out-of-dictionary words silently, so this may vanish from the audio entirely."
+    },
+    {
+      "id": "pro-02",
+      "category": "proper-noun",
+      "text": "Siemens Energy and Koninklijke Philips both reported.",
+      "expectedSpoken": "Koninklijke Philips",
+      "acceptableAlternatives": [],
+      "trap": "A Dutch company name in English copy."
+    },
+    {
+      "id": "pro-03",
+      "category": "proper-noun",
+      "text": "Xiaomi, Huawei and Alphabet led the sector.",
+      "expectedSpoken": "Xiaomi",
+      "acceptableAlternatives": ["shao mee", "show mee"],
+      "trap": "A transliterated name whose spelling does not predict its sound."
+    },
+    {
+      "id": "cod-01",
+      "category": "code-switching",
+      "text": "The Reserve Bank of India cited achhe din in its statement.",
+      "expectedSpoken": "achhe din",
+      "acceptableAlternatives": [],
+      "trap": "A Hindi phrase inside English copy."
+    },
+    {
+      "id": "cod-02",
+      "category": "code-switching",
+      "text": "Deutsche Bahn confirmed the Energiewende timetable.",
+      "expectedSpoken": "Energiewende",
+      "acceptableAlternatives": [],
+      "trap": "A German compound noun in English copy."
+    },
+    {
+      "id": "drf-01",
+      "category": "long-form-drift",
+      "text": "The Reserve Bank of India held its policy rate at 6.5 percent for the fourth consecutive meeting, citing persistent food inflation and an uncertain monsoon outlook. Governor Malhotra said the committee had considered a cut but judged the risks asymmetric, with core inflation still above the medium-term target. Economists at three of the four largest private banks had expected a twenty five basis point reduction, and bond yields rose eight basis points on the announcement. The rupee strengthened marginally against the dollar in early trade before giving up its gains. Analysts now expect the first cut in the March quarter, though several cautioned that a weak monsoon would push that into the following fiscal year. The central bank also raised its growth forecast by a tenth of a percentage point, to seven point two percent, and left its inflation projection unchanged at four point five percent for the year.",
+      "expectedSpoken": null,
+      "acceptableAlternatives": [],
+      "trap": "Nine sentences. Scored on whether pace, pitch and energy hold from the first to the last - not on any single word. Compare words-a-minute in the first third against the last."
+    }
+  ]
+}

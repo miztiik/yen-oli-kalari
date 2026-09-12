@@ -1,0 +1,174 @@
+# Benchmark every text-to-speech candidate on the hardware that will run it.
+#
+# One runner per model, in parallel, because the models are independent and the
+# run should cost its slowest arm rather than their sum. A shard is a whole
+# runner with its own 4 vCPU - not a slice of one machine's cores.
+#
+# THIS IS THE ONLY PLACE A COMPARABLE FIGURE COMES FROM. A wall clock read on a
+# developer machine may not be compared against the job cap: the same corpus
+# measured 2.576 on a laptop and 1.0112 on this runner, which is close enough
+# to look plausible and far enough to price a design on the wrong hardware.
+name: benchmark voices
+
+on:
+  workflow_dispatch:
+    inputs:
+      models:
+        description: Comma-separated adapter ids, or "all"
+        default: all
+        type: string
+      repeats:
+        description: Repeats per clip, for spread
+        default: "1"
+        type: string
+
+permissions:
+  contents: read
+
+concurrency:
+  group: benchmark-voices
+  cancel-in-progress: true
+
+jobs:
+  plan:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    outputs:
+      matrix: ${{ steps.fanout.outputs.matrix }}
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          fetch-depth: 1
+
+      # The list of runnable adapters lives in code, not in this file, so adding
+      # a model is one edit rather than two that can disagree.
+      - id: fanout
+        run: |
+          set -euo pipefail
+          if [ "${{ inputs.models }}" = "all" ]; then
+            MATRIX=$(node -e "import('./test/voice-evaluation/adapters.mjs').then(m=>console.log(JSON.stringify(Object.keys(m.ADAPTERS))))")
+          else
+            MATRIX=$(echo '${{ inputs.models }}' | tr ',' '\n' | jq -R . | jq -sc .)
+          fi
+          echo "matrix=$MATRIX" >> "$GITHUB_OUTPUT"
+          echo "will benchmark: $MATRIX"
+
+  benchmark:
+    needs: plan
+    runs-on: ubuntu-latest
+    timeout-minutes: 90
+    strategy:
+      # A model that fails must not cancel its siblings. A partial set of
+      # readings is still a reading, and an arm that dies is itself a finding -
+      # "this model does not run on a 4 vCPU runner" is what the benchmark is
+      # for.
+      fail-fast: false
+      matrix:
+        model: ${{ fromJSON(needs.plan.outputs.matrix) }}
+    defaults:
+      run:
+        working-directory: test/voice-evaluation
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          fetch-depth: 1
+
+      - uses: actions/setup-node@v5
+        with:
+          node-version: "24"
+          cache: npm
+          cache-dependency-path: test/voice-evaluation/package-lock.json
+
+      # Weights are fetched from Hugging Face on first use and are NOT covered
+      # by `cache: npm`. Kokoro alone is 326 MB at fp32; without this every arm
+      # refetches on every run.
+      - name: Cache the model weights
+        uses: actions/cache@v6
+        with:
+          path: ~/.cache/huggingface
+          key: hf-weights-${{ matrix.model }}-v1
+          restore-keys: hf-weights-
+
+      - name: Install
+        run: npm ci --no-audit --no-fund
+
+      # Every figure carries the hardware it ran on, because wall clock is a
+      # property of the machine and audio duration is not (Guardrail #10).
+      - name: Record the runner
+        run: |
+          echo "cores: $(nproc)"
+          lscpu | grep -E 'Model name' || true
+          free -g | head -2
+
+      - name: Benchmark
+        env:
+          MODEL: ${{ matrix.model }}
+          REPEATS: ${{ inputs.repeats }}
+        run: node benchmark-model.mjs
+
+      - name: Report
+        if: always()
+        run: |
+          set -euo pipefail
+          F="results/${{ matrix.model }}/manifest.json"
+          [ -f "$F" ] || { echo "### ${{ matrix.model }} produced no manifest" >> "$GITHUB_STEP_SUMMARY"; exit 0; }
+          node -e "
+            const m = require('./' + process.env.F);
+            const x = m.metrics;
+            const row = (k, v) => console.log('| ' + k + ' | ' + v + ' |');
+            console.log('### ' + m.model + '  \`' + m.runtime + '\`');
+            console.log('');
+            console.log('| Metric | Value |');
+            console.log('| --- | --- |');
+            row('Real-time factor', x.realTimeFactor.toFixed(4) + ' (' + x.speedMultiplier.toFixed(2) + 'x real time)');
+            row('Speaking rate', x.speakingRate.toFixed(1) + ' wpm, +/-' + (x.rateStability.coefficientOfVariation*100).toFixed(1) + '%');
+            row('Median speed', x.medianCharactersASecond.toFixed(1) + ' char/s');
+            row('Long-form drift', x.drift ? x.drift.medianDriftPercent.toFixed(1) + '%' : 'n/a');
+            row('Peak memory', m.peakMemoryMb + ' MB');
+            row('Model load', (m.modelLoadMs/1000).toFixed(1) + ' s');
+            row('Audio produced', (x.audioSeconds/60).toFixed(1) + ' min');
+            row('Verbalization cases voiced', m.verbalization.length + ' (ungraded)');
+            console.log('');
+          " >> "$GITHUB_STEP_SUMMARY"
+
+      # The manifest is the reading and the audio is what a person judges. Both
+      # go up; the WAV is dropped because it is the synthesiser's output rather
+      # than a publishing format.
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: benchmark-${{ matrix.model }}
+          path: test/voice-evaluation/results/${{ matrix.model }}/
+          if-no-files-found: warn
+          retention-days: 14
+
+  collate:
+    needs: [plan, benchmark]
+    if: always()
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    defaults:
+      run:
+        working-directory: test/voice-evaluation
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          fetch-depth: 1
+
+      - uses: actions/setup-node@v5
+        with:
+          node-version: "24"
+
+      - uses: actions/download-artifact@v5
+        with:
+          pattern: benchmark-*
+          path: test/voice-evaluation/results
+
+      - name: Rank every arm that finished
+        run: node collate-benchmarks.mjs >> "$GITHUB_STEP_SUMMARY"
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: benchmark-comparison
+          path: test/voice-evaluation/results/comparison.json
+          if-no-files-found: warn

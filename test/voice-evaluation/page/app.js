@@ -222,6 +222,36 @@
 		]);
 	}
 
+	/* The run readout: the figures a dashboard shows first. Both real-time
+	   conventions appear together - the factor and its reciprocal - because
+	   vendors publish each and a card claiming "RTF 0.32, about 3.1x real time"
+	   is stating one number twice. */
+	function renderRunReadout() {
+		var run = activeRun();
+		var m = run.metrics;
+		if (!m) return;
+		var mount = $('run-readout');
+		mount.innerHTML = '';
+		[
+			['Median speed', m.medianCharactersASecond.toFixed(0) + ' char/s', 'per second of audio'],
+			['Real-time factor', m.realTimeFactor.toFixed(4), 'lower is better'],
+			['Real-time speed', m.speedMultiplier.toFixed(2) + 'x', 'the same figure, inverted'],
+			['Processing time', Math.round(m.processingSeconds) + ' s', 'for ' + (m.audioSeconds / 60).toFixed(1) + ' min of audio'],
+			['Total characters', m.totalCharacters.toLocaleString(), m.totalWords.toLocaleString() + ' words'],
+			['Speaking rate', m.speakingRate.toFixed(1) + ' wpm',
+				'+/- ' + (m.rateStability.coefficientOfVariation * 100).toFixed(1) + '% across clips'],
+			['Long-form drift', m.drift ? (m.drift.medianDriftPercent > 0 ? '+' : '') + m.drift.medianDriftPercent.toFixed(1) + '%' : 'n/a',
+				m.drift ? 'pace, opening third vs closing' : 'needs 3+ chunks'],
+			['Voice', run.voice, run.quantisation]
+		].forEach(function (row) {
+			mount.appendChild(el('div', { class: 'readout' }, [
+				el('span', { class: 'readout__label', text: row[0] }),
+				el('span', { class: 'readout__value', text: row[1] }),
+				el('span', { class: 'readout__foot', text: row[2] })
+			]));
+		});
+	}
+
 	function renderVerdictMetrics() {
 		var run = activeRun();
 		var counts = tallyFor(run.runId, run);
@@ -821,6 +851,7 @@
 	function renderAll() {
 		renderModelPanel();
 		renderHostNote();
+		renderRunReadout();
 		renderClips();
 		renderVerdictMetrics();
 	}

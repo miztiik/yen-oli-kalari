@@ -84,12 +84,19 @@ jobs:
       # changes only the page does not pay for the audio again. The key carries
       # everything that changes the audio - model, quantisations, corpus, and
       # the builder that made it.
+      # A cache key may not contain a comma and the input is a list, so the
+      # list is slugged first. Learned twice: the weights cache hit the same
+      # rule an hour earlier.
+      - name: Name the cache
+        id: key
+        run: echo "slug=$(echo '${{ inputs.quantisations }}' | tr ',' '-')" >> "$GITHUB_OUTPUT"
+
       - name: Cache the voiced audio
         id: voiced
         uses: actions/cache@v6
         with:
           path: test/voice-evaluation/results
-          key: voiced-${{ inputs.quantisations }}-${{ inputs.corpus }}-${{ hashFiles('test/voice-evaluation/build-evaluation-clips.mjs', 'test/onnx-runtime-comparison/*-summaries/summaries.json') }}
+          key: voiced-${{ steps.key.outputs.slug }}-${{ inputs.corpus }}-${{ hashFiles('test/voice-evaluation/build-evaluation-clips.mjs', 'test/onnx-runtime-comparison/*-summaries/summaries.json') }}
 
       # Every figure carries the hardware it ran on, because wall clock is a
       # property of the machine and audio duration is not (Guardrail #10).

@@ -20,6 +20,7 @@
 import { readFileSync, writeFileSync, existsSync, readdirSync, statSync } from "node:fs";
 import { fileURLToPath } from "node:url";
 import { join } from "node:path";
+import { summariseRun } from "./metrics.mjs";
 
 const RESULTS_DIR = fileURLToPath(new URL("./results/", import.meta.url));
 const CATALOGUE_PATH = fileURLToPath(new URL("./model-catalogue.json", import.meta.url));
@@ -62,6 +63,10 @@ for (const modelSlug of directories(RESULTS_DIR)) {
       for (const clip of manifest.clips) clip.clip = clip.clip.replace(/\.wav$/, CLIP_EXTENSION);
     }
     manifest.clipBase = `${CLIP_BASE}${modelSlug}/${quantisation}/`;
+    /* The metrics a dashboard shows first, computed once here rather than in
+       the browser, so the published payload carries the same figures a CI job
+       would read. */
+    manifest.metrics = summariseRun(manifest);
     manifest.runId = `${modelSlug}/${quantisation}`;
     runs.push(manifest);
   }
