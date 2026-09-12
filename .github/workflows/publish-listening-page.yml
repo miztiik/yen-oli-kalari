@@ -69,7 +69,10 @@ jobs:
         uses: actions/cache@v6
         with:
           path: ~/.cache/huggingface
-          key: kokoro-${{ inputs.quantisations }}-v1
+          # A cache key may not contain a comma, and the input is a comma-
+          # separated list. One key for every quantisation is right anyway: the
+          # weights differ per dtype, and a run asking for two wants both.
+          key: kokoro-weights-v1
           restore-keys: kokoro-
 
       - name: Install
