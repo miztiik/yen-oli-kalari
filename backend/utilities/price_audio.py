@@ -25,7 +25,7 @@ MEAN_WORDS_A_SUMMARY = 90.2
 # Measured 2026-09-12 on the production runner, not assumed. Changing this moves
 # every byte and hour figure below, which is why the reading that set it is
 # named: docs/reference/benchmarks/2026-09-12-kokoro-on-a-ci-runner.md.
-WORDS_PER_MINUTE = 129.5
+WORDS_PER_MINUTE = 126.7
 MEASURED_REAL_TIME_FACTOR = 1.0112
 
 # Codec bitrates in kbps, mono, speech.
@@ -136,13 +136,37 @@ def print_measured_verdict():
         )
 
 
+def print_shard_verdict():
+    """Print the busiest day against the cap, by how many runners carry it.
+
+    The single-runner budget was the only one this script knew, and it answers a
+    question the pipeline does not ask: summaries are independent, so the work
+    fans out across runners and each carries 1/N of the day. The sibling project
+    already runs four shards that start at the same instant, so the run costs its
+    slowest shard rather than their sum.
+
+    A SHARD IS A WHOLE RUNNER, NOT A CORE. Each ubuntu-latest runner has its own
+    4 vCPU; four shards is four machines.
+    """
+    print(f"\n--- the busiest day ({BUSIEST_ITEMS_A_DAY} items) by shard count ---")
+    busiest_minutes = compute_speech_minutes_a_day(BUSIEST_ITEMS_A_DAY)
+    print(f"{'runners':<9}{'audio each':>12}{'budget RTF':>12}{'at measured':>13}  verdict")
+    for shards in (1, 2, 4, 8):
+        each = busiest_minutes / shards
+        budget = JOB_CAP_H * 60 / each
+        hours = each / 60 * MEASURED_REAL_TIME_FACTOR
+        verdict = "fits" if hours < JOB_CAP_H else "BUSTS"
+        print(f"{shards:<9}{each:>10.1f} m{budget:>12.3f}{hours:>11.2f} h  {verdict}")
+
+
 def main():
-    print(f"speaking pace = {WORDS_PER_MINUTE} wpm (measured 2026-09-12)")
+    print(f"speaking pace = {WORDS_PER_MINUTE} wpm (measured 2026-09-12 on real published text)")
     print(f"seconds of audio per item = {compute_speech_seconds_an_item():.1f}")
     print_storage_table()
     print_days_until_cap()
     print_wall_clock_table()
     print_measured_verdict()
+    print_shard_verdict()
 
 
 if __name__ == "__main__":

@@ -27,7 +27,22 @@ const VOICE = process.env.VOICE ?? "af_heart";
 const MAX_WORDS_A_CHUNK = Number(process.env.MAX_WORDS_A_CHUNK ?? 40);
 const SAMPLE_RATE = 24000;
 
-const CORPUS_PATH = new URL("../onnx-runtime-comparison/sample-summaries/summaries.json", import.meta.url);
+/* Which corpus to voice. `real` is summaries pulled off the published site by
+   ../onnx-runtime-comparison/build-real-corpus.mjs and is the one that matters:
+   a hand-picked sample can quietly avoid the tickers, currency amounts and
+   acronyms that are exactly what a news voice gets wrong. `sample` is the
+   earlier hand-picked set, kept so an old reading can be reproduced. */
+const CORPUS = process.env.CORPUS ?? "real";
+const CORPUS_PATHS = {
+  real: "../onnx-runtime-comparison/real-summaries/summaries.json",
+  sample: "../onnx-runtime-comparison/sample-summaries/summaries.json",
+};
+if (!CORPUS_PATHS[CORPUS]) {
+  console.error(`unknown CORPUS "${CORPUS}" - expected one of: ${Object.keys(CORPUS_PATHS).join(", ")}`);
+  process.exit(1);
+}
+
+const CORPUS_PATH = new URL(CORPUS_PATHS[CORPUS], import.meta.url);
 const CLIP_DIR = fileURLToPath(new URL("./clips/", import.meta.url));
 const MANIFEST_PATH = fileURLToPath(new URL("./clips/manifest.json", import.meta.url));
 
@@ -69,44 +84,82 @@ function concatenateSamples(pieces) {
 const corpus = JSON.parse(readFileSync(CORPUS_PATH, "utf8"));
 mkdirSync(CLIP_DIR, { recursive: true });
 
-console.log(`model ${MODEL_ID} (${QUANTISATION})   voice ${VOICE}`);
-console.log(`${corpus.summaries.length} summaries, ${corpus.totalWords} words\n`);
+/* Sharding, so a day can be split across runners. Every summary is independent,
+   so N shards cut wall clock by N - a shard is a whole runner with its own 4
+   vCPU, not a slice of one machine's cores.
+
+   Round-robin rather than contiguous blocks: the corpus is sorted by length, so
+   giving shard 0 the first quarter would hand it every short summary and shard
+   3 every long one, and the shards would finish at wildly different times. The
+   run costs its slowest shard, so balance is the whole point. */
+const SHARD_INDEX = Number(process.env.SHARD_INDEX ?? 0);
+const SHARD_TOTAL = Number(process.env.SHARD_TOTAL ?? 1);
+const REPEATS = Number(process.env.REPEATS ?? 1);
+
+const slice = corpus.summaries.filter((_, i) => i % SHARD_TOTAL === SHARD_INDEX);
+
+console.log(`model ${MODEL_ID} (${QUANTISATION})   voice ${VOICE}   corpus ${CORPUS}`);
+if (SHARD_TOTAL > 1) {
+  console.log(`shard ${SHARD_INDEX} of ${SHARD_TOTAL}: ${slice.length} of ${corpus.summaries.length} summaries`);
+}
+console.log(`${slice.reduce((s, x) => s + x.words, 0)} words, ${REPEATS} repeat(s)\n`);
 
 const tts = await KokoroTTS.from_pretrained(MODEL_ID, { dtype: QUANTISATION, device: "cpu" });
 
 const entries = [];
-for (const sample of corpus.summaries) {
+for (const sample of slice) {
   const chunks = splitIntoChunks(sample.text, MAX_WORDS_A_CHUNK);
-  const startedMs = Date.now();
-  const pieces = [];
-  for (const chunk of chunks) {
-    const audio = await tts.generate(chunk, { voice: VOICE });
-    pieces.push(audio.audio ?? audio.data);
+
+  /* Repeats give the spread. A GitHub runner is shared hardware, so one reading
+     is a single sample of a noisy process - the 2026-09-12 record names the
+     absence of spread as its own first limitation. The audio is kept from the
+     last repeat because every repeat produces identical audio (the model is
+     deterministic); only the clock differs. */
+  const wallClocks = [];
+  let pieces = [];
+  for (let repeat = 0; repeat < REPEATS; repeat += 1) {
+    const startedMs = Date.now();
+    pieces = [];
+    for (const chunk of chunks) {
+      const audio = await tts.generate(chunk, { voice: VOICE });
+      pieces.push(audio.audio ?? audio.data);
+    }
+    wallClocks.push(Date.now() - startedMs);
   }
-  const wallClockMs = Date.now() - startedMs;
 
   const samples = concatenateSamples(pieces);
   const audioSeconds = samples.length / SAMPLE_RATE;
   const fileName = `${sample.id}.wav`;
   writeFileSync(`${CLIP_DIR}${fileName}`, encodeWav(samples, SAMPLE_RATE));
 
+  const sortedClocks = [...wallClocks].sort((a, b) => a - b);
+  const medianWallClockMs = sortedClocks[Math.floor(sortedClocks.length / 2)];
+
   entries.push({
     id: sample.id,
     text: sample.text,
     words: sample.words,
+    hazards: sample.hazards ?? [],
+    sourceName: sample.sourceName ?? null,
+    vertical: sample.vertical ?? null,
     clip: fileName,
     chunks: chunks.length,
     chunkBoundaries: chunks.slice(0, -1).map((c) => c.slice(-40)),
     audioSeconds: Number(audioSeconds.toFixed(2)),
-    wallClockMs,
-    realTimeFactor: Number((wallClockMs / 1000 / audioSeconds).toFixed(3)),
+    wallClockMs: medianWallClockMs,
+    wallClockRepeatsMs: wallClocks,
+    realTimeFactor: Number((medianWallClockMs / 1000 / audioSeconds).toFixed(3)),
     wordsAMinute: Number(((sample.words / audioSeconds) * 60).toFixed(1)),
     bytes: 44 + samples.length * 2,
   });
 
+  const spread =
+    REPEATS > 1
+      ? `  (${Math.min(...wallClocks) / 1000}-${Math.max(...wallClocks) / 1000}s over ${REPEATS})`
+      : "";
   console.log(
     `  ${sample.id}  ${String(sample.words).padStart(4)} words  ` +
-      `${String(chunks.length).padStart(2)} chunk(s)  ${audioSeconds.toFixed(1)}s  -> ${fileName}`,
+      `${String(chunks.length).padStart(2)} chunk(s)  ${audioSeconds.toFixed(1)}s  -> ${fileName}${spread}`,
   );
 }
 
@@ -114,6 +167,8 @@ const manifest = {
   schemaVersion: "2026-09-12",
   generatedAt: new Date().toISOString(),
   model: `${MODEL_ID} (${QUANTISATION})`,
+  corpus: { name: CORPUS, sampledFrom: corpus.sampledFrom ?? null, note: corpus.note ?? null },
+  shard: { index: SHARD_INDEX, total: SHARD_TOTAL, repeats: REPEATS },
   voice: VOICE,
   sampleRate: SAMPLE_RATE,
   maxWordsAChunk: MAX_WORDS_A_CHUNK,

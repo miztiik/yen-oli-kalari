@@ -574,6 +574,18 @@ body {
 	font-variant-numeric: tabular-nums;
 }
 
+/* A hazard is a landmark, not a verdict: it says this clip holds a currency
+   amount, never that the model got it wrong. Neutral tint, no confidence hue. */
+.hazard {
+	font-size: var(--text-xs);
+	line-height: 1;
+	padding: 0.25em 0.5em;
+	border-radius: var(--radius-full);
+	background: var(--tint-neutral);
+	color: var(--color-text-tertiary);
+	white-space: nowrap;
+}
+
 .clip__text {
 	margin: 0;
 	font-size: var(--text-base);

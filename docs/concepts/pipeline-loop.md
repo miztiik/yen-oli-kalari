@@ -1,6 +1,6 @@
 # Pipeline Loop
 
-**Last Updated**: 2026-09-11
+**Last Updated**: 2026-09-12
 
 The daily loop as a contract: what the GitHub Actions job does from reading the digest through synthesis, publishing, and the prune that holds the cap - and the invariants each step must keep. This is the build-time core loop; every other concept doc hangs off it.
 
@@ -17,9 +17,11 @@ An **item** is one digest entry from yen-idhazh - a title, a summary, a source l
 
 The owner ruling of 2026-09-11: **every item is voiced.** The 1 GB cap is not held by voicing only the top items a day - it is held by the prune stage below. Selecting which items get a voice is not a stage in this loop. This reverses what the benchmark alone would suggest, and the reversal is deliberate - see [Rejected alternatives](#rejected-alternatives).
 
-## Storage is the binding constraint
+## Storage is bounded by the prune, not by the voice
 
-Measured 2026-09-11: a median day is 370 items and about 222 minutes of speech, which is 40 MB at opus@24k and **fills the 1 GB published site in 26 days**. Compute only busts the 6 h job at a real-time factor of 3.0 and above, so a fast model does not rescue the design - the bytes do the killing ([benchmark](../reference/benchmarks/2026-09-11-input-volume-and-audio-cost.md)). Every invariant on this page serves that one fact: the archive is bounded by storage, not by time and not by compute.
+Measured 2026-09-12 at the real speaking pace: a median day is 370 items and about 258 minutes of speech, which is 46 MB at opus@24k. Unpruned that would fill the 1 GB published site in 22 days - **but nothing is ever unpruned.** The prune stage below clears the oldest audio on every run as steady state, so the site size is a controlled figure rather than a growing one and there is no storage problem to solve. What the cap actually buys is a retention window: at 46 MB a day, 1 GB holds about three weeks of voiced days, and how far back a listener can hear is the thing the cap sets.
+
+**Compute is the constraint that can actually fail a run.** Measured on the runner at a real-time factor of 1.0112, a single job voicing the whole busiest day (731 items) costs 8.58 h against a 6 h cap and does not finish. That is why the loop shards: four runners carry a quarter each and the same day costs 2.15 h ([model-formats-and-inference.md](model-formats-and-inference.md) derives the budget). A run that busts its job loses a day of audio; a full site only shortens the archive.
 
 ## The stages
 
@@ -49,8 +51,9 @@ One consequence is worth stating, because it frees a real choice: the runner mod
 
 ## What does not exist yet
 
-- No synthesis stage has run on the target runner, so every real-time-factor figure is a what-if, not a reading ([benchmark](../reference/benchmarks/2026-09-11-input-volume-and-audio-cost.md)).
-- The prune stage is designed here and not written. Until it exists, nothing holds the cap and the site would fill in 26 days.
+- No synthesis stage has run on the target runner as part of this loop. One voice model has been measured standalone ([benchmark](../reference/benchmarks/2026-09-12-kokoro-on-a-ci-runner.md)), but the loop itself has never voiced a day.
+- **The shard stage is designed here and not written.** A single job cannot voice the busiest day inside the 6 h cap, so the fan-out is load-bearing rather than an optimisation.
+- The prune stage is designed here and not written. Until it exists, nothing holds the cap and the site would fill in 22 days.
 - Whether the audio payload carries a per-item peak array is undecided ([ui-shell.md](ui-shell.md)). The answer moves a payload line and no stage boundary.
 
 ## Rejected alternatives

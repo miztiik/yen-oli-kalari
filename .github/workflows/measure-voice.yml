@@ -1,0 +1,183 @@
+# Measure a voice model on the runner that will have to run it, in shards.
+#
+# Two things this settles that a single-job run cannot.
+#
+# First, the spread. A GitHub runner is shared hardware and one reading is not a
+# measurement - the 2026-09-12 record says so in its own limitations. Repeats
+# give the spread.
+#
+# Second, and the reason for the fan-out: a day of audio is embarrassingly
+# parallel. Every summary is independent, so N shards cut wall clock by N. The
+# shape is lifted from yen-idhazh's `Content refresh`, where four shards start
+# at the same instant and the run costs the slowest one rather than the sum
+# (run 34680107844: plan 2m12s, then work 0-3 all starting 07:14:30 and the
+# slowest finishing 48m later).
+#
+# A SHARD IS A WHOLE RUNNER, NOT A CORE. Each ubuntu-latest runner has 4 vCPU
+# and GitHub allows 20 concurrent jobs on the free tier, so four shards is four
+# machines and sixteen vCPU - not four processes fighting over one machine's
+# four. Splitting a 4-vCPU box four ways would make each shard four times slower
+# and buy nothing, because the model already uses the cores it is given.
+name: measure voice on the runner
+
+on:
+  workflow_dispatch:
+    inputs:
+      shards:
+        description: How many runners to split the corpus across (1-8)
+        default: "4"
+        type: string
+      repeats:
+        description: How many times each shard runs its slice, for spread
+        default: "3"
+        type: string
+      corpus:
+        description: Which corpus to voice
+        default: real
+        type: choice
+        options:
+          - real
+          - sample
+      quantisation:
+        description: Model quantisation
+        default: q8
+        type: string
+
+jobs:
+  plan:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    outputs:
+      shards: ${{ steps.fanout.outputs.shards }}
+      matrix: ${{ steps.fanout.outputs.matrix }}
+    steps:
+      # The fan-out width and the concurrency cap come from one place, so they
+      # cannot disagree. A fixed `max-parallel` beside a derived matrix is a
+      # second answer to how wide the run is, and at four it would queue half of
+      # an eight-shard dispatch and hand back the wall clock the fan-out buys.
+      - id: fanout
+        run: |
+          set -euo pipefail
+          SHARDS="${{ inputs.shards }}"
+          if ! [[ "$SHARDS" =~ ^[1-8]$ ]]; then
+            echo "shards must be an integer from 1 through 8" >&2
+            exit 1
+          fi
+          echo "shards=$SHARDS" >> "$GITHUB_OUTPUT"
+          echo "matrix=$(seq 0 $((SHARDS - 1)) | jq -R . | jq -sc .)" >> "$GITHUB_OUTPUT"
+
+  measure:
+    needs: plan
+    runs-on: ubuntu-latest
+    timeout-minutes: 90
+    strategy:
+      # A shard that fails must not cancel its siblings: a partial set of
+      # readings is still a reading, and losing three good shards to one bad one
+      # costs the whole run.
+      fail-fast: false
+      max-parallel: ${{ fromJSON(needs.plan.outputs.shards) }}
+      matrix:
+        shard: ${{ fromJSON(needs.plan.outputs.matrix) }}
+    defaults:
+      run:
+        working-directory: test/voice-evaluation
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          fetch-depth: 1
+
+      # `cache: npm` keyed on the lockfile, the same as every other workflow in
+      # the family. It caches the npm download, not the model.
+      - uses: actions/setup-node@v5
+        with:
+          node-version: "24"
+          cache: npm
+          cache-dependency-path: test/voice-evaluation/package-lock.json
+
+      # The model is the expensive restore and it is NOT covered by `cache: npm`
+      # - kokoro-js fetches ~90 MB of ONNX weights from Hugging Face into a
+      # transformers.js cache directory on first use. Without this every shard
+      # refetches, so a four-shard run pulls the same weights four times and
+      # pays that download before the first word is spoken. The key carries the
+      # model and quantisation because a different one is different bytes.
+      - name: Cache the model weights
+        uses: actions/cache@v6
+        with:
+          path: |
+            ~/.cache/huggingface
+            test/voice-evaluation/node_modules/.cache
+          key: kokoro-${{ inputs.quantisation }}-${{ hashFiles('test/voice-evaluation/package-lock.json') }}-v1
+          restore-keys: |
+            kokoro-${{ inputs.quantisation }}-
+
+      - name: Install
+        run: npm ci --no-audit --no-fund
+
+      # Every figure carries the hardware it ran on, because wall clock is a
+      # property of the machine and audio duration is not. Measured 2026-09-12
+      # the same corpus read at 1.0112 on this runner and 2.576 on a laptop.
+      - name: Record the runner
+        run: |
+          echo "shard ${{ matrix.shard }} of ${{ needs.plan.outputs.shards }}"
+          echo "cores: $(nproc)"
+          lscpu | grep -E 'Model name|^CPU\(s\)' || true
+          free -g | head -2
+
+      - name: Voice this shard's slice
+        env:
+          CORPUS: ${{ inputs.corpus }}
+          QUANTISATION: ${{ inputs.quantisation }}
+          SHARD_INDEX: ${{ matrix.shard }}
+          SHARD_TOTAL: ${{ needs.plan.outputs.shards }}
+          REPEATS: ${{ inputs.repeats }}
+        run: node build-evaluation-clips.mjs
+
+      # The clips are the point when a person has to listen, and the manifest is
+      # the point when a figure has to be read. Both go up; the workflow that
+      # merges them is the assemble job below.
+      - uses: actions/upload-artifact@v4
+        with:
+          name: voice-shard-${{ matrix.shard }}
+          path: |
+            test/voice-evaluation/clips/
+          if-no-files-found: error
+          retention-days: 7
+
+  assemble:
+    needs: [plan, measure]
+    # `always()` so a run that lost one shard still reports the three that
+    # worked. A partial reading that says which shard is missing is worth more
+    # than no reading.
+    if: always()
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    defaults:
+      run:
+        working-directory: test/voice-evaluation
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          fetch-depth: 1
+
+      - uses: actions/setup-node@v5
+        with:
+          node-version: "24"
+
+      - uses: actions/download-artifact@v5
+        with:
+          pattern: voice-shard-*
+          path: test/voice-evaluation/shards
+
+      - name: Merge the shard manifests
+        run: node merge-shard-manifests.mjs
+
+      - name: Report
+        run: cat clips/summary.md >> "$GITHUB_STEP_SUMMARY"
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: voice-measurement
+          path: |
+            test/voice-evaluation/clips/manifest.json
+            test/voice-evaluation/clips/summary.md
+          if-no-files-found: error

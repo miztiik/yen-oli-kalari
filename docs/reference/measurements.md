@@ -23,12 +23,14 @@ Three rules govern this page:
   not: the same corpus read at 1.0112 on the runner and 2.576 on a laptop. A
   factor without a host attached may not be compared against the job cap.
 
-There are two records today:
+There are three records today:
 [2026-09-11 - Input volume and the price of audio](benchmarks/2026-09-11-input-volume-and-audio-cost.md)
 took the input census, and
 [2026-09-12 - Kokoro on a CI runner](benchmarks/2026-09-12-kokoro-on-a-ci-runner.md)
-took the pace and the first runner reading, superseding the first record's
-derived figures. The measured counts were taken over 22 committed yen-idhazh
+took the pace and the first runner reading, and
+[2026-09-12 - Real text and the shard arithmetic](benchmarks/2026-09-12-real-text-and-shard-arithmetic.md)
+re-took the pace on text nobody chose for the test and corrected a budget that
+had been derived for a single runner. The measured counts were taken over 22 committed yen-idhazh
 digest days on a developer machine; a count of items, words or bytes travels and
 names no machine, so none is stated.
 
@@ -59,11 +61,11 @@ voicing fewer items (2026-09-11, see the record).
 
 | Quantity | In force | Basis | Date |
 | --- | --- | --- | --- |
-| Speaking pace | 129.5 words/minute | **measured** on the runner - the load-bearing input | 2026-09-12 |
-| Speech, one mean 90-word item | about 41.8 seconds | measured pace | 2026-09-12 |
-| Speech, a median day (370 items) | 257.7 minutes (4.3 hours) | measured pace | 2026-09-12 |
-| Speech, the busiest day (731 items) | 509.2 minutes (8.5 hours) | measured pace | 2026-09-12 |
-| Storage, every item at opus@24k | 46.4 MB a day | measured pace; modelled encoder | 2026-09-12 |
+| Speaking pace | 126.7 words/minute | **measured on real published text** - the load-bearing input | 2026-09-12 |
+| Speech, one mean 90-word item | about 42.7 seconds | measured pace | 2026-09-12 |
+| Speech, a median day (370 items) | 263.4 minutes (4.4 hours) | measured pace | 2026-09-12 |
+| Speech, the busiest day (731 items) | 520.4 minutes (8.7 hours) | measured pace | 2026-09-12 |
+| Storage, every item at opus@24k | 47.4 MB a day | measured pace; modelled encoder | 2026-09-12 |
 | Days to fill the 1 GB Pages cap, every item at opus@24k | 22 days | **the binding constraint** | 2026-09-12 |
 
 Storage is the binding constraint: at 46 MB a day the published site is full in
@@ -82,9 +84,11 @@ single readings, not a distribution.
 | Quantity | In force | Basis | Date |
 | --- | --- | --- | --- |
 | Real-time factor on the runner | 1.0112 | Kokoro-82M q8 via `kokoro-js`, `ubuntu-latest`, AMD EPYC 7763, 4 cores | 2026-09-12 |
-| Wall-clock, median day (370 items) | 4.34 h - 72% of the cap, fits | measured factor | 2026-09-12 |
-| Wall-clock, busiest day (731 items) | 8.58 h - 143% of the cap, **busts** | measured factor | 2026-09-12 |
-| Factor needed to fit the busiest day | 0.707 or better - 1.43x faster | arithmetic on the two rows above | 2026-09-12 |
+| Wall-clock, median day (370 items) | 4.44 h - 74% of the cap, fits | measured factor | 2026-09-12 |
+| Wall-clock, busiest day (731 items) | 8.77 h - 146% of the cap, **busts** | measured factor | 2026-09-12 |
+| Budget RTF, one runner | 0.692 | arithmetic on the two rows above | 2026-09-12 |
+| Budget RTF, four runners | **2.767** | the shape the pipeline actually uses | 2026-09-12 |
+| Busiest day on four runners | **2.19 h - 37% of the cap, fits** | measured factor, sharded | 2026-09-12 |
 | Real-time factor on a developer laptop | 2.576 - **not comparable to the cap** | same model and corpus, Intel i7-1265U | 2026-09-12 |
 
 The laptop row is here so it is never mistaken for a runner reading. It is 2.55

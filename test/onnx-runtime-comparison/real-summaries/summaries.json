@@ -1,0 +1,328 @@
+{
+  "note": "Real published summaries, fetched from the live site rather than written for the test. Sampled across the day's length distribution. Each carries the pronunciation hazards it holds.",
+  "sampledFrom": "https://miztiik.github.io/yen-idhazh/digest/2026/09/11/digest.json",
+  "fetchedAt": "2026-09-12T08:03:58.285Z",
+  "dayItemsTotal": 372,
+  "dayItemsPlanned": 377,
+  "totalWords": 1935,
+  "hazardTally": {
+    "currency": 11,
+    "percent": 6,
+    "bigNumber": 8,
+    "acronym": 15,
+    "date": 5,
+    "hyphenate": 15,
+    "quoted": 9
+  },
+  "summaries": [
+    {
+      "id": "real-01",
+      "words": 20,
+      "text": "The article announces the availability of a podcast episode titled My AI podcast with James Pethokoukis, which includes a transcript.",
+      "hazards": [
+        "acronym"
+      ],
+      "sourceItemId": "business-economy-3359850051",
+      "sourceName": "Marginal Revolution",
+      "vertical": "business-economy"
+    },
+    {
+      "id": "real-02",
+      "words": 37,
+      "text": "Prime Minister Narendra Modi will address the BRICS Business Advisory Forum Leaders Session on Friday evening in New Delhi, where over 1,000 foreign representatives and major global companies including Huawei, Alibaba, and Tata are expected to participate.",
+      "hazards": [
+        "bigNumber",
+        "acronym"
+      ],
+      "sourceItemId": "business-economy-5870107384",
+      "sourceName": "Business Today",
+      "vertical": "business-economy"
+    },
+    {
+      "id": "real-03",
+      "words": 47,
+      "text": "Traders said the Reserve Bank of India partially cancelled a government security auction after accepting only 40% of planned bids worth ₹4506 crore. A trader with a state-run bank noted the move could soothe market sentiment as fresh Middle East escalation and U.S. data pushed yields higher.",
+      "hazards": [
+        "currency",
+        "percent",
+        "hyphenate"
+      ],
+      "sourceItemId": "india-3816728770",
+      "sourceName": "The Hindu BusinessLine",
+      "vertical": "india"
+    },
+    {
+      "id": "real-04",
+      "words": 52,
+      "text": "Oracle and OpenAI are seeking two gigawatts of new renewable energy in New Mexico to offset emissions from fuel cells powering the $165-billion Stargate data center. The companies plan to publish an environmental dashboard and spend $1 million on carbon capture research while navigating local opposition and federal support for the project.",
+      "hazards": [
+        "currency"
+      ],
+      "sourceItemId": "energy-2028150508",
+      "sourceName": "Latitude Media",
+      "vertical": "energy"
+    },
+    {
+      "id": "real-05",
+      "words": 58,
+      "text": "Israel announced it blew up two kilometers of tunnels operated by Hezbollah during an offensive that continues despite a months-old ceasefire. Israeli authorities have refused to withdraw from southern Lebanon, citing Hezbollah's refusal to give up arms as part of the US-brokered truce. The conflict has resulted in nearly 9,000 deaths and displaced hundreds of thousands since 2023.",
+      "hazards": [
+        "bigNumber",
+        "acronym",
+        "hyphenate",
+        "quoted"
+      ],
+      "sourceItemId": "business-economy-2042865410",
+      "sourceName": "Semafor",
+      "vertical": "business-economy"
+    },
+    {
+      "id": "real-06",
+      "words": 61,
+      "text": "The Centers for Disease Control and Prevention reported a 17 percent rise in US rabies cases this summer, attributing the surge to high-profile outbreaks involving bats, beavers, and raccoons. While the agency noted increased human-wildlife encounters due to urban expansion and drought, it highlighted that proper vaccine administration is critical to ensuring patient protection while avoiding unnecessary costs and supply strain.",
+      "hazards": [
+        "currency",
+        "percent",
+        "acronym",
+        "hyphenate"
+      ],
+      "sourceItemId": "world-6333791162",
+      "sourceName": "The Independent - World",
+      "vertical": "world"
+    },
+    {
+      "id": "real-07",
+      "words": 64,
+      "text": "Lawrence Wright's Pulitzer Prize-winning book, The Looming Tower, presents a painstaking record of bureaucratic failure leading to the September 11 attacks. The author notes that the CIA knew two Al-Qaeda operatives were in the US for over a year before informing the FBI. Wright primarily tells the narrative through the lives of four key individuals, including Osama bin Laden and FBI agent John O'Neill.",
+      "hazards": [
+        "acronym",
+        "date",
+        "hyphenate",
+        "quoted"
+      ],
+      "sourceItemId": "business-economy-7510729244",
+      "sourceName": "Semafor",
+      "vertical": "business-economy"
+    },
+    {
+      "id": "real-08",
+      "words": 67,
+      "text": "Vice Principal Mohammadi Tarannum of Surendranath Law College in Kolkata resigned after a 23-hour student protest regarding a 70% attendance requirement. While Tarannum alleged she was targeted and forced to resign, she later told media she did not resign voluntarily. Akhil Bharatiya Vidyarthi Parishad leader Ananta Barui described the event as a victory for students, and Higher Education minister Kaustav Bagchi questioned the college's attendance tracking system.",
+      "hazards": [
+        "percent",
+        "quoted"
+      ],
+      "sourceItemId": "india-1793333497",
+      "sourceName": "The Hindu - National",
+      "vertical": "india"
+    },
+    {
+      "id": "real-09",
+      "words": 70,
+      "text": "The Enforcement Directorate searched nine locations in Bihar, Haryana, and Delhi on Friday regarding an alleged Rs 132 crore bank fraud involving Ramnandi Hotels and Resorts Ltd. Officials stated the searches were conducted under Section 17 of the PMLA, noting properties were sold at undervalued prices with cash receipts. Some buyers are suspected to be proxies of Akhouri Gopal. Vijaya Srivastava, a journalist covering human-centred developments, reported on the case.",
+      "hazards": [
+        "currency",
+        "acronym",
+        "hyphenate"
+      ],
+      "sourceItemId": "india-7344233886",
+      "sourceName": "Times of India - India",
+      "vertical": "india"
+    },
+    {
+      "id": "real-10",
+      "words": 72,
+      "text": "Global bond yields spiked and share markets slumped on September 11 as rising oil prices intensified inflation risks. Analysts at RBC Capital Markets tipped Brent crude could hit US$121.99 a barrel in the fourth quarter due to escalating violence in the Red Sea. The benchmark 10-year Treasury yield approached 5 per cent while Asian markets fell steeply. Analysts at JPMorgan expect eight of nine major central banks to hike rates before year-end.",
+      "hazards": [
+        "currency",
+        "percent",
+        "bigNumber",
+        "acronym",
+        "date",
+        "hyphenate"
+      ],
+      "sourceItemId": "ai-9000686939",
+      "sourceName": "The Straits Times",
+      "vertical": "ai"
+    },
+    {
+      "id": "real-11",
+      "words": 75,
+      "text": "Anthropic published a 154-page threat intelligence report on Thursday detailing how criminals, state-sponsored groups, and scientists attempted to misuse its AI models to design weapons and create pathogens. The company stated it banned the accounts involved in these activities, including five case studies of researchers circumventing safeguards for biological research. Anthropic emphasized that biological misuse is a serious risk and called for the AI industry to work with governments to create defenses against such harms.",
+      "hazards": [
+        "acronym",
+        "hyphenate"
+      ],
+      "sourceItemId": "ai-2785775610",
+      "sourceName": "The Guardian - AI",
+      "vertical": "ai"
+    },
+    {
+      "id": "real-12",
+      "words": 78,
+      "text": "Universal Music Group announced a partnership with voice AI firm ElevenLabs to launch a platform allowing users to create remixes and new takes from participating artists' catalogs. The company noted that its roster of artists must choose to opt in. Industry executives view these licensing agreements as a strategy to shift AI music companies from lawsuit targets to paying customers, hoping that allowing fans to play with the technology may demystify it and increase openness to AI-assisted music.",
+      "hazards": [
+        "currency",
+        "acronym",
+        "hyphenate",
+        "quoted"
+      ],
+      "sourceItemId": "business-economy-4585408251",
+      "sourceName": "Semafor",
+      "vertical": "business-economy"
+    },
+    {
+      "id": "real-13",
+      "words": 82,
+      "text": "Russian President Vladimir Putin met with South African President Cyril Ramaphosa, Egyptian President Abdel Fattah el-Sisi and Malaysian Prime Minister Anwar Ibrahim on the sidelines of the BRICS summit in New Delhi, according to the Kremlin. The discussions focused on strengthening bilateral ties, expanding trade volumes and advancing joint projects in energy and technology. Putin noted that trade with Egypt has surpassed $10 billion and with Malaysia rose 12.9% last year. Leaders also agreed to cooperate on regional stability and upcoming summits.",
+      "hazards": [
+        "currency",
+        "percent",
+        "bigNumber",
+        "acronym",
+        "hyphenate"
+      ],
+      "sourceItemId": "world-6755080790",
+      "sourceName": "Anadolu Agency",
+      "vertical": "world"
+    },
+    {
+      "id": "real-14",
+      "words": 86,
+      "text": "Russian authorities are disqualifying parliamentary candidates using dubious claims as the September 18-20 State Duma election approaches. An investigation by independent media Verstka reports at least 36 candidates have been barred, including those who posted images of banned social media platforms or artwork by Banksy and Lemmy Kilmister. Experts describe these motives as absurd and intended to demonstrate that resistance is futile. The Kremlin is reportedly using these tactics to suppress anti-war sentiment and maintain control over the political landscape amidst the ongoing conflict in Ukraine.",
+      "hazards": [
+        "date",
+        "hyphenate"
+      ],
+      "sourceItemId": "world-0708279618",
+      "sourceName": "France 24",
+      "vertical": "world"
+    },
+    {
+      "id": "real-15",
+      "words": 89,
+      "text": "Pennsylvania Attorney General Dave Sunday announced a civil lawsuit against TikTok on August 11, 2026, accusing the social media platform of violating state consumer protection laws. The suit alleges TikTok made false statements about content maturity and knowingly created addictive features like infinite scrolling that harm youth. A TikTok spokesperson rejected the charges, calling the claims misleading and ignoring the company's voluntary safety measures. The article notes that while the lawsuit seeks liability, the issue of digital addiction does not fall neatly into binary distinctions of safe or dangerous.",
+      "hazards": [
+        "date",
+        "quoted"
+      ],
+      "sourceItemId": "ai-7294334167",
+      "sourceName": "Fast Company Technology",
+      "vertical": "ai"
+    },
+    {
+      "id": "real-16",
+      "words": 92,
+      "text": "A government survey released Friday indicates that the proportion of single Japanese men and women intending to marry has dropped below 80% for the first time. The National Institute of Population and Social Security Research noted that more individuals believe they will not feel lonely living alone and have never interacted with infants, contributing to this decline. Among unmarried people aged 18 to 34, 75. 1% of men and 77. 8% of women said they intend to marry eventually, both figures falling by more than 6 percentage points from the previous survey.",
+      "hazards": [
+        "percent"
+      ],
+      "sourceItemId": "world-7383399385",
+      "sourceName": "The Japan Times",
+      "vertical": "world"
+    },
+    {
+      "id": "real-17",
+      "words": 96,
+      "text": "Mozambique formally protected Mount Mabu, a biodiversity hotspot in the Lugela district, by establishing the 9,341-hectare Mount Mabu Community Conservation Area. The Ministry of Agriculture, Environment and Fisheries published the decree on Aug. 24, granting stewardship to local communities who have preserved the forest for generations. Julian Bayliss, an ecologist who led surveys over 20 years, noted the area's high endemism and recorded more than 200 butterfly taxa, with the real number potentially reaching 250. The decree dedicates the land to protection and sustainable use by locals, though specific restrictions await a finalized community management plan.",
+      "hazards": [
+        "currency",
+        "bigNumber",
+        "date",
+        "quoted"
+      ],
+      "sourceItemId": "world-5378091030",
+      "sourceName": "Mongabay",
+      "vertical": "world"
+    },
+    {
+      "id": "real-18",
+      "words": 98,
+      "text": "Singapura Nanyang Coffee owner Fong Jun Jie intends to move his store after Marina Square shuts for renovations in March 2027. He recalled growing up at the mall and hopes to return once the site reopens in 2031. Singapore Land Group announced the project will include luxury homes, serviced apartments, offices, and a new hotel. Fong noted that relocating requires significant capital and that staying nearby is vital for retaining customers. While some shoppers like Poh Lijia feel sentimental about losing family-friendly spaces, others like analyst Tang visit only for events and are less affected by the closure.",
+      "hazards": [
+        "currency",
+        "hyphenate"
+      ],
+      "sourceItemId": "ai-5644214575",
+      "sourceName": "The Straits Times",
+      "vertical": "ai"
+    },
+    {
+      "id": "real-19",
+      "words": 101,
+      "text": "The Fremantle Dockers defeated Geelong by 14 points in an AFL match, preserving their best-ever chance of winning the premiership. After falling behind late in the third term, the Dockers recovered thanks to a dominant performance from their forward line, which included Luke Jackson, Caleb Serong, and Andrew Brayshaw. Fremantle coach Justin Longmuir stated that his team handled momentum shifts well after initially struggling in the third quarter. The victory marked the club's highest point total in September history, with 120 points scored against Geelong. The team now looks to advance to Sydney to face the Swans in their next match.",
+      "hazards": [
+        "acronym",
+        "hyphenate",
+        "quoted"
+      ],
+      "sourceItemId": "world-2056080756",
+      "sourceName": "ABC News Australia",
+      "vertical": "world"
+    },
+    {
+      "id": "real-20",
+      "words": 105,
+      "text": "Andhra Pradesh Chief Minister N. Chandrababu Naidu directed District Collectors to implement welfare schemes by treating the family as the basic unit rather than encouraging households to split for more benefits. Reviewing the government's 'Super Six' welfare schemes during the eighth Collectors' Conference in Amaravati, Naidu emphasized that family mapping should be completed before issuing new pensions. He noted the government has spent around ₹1.50 lakh crore on welfare programmes so far, with ₹75,000 crore allocated to pensions. Naidu also instructed officials to use designated days each month for specific public-service programmes and asked SERP and MEPMA to expand the 'One Family, One Entrepreneur' programme.",
+      "hazards": [
+        "currency",
+        "bigNumber",
+        "acronym",
+        "hyphenate",
+        "quoted"
+      ],
+      "sourceItemId": "india-3014271353",
+      "sourceName": "The Hindu - National",
+      "vertical": "india"
+    },
+    {
+      "id": "real-21",
+      "words": 110,
+      "text": "Sociologist Rahul Verma argues that young children in India lack the agency to claim their legal rights to safe school environments. Although older students successfully organized protests in Fatehpur, younger children cannot navigate complex bureaucratic systems alone. Verma notes that while institutions like the National Commission for Protection of Child Rights exist, they often rely on complaints from adults rather than proactively identifying violations. The author suggests reforms including proactive audits by the NCPCR and secret ballots in School Management Committees to protect vulnerable voices. Verma concludes that a public system must ensure rights are enforced for children before they can protest, ensuring their citizenship is recognized regardless of age.",
+      "hazards": [
+        "acronym"
+      ],
+      "sourceItemId": "india-7765615346",
+      "sourceName": "Frontline",
+      "vertical": "india"
+    },
+    {
+      "id": "real-22",
+      "words": 116,
+      "text": "Carbon Brief reports that over 1,000 NHS operations were cancelled across England and Wales during record heatwaves in May and June 2026. The investigation, based on freedom-of-information requests to 140 trusts, identified 1,110 cancellations, including at least 10 emergency procedures and 167 orthopaedic surgeries. Areas like Surrey and Sussex saw the most disruptions, with temperatures approaching 36C causing ventilation systems to fail. Experts explain that complex theatre environments cannot guarantee safety when cooling systems break down, risking infection and staff concentration. While most cancelled cases were elective, the data highlights a system struggling with extreme weather due to aging infrastructure and underinvestment. Health officials now call for urgent upgrades to ensure resilience against future climate-related pressures.",
+      "hazards": [
+        "bigNumber",
+        "acronym",
+        "hyphenate"
+      ],
+      "sourceItemId": "energy-9398927859",
+      "sourceName": "Carbon Brief",
+      "vertical": "energy"
+    },
+    {
+      "id": "real-23",
+      "words": 123,
+      "text": "The Asiatic Society in Kolkata is hosting an exhibition titled \"1857: The First War of Independence—A Visual Journey\" curated by Jyotirmoy Bhattacharya. The display features rare engravings, drawings, and photographs from sources like Charles Ball and Felice Beato to depict the Revolt of 1857. Curator Jyotirmoy Bhattacharya stated the exhibition serves as a homage to the heroes of 1857 who ignited nationalist aspirations leading to India's independence. The visual journey traces the conflict from the annexation of Awadh to the suppression of the mutiny in July 1858, while also highlighting the subsequent nationalist movement. The exhibition includes graphic depictions of violence and brutality, such as the killing of sepoys and the storming of Delhi, offering a detailed pictorial representation of the historical events.",
+      "hazards": [
+        "quoted"
+      ],
+      "sourceItemId": "india-4417362256",
+      "sourceName": "Frontline",
+      "vertical": "india"
+    },
+    {
+      "id": "real-24",
+      "words": 136,
+      "text": "Chirag Barjatya, an X user, explains that he upgrades his iPhone annually from the iPhone X to the iPhone 17 Pro by combining no-cost EMI with the exchange value of his previous device. Barjatya describes this arrangement as a lease model that allows him to spread payments over time while replacing his phone before its resale value falls too sharply. He notes that while keeping a phone for four to five years would be cheaper, he prefers the convenience of daily use for work and content creation. The post has attracted over 844 likes and sparked debate among users regarding the financial sense of frequent upgrades versus long-term retention. Meanwhile, Apple has launched the iPhone 18 Pro and iPhone 18 Pro Max, introducing new hardware features and starting prices of ₹1,64,900 and ₹1,79,900 respectively in India.",
+      "hazards": [
+        "currency",
+        "bigNumber",
+        "acronym",
+        "hyphenate"
+      ],
+      "sourceItemId": "india-4910693989",
+      "sourceName": "Mint",
+      "vertical": "india"
+    }
+  ]
+}

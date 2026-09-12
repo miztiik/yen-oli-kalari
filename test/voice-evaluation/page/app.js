@@ -41,6 +41,19 @@
 		'other'
 	];
 
+	/* The pronunciation hazards a summary carries, named for a reader. These are
+	   tagged at corpus-build time by build-real-corpus.mjs, because a hand-picked
+	   sample can quietly avoid exactly the cases a news voice gets wrong. */
+	var HAZARD_LABELS = {
+		currency: 'currency',
+		percent: 'percentage',
+		bigNumber: 'number',
+		acronym: 'acronym',
+		date: 'date',
+		hyphenate: 'hyphenated',
+		quoted: 'quote'
+	};
+
 	// ---------------------------------------------------------------- state
 
 	var state = load();
@@ -525,9 +538,16 @@
 						text:
 							clip.words + ' words \u00b7 ' + clip.chunks + ' chunk' +
 							(clip.chunks === 1 ? '' : 's') + ' \u00b7 ' + clock(clip.audioSeconds) +
-							' \u00b7 RTF ' + clip.realTimeFactor.toFixed(3) + ' \u00b7 ' +
-							clip.wordsAMinute.toFixed(0) + ' wpm'
-					})
+							' \u00b7 ' + clip.wordsAMinute.toFixed(0) + ' wpm' +
+							(clip.sourceName ? ' \u00b7 ' + clip.sourceName : '')
+					}),
+					/* The hazards this summary carries. A listener with limited time
+					   should spend it on the clips that can actually discriminate
+					   between two models, and a currency amount or an acronym is
+					   where a news voice fails - not in the ordinary prose. */
+					...(clip.hazards || []).map((h) =>
+						el('span', { class: 'hazard', text: HAZARD_LABELS[h] || h })
+					)
 				]),
 				el('div', { class: 'clip__cols' }, [
 					el('div', { class: 'clip__reading' }, [
