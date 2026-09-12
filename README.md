@@ -72,7 +72,8 @@ Start here, in this order:
 
 | If you want to know | Read |
 | --- | --- |
-| **Where everything is, and where the project stands** | [`docs/index.md`](docs/index.md) |
+| **What is settled, what is open, what to do next** | [`docs/getting-started/where-the-project-stands.md`](docs/getting-started/where-the-project-stands.md) |
+| Which page answers my question | [`docs/reference/documentation-map.md`](docs/reference/documentation-map.md) |
 | What this is and is not | [`docs/concepts/vision.md`](docs/concepts/vision.md) |
 | The two surfaces, Listen and Console | [`docs/concepts/ui-shell.md`](docs/concepts/ui-shell.md) |
 | What each pipeline stage owns | [`docs/concepts/pipeline-loop.md`](docs/concepts/pipeline-loop.md) |

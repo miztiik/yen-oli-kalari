@@ -2,8 +2,8 @@
 
 Two failures this catches, both silent and both cheap to introduce.
 
-A page that is not listed in `docs/index.md` is a page nobody can navigate to.
-The repository accumulated 25 documents and no index at all before this was
+A page that is not listed in the documentation map is a page nobody can navigate
+to. The repository accumulated 25 documents and no map at all before this was
 noticed, which is how a reader ends up asking where to start and getting a chat
 log instead of a document.
 
@@ -20,42 +20,42 @@ from pathlib import Path
 
 REPOSITORY_ROOT = Path(__file__).resolve().parents[1]
 DOCS_DIR = REPOSITORY_ROOT / "docs"
-INDEX_PATH = DOCS_DIR / "index.md"
+MAP_PATH = DOCS_DIR / "reference" / "documentation-map.md"
 
 MARKDOWN_LINK = re.compile(r"\[[^\]]*\]\(([^)]+)\)")
 
 
-def read_index_links():
-    """Return every relative path the index links to, resolved against docs/."""
-    text = INDEX_PATH.read_text(encoding="utf-8")
+def read_map_links():
+    """Return every relative path the map links to, resolved against its own directory."""
+    text = MAP_PATH.read_text(encoding="utf-8")
     resolved = set()
     for target in MARKDOWN_LINK.findall(text):
         if target.startswith(("http://", "https://", "#", "mailto:")):
             continue
-        resolved.add((DOCS_DIR / target.split("#", 1)[0]).resolve())
+        resolved.add((MAP_PATH.parent / target.split("#", 1)[0]).resolve())
     return resolved
 
 
-def test_index_exists():
-    assert INDEX_PATH.is_file(), "docs/index.md is the front door and must exist"
+def test_map_exists():
+    assert MAP_PATH.is_file(), "the documentation map is the reader's index and must exist"
 
 
-def test_every_index_link_resolves():
+def test_every_map_link_resolves():
     """A link in the map points at a file that is really there."""
-    broken = sorted(str(p) for p in read_index_links() if not p.exists())
-    assert not broken, "docs/index.md links to paths that do not exist:\n" + "\n".join(broken)
+    broken = sorted(str(p) for p in read_map_links() if not p.exists())
+    assert not broken, "the documentation map links to paths that do not exist:\n" + "\n".join(broken)
 
 
 def test_every_docs_page_is_in_the_map():
     """Every page under docs/ is reachable from the map, so none is orphaned."""
-    linked = read_index_links()
+    linked = read_map_links()
     orphans = sorted(
         str(page.relative_to(REPOSITORY_ROOT))
         for page in DOCS_DIR.rglob("*.md")
-        if page.resolve() != INDEX_PATH.resolve() and page.resolve() not in linked
+        if page.resolve() != MAP_PATH.resolve() and page.resolve() not in linked
     )
     assert not orphans, (
-        "these pages are not listed in docs/index.md, so nobody can navigate to them:\n"
+        "these pages are not listed in the documentation map, so nobody can navigate to them:\n"
         + "\n".join(orphans)
     )
 

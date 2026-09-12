@@ -71,8 +71,8 @@ python -m mypy backend/
 python -m pytest
 ```
 
-- **Validation today:** `5 passed`. The suite is [`tests/test_documentation_map.py`](../../tests/test_documentation_map.py), which checks that every page under `docs/` is reachable from [`docs/index.md`](../index.md), that every link in the map resolves, that every page carries a `**Last Updated**` stamp, and that no retired name survives as a live reference.
-- **Failure mode:** `pages are not listed in docs/index.md` means a new page was added without putting it on the map - add the row rather than deleting the check. `references 'x' without naming 'y'` means a rename missed a reference.
+- **Validation today:** `5 passed`. The suite is [`tests/test_documentation_map.py`](../../tests/test_documentation_map.py), which checks that every page under `docs/` is reachable from [`docs/reference/documentation-map.md`](../reference/documentation-map.md), that every link in the map resolves, that every page carries a `**Last Updated**` stamp, and that no retired name survives as a live reference.
+- **Failure mode:** `pages are not listed in the documentation map` means a new page was added without putting it on the map - add the row rather than deleting the check. `references 'x' without naming 'y'` means a rename missed a reference.
 
 ## Gates not built yet
 
