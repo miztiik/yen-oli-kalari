@@ -1,38 +1,31 @@
-# Publish the listening page to GitHub Pages.
+# Publish the listening page, with every model the benchmark measured.
 #
-# The clips are not committed - 24 summaries is 42 MB of WAV, and they are
-# deterministic from a committed corpus, so a clone regenerates them rather than
-# carrying them forever. That means this job has to make them, which turns the
-# publish into a measurement: the runner voices the day, and the figures it
-# produces are the only ones that may be compared against the job cap.
+# It voices on the runner rather than reading committed audio, because the
+# repository carries no clips: 24 summaries is 42 MB of WAV per model, and the
+# audio is deterministic from a committed corpus, so a clone regenerates it
+# rather than carrying it forever.
 #
-# It runs at fp32 rather than q8. Measured 2026-09-12, q8 is 2.16x slower on
-# identical audio, so the quantisation that every earlier figure was taken on is
-# the slowest of the three available
-# (docs/reference/benchmarks/2026-09-12-quantisation-was-costing-not-saving.md).
+# That makes the publish a measurement. The figures on the published page came
+# off the production runner, which is the only hardware whose wall clock may be
+# compared against the job cap.
 name: publish the listening page
 
 on:
   workflow_dispatch:
     inputs:
-      quantisations:
-        description: Comma-separated quantisations to voice and compare
-        default: fp32,q8
+      models:
+        description: Comma-separated model ids, or "all"
+        default: all
         type: string
-      corpus:
-        description: Which corpus to voice
-        default: real
-        type: choice
-        options:
-          - real
-          - sample
       bitrate:
         description: Opus bitrate for the published audio
         default: 24k
         type: string
+      grade:
+        description: Transcribe the verbalization suite and publish the grades
+        default: true
+        type: boolean
 
-# Pages needs these two; `contents: read` is the default and stays least-
-# privilege because nothing here commits.
 permissions:
   contents: read
   pages: write
@@ -45,9 +38,30 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
-  build:
+  plan:
     runs-on: ubuntu-latest
-    timeout-minutes: 60
+    timeout-minutes: 5
+    outputs:
+      node: ${{ steps.fanout.outputs.node }}
+      python: ${{ steps.fanout.outputs.python }}
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          fetch-depth: 1
+      - id: fanout
+        run: node .github/scripts/plan-benchmark.mjs
+        env:
+          WANTED: ${{ inputs.models }}
+
+  voice:
+    needs: plan
+    if: needs.plan.outputs.node != '[]'
+    runs-on: ubuntu-latest
+    timeout-minutes: 90
+    strategy:
+      fail-fast: false
+      matrix:
+        model: ${{ fromJSON(needs.plan.outputs.node) }}
     defaults:
       run:
         working-directory: test/voice-evaluation
@@ -62,80 +76,89 @@ jobs:
           cache: npm
           cache-dependency-path: test/voice-evaluation/package-lock.json
 
-      # The model is ~330 MB at fp32 and is NOT covered by `cache: npm` -
-      # kokoro-js fetches it from Hugging Face on first use. Without this every
-      # run pays that download before the first word is spoken.
-      - name: Cache the model weights
+      # Weights stream from Hugging Face into the runner cache and never reach
+      # the repository. This is what keeps the number of comparable models
+      # bounded by runner RAM rather than by repository size.
+      - name: Cache the weights
         uses: actions/cache@v6
         with:
           path: ~/.cache/huggingface
-          # A cache key may not contain a comma, and the input is a comma-
-          # separated list. One key for every quantisation is right anyway: the
-          # weights differ per dtype, and a run asking for two wants both.
-          key: kokoro-weights-v1
-          restore-keys: kokoro-
+          key: hf-${{ matrix.model }}-v2
+          restore-keys: hf-
 
-      - name: Install
-        run: npm ci --no-audit --no-fund
-
-      # Voicing the corpus costs 22 minutes on this runner, and the audio is
-      # deterministic: the same model at the same quantisation over the same
-      # committed corpus produces byte-identical output. So a re-publish that
-      # changes only the page does not pay for the audio again. The key carries
-      # everything that changes the audio - model, quantisations, corpus, and
-      # the builder that made it.
-      # A cache key may not contain a comma and the input is a list, so the
-      # list is slugged first. Learned twice: the weights cache hit the same
-      # rule an hour earlier.
-      - name: Name the cache
-        id: key
-        run: echo "slug=$(echo '${{ inputs.quantisations }}' | tr ',' '-')" >> "$GITHUB_OUTPUT"
-
+      # Voicing a model costs about twenty minutes and the audio is
+      # deterministic, so a re-publish that changes only the page does not pay
+      # for it again. The key carries everything that changes the audio.
       - name: Cache the voiced audio
         id: voiced
         uses: actions/cache@v6
         with:
-          path: test/voice-evaluation/results
-          key: voiced-${{ steps.key.outputs.slug }}-${{ inputs.corpus }}-${{ hashFiles('test/voice-evaluation/build-evaluation-clips.mjs', 'test/onnx-runtime-comparison/*-summaries/summaries.json') }}
+          path: test/voice-evaluation/results/${{ matrix.model }}
+          key: voiced-${{ matrix.model }}-${{ hashFiles('test/voice-evaluation/benchmark-model.mjs', 'test/voice-evaluation/voices.config.json', 'test/onnx-runtime-comparison/real-summaries/summaries.json', 'test/onnx-runtime-comparison/verbalization-suite.json') }}
 
-      # Every figure carries the hardware it ran on, because wall clock is a
-      # property of the machine and audio duration is not (Guardrail #10).
+      - run: npm ci --no-audit --no-fund
+
       - name: Record the runner
         run: |
           echo "cores: $(nproc)"
           lscpu | grep -E 'Model name' || true
-          free -g | head -2
 
-      # Voice the corpus at every quantisation asked for, so the published page
-      # can put them side by side. A run writes to results/<model>/<quant>/ and
-      # never overwrites another - two models cannot be compared if only the
-      # most recent survives.
       - name: Voice the corpus
-        env:
-          CORPUS: ${{ inputs.corpus }}
         if: steps.voiced.outputs.cache-hit != 'true'
-        run: |
-          set -euo pipefail
-          IFS=',' read -ra QUANTS <<< "${{ inputs.quantisations }}"
-          for q in "${QUANTS[@]}"; do
-            echo "=== $q ==="
-            QUANTISATION="$q" node build-evaluation-clips.mjs
-          done
+        env:
+          MODEL: ${{ matrix.model }}
+        run: node benchmark-model.mjs
 
-      # WAV is the synthesiser's output, not a publishing format: 24 summaries
-      # is 42 MB of it per run. Opus at 24k is the codec the design already
-      # chose, and it lands the same audio in roughly 3 MB. The container is
-      # `.ogg` because a bare `.opus` file is served as text/plain by some
-      # static hosts.
-      #
+      - name: Grade the verbalization suite
+        if: ${{ inputs.grade && steps.voiced.outputs.cache-hit != 'true' }}
+        env:
+          MODEL: ${{ matrix.model }}
+        run: |
+          python -m pip install --quiet -r requirements.txt
+          python grade_verbalization.py
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: voiced-${{ matrix.model }}
+          path: test/voice-evaluation/results/${{ matrix.model }}/
+          if-no-files-found: error
+          retention-days: 3
+
+  build:
+    needs: [plan, voice]
+    if: always()
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    defaults:
+      run:
+        working-directory: test/voice-evaluation
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          fetch-depth: 1
+
+      - uses: actions/setup-node@v5
+        with:
+          node-version: "24"
+
+      - uses: actions/download-artifact@v5
+        with:
+          pattern: voiced-*
+          path: test/voice-evaluation/results
+
       # ffmpeg is not on the ubuntu-latest image, so it is installed rather than
-      # assumed. `-y` on apt only; the encode itself must not overwrite silently.
+      # assumed. A previous run died at exit 127 here after twenty-two minutes
+      # of voicing had already been spent.
       - name: Install ffmpeg
         run: |
           sudo apt-get update -qq
           sudo apt-get install -y -qq ffmpeg
           ffmpeg -version | head -1
 
+      # WAV is the synthesiser's output, not a publishing format: 24 summaries
+      # is 42 MB of it per model. Opus at 24k is the codec the design already
+      # chose and lands the same audio in roughly 3 MB. The container is `.ogg`
+      # because a bare `.opus` file is served as text/plain by some hosts.
       - name: Encode for the web
         env:
           BITRATE: ${{ inputs.bitrate }}
@@ -158,12 +181,12 @@ jobs:
           set -euo pipefail
           node build-page-data.mjs
           mkdir -p _site
-          cp page/index.html page/styles.css page/app.js page/data.js _site/
-          # Mirror results/, carrying the encoded audio and the manifests only.
-          # Each manifest is the measurement its own audio produced, published
-          # beside it so a figure on the page can be checked against its source.
+          cp page/index.html page/styles.css page/app.js page/store.js page/data.js _site/
+          # The encoded audio and the manifests only. Each manifest is the
+          # measurement its own audio produced, published beside it so a figure
+          # on the page can be checked against its source.
           rsync -a --include='*/' --include='*.ogg' --include='manifest.json' \
-            --exclude='*' results/ _site/results/
+            --include='verbalization-grades.json' --exclude='*' results/ _site/results/
           du -sh _site
 
       - uses: actions/upload-pages-artifact@v4

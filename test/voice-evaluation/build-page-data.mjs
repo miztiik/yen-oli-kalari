@@ -44,8 +44,31 @@ function directories(path) {
   return readdirSync(path).filter((name) => statSync(join(path, name)).isDirectory());
 }
 
+/* The benchmark writes results/<model-id>/, one directory per configured voice,
+   with the clips in a `summaries/` subdirectory beside the verbalization audio.
+   A model id already names its quantisation and voice, so there is no second
+   level to walk. */
 const runs = [];
 for (const modelSlug of directories(RESULTS_DIR)) {
+  const manifestPath = join(RESULTS_DIR, modelSlug, "manifest.json");
+  if (existsSync(manifestPath)) {
+    const manifest = JSON.parse(readFileSync(manifestPath, "utf8"));
+    const gradesPath = join(RESULTS_DIR, modelSlug, "verbalization-grades.json");
+    if (existsSync(gradesPath)) {
+      manifest.verbalizationGrades = JSON.parse(readFileSync(gradesPath, "utf8"));
+    }
+    if (CLIP_EXTENSION) {
+      for (const clip of manifest.clips) clip.clip = clip.clip.replace(/\.wav$/, CLIP_EXTENSION);
+    }
+    manifest.clipBase = `${CLIP_BASE}${modelSlug}/summaries/`;
+    manifest.runId = modelSlug;
+    manifest.metrics = manifest.metrics ?? summariseRun(manifest);
+    runs.push(manifest);
+    continue;
+  }
+
+  /* The older two-level layout, kept so an existing local results/ tree still
+     renders rather than silently disappearing from the page. */
   for (const quantisation of directories(join(RESULTS_DIR, modelSlug))) {
     const manifestPath = join(RESULTS_DIR, modelSlug, quantisation, "manifest.json");
     if (!existsSync(manifestPath)) continue;
