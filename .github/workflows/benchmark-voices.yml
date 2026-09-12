@@ -6,21 +6,32 @@
 #
 # THIS IS THE ONLY PLACE A COMPARABLE FIGURE COMES FROM. A wall clock read on a
 # developer machine may not be compared against the job cap: the same corpus
-# measured 2.576 on a laptop and 1.0112 on this runner, which is close enough
-# to look plausible and far enough to price a design on the wrong hardware.
+# measured 2.576 on a laptop and 1.0112 on this runner, which is close enough to
+# look plausible and far enough to price a design on the wrong hardware.
+#
+# WEIGHTS ARE STREAMED AND NEVER COMMITTED. Every model loads from the Hugging
+# Face cache on the runner, is memory-mapped for the run, and goes away with the
+# runner. The repository carries no weights, so the number of models it can
+# compare is bounded by runner RAM rather than by repository size. That ceiling
+# is real: 16 GB and 4 vCPU, so roughly 9-10 GB of weights is the practical
+# limit and a model past it does not get an arm.
 name: benchmark voices
 
 on:
   workflow_dispatch:
     inputs:
       models:
-        description: Comma-separated adapter ids, or "all"
+        description: Comma-separated model ids, or "all"
         default: all
         type: string
       repeats:
         description: Repeats per clip, for spread
         default: "1"
         type: string
+      grade:
+        description: Transcribe the verbalization suite and grade it
+        default: true
+        type: boolean
 
 permissions:
   contents: read
@@ -34,37 +45,35 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 5
     outputs:
-      matrix: ${{ steps.fanout.outputs.matrix }}
+      node: ${{ steps.fanout.outputs.node }}
+      python: ${{ steps.fanout.outputs.python }}
     steps:
       - uses: actions/checkout@v5
         with:
           fetch-depth: 1
 
-      # The list of runnable adapters lives in code, not in this file, so adding
-      # a model is one edit rather than two that can disagree.
+      # The model list lives in voices.config.json, so adding one is a row there
+      # rather than an edit here. The two runtimes fan out separately because
+      # they need different toolchains on the runner.
       - id: fanout
-        run: |
-          set -euo pipefail
-          if [ "${{ inputs.models }}" = "all" ]; then
-            MATRIX=$(node -e "import('./test/voice-evaluation/adapters.mjs').then(m=>console.log(JSON.stringify(m.enabledModels())))")
-          else
-            MATRIX=$(echo '${{ inputs.models }}' | tr ',' '\n' | jq -R . | jq -sc .)
-          fi
-          echo "matrix=$MATRIX" >> "$GITHUB_OUTPUT"
-          echo "will benchmark: $MATRIX"
+        run: node .github/scripts/plan-benchmark.mjs
+        env:
+          WANTED: ${{ inputs.models }}
 
-  benchmark:
+  # ---------------------------------------------------------------- node arms
+  node-arms:
     needs: plan
+    if: needs.plan.outputs.node != '[]'
     runs-on: ubuntu-latest
     timeout-minutes: 90
     strategy:
-      # A model that fails must not cancel its siblings. A partial set of
-      # readings is still a reading, and an arm that dies is itself a finding -
+      # An arm that fails must not cancel its siblings. A partial set of
+      # readings is still a reading, and an arm that dies is itself a finding:
       # "this model does not run on a 4 vCPU runner" is what the benchmark is
       # for.
       fail-fast: false
       matrix:
-        model: ${{ fromJSON(needs.plan.outputs.matrix) }}
+        model: ${{ fromJSON(needs.plan.outputs.node) }}
     defaults:
       run:
         working-directory: test/voice-evaluation
@@ -80,20 +89,16 @@ jobs:
           cache-dependency-path: test/voice-evaluation/package-lock.json
 
       # Weights are fetched from Hugging Face on first use and are NOT covered
-      # by `cache: npm`. Kokoro alone is 326 MB at fp32; without this every arm
-      # refetches on every run.
-      - name: Cache the model weights
+      # by `cache: npm`. Kokoro alone is 326 MB at fp32.
+      - name: Cache the weights
         uses: actions/cache@v6
         with:
           path: ~/.cache/huggingface
-          key: hf-weights-${{ matrix.model }}-v1
-          restore-keys: hf-weights-
+          key: hf-${{ matrix.model }}-v2
+          restore-keys: hf-
 
-      - name: Install
-        run: npm ci --no-audit --no-fund
+      - run: npm ci --no-audit --no-fund
 
-      # Every figure carries the hardware it ran on, because wall clock is a
-      # property of the machine and audio duration is not (Guardrail #10).
       - name: Record the runner
         run: |
           echo "cores: $(nproc)"
@@ -106,35 +111,20 @@ jobs:
           REPEATS: ${{ inputs.repeats }}
         run: node benchmark-model.mjs
 
+      - name: Grade the verbalization suite
+        if: ${{ inputs.grade }}
+        env:
+          MODEL: ${{ matrix.model }}
+        run: |
+          python -m pip install --quiet faster-whisper
+          python grade_verbalization.py
+
       - name: Report
         if: always()
-        run: |
-          set -euo pipefail
-          MANIFEST="results/${{ matrix.model }}/manifest.json"
-          [ -f "$MANIFEST" ] || { echo "### ${{ matrix.model }} produced no manifest" >> "$GITHUB_STEP_SUMMARY"; exit 0; }
-          export MANIFEST
-          node -e "
-            const m = require('./' + process.env.MANIFEST);
-            const x = m.metrics;
-            const row = (k, v) => console.log('| ' + k + ' | ' + v + ' |');
-            console.log('### ' + m.model + '  \`' + m.runtime + '\`');
-            console.log('');
-            console.log('| Metric | Value |');
-            console.log('| --- | --- |');
-            row('Real-time factor', x.realTimeFactor.toFixed(4) + ' (' + x.speedMultiplier.toFixed(2) + 'x real time)');
-            row('Speaking rate', x.speakingRate.toFixed(1) + ' wpm, +/-' + (x.rateStability.coefficientOfVariation*100).toFixed(1) + '%');
-            row('Median speed', x.medianCharactersASecond.toFixed(1) + ' char/s');
-            row('Long-form drift', x.drift ? x.drift.medianDriftPercent.toFixed(1) + '%' : 'n/a');
-            row('Peak memory', m.peakMemoryMb + ' MB');
-            row('Model load', (m.modelLoadMs/1000).toFixed(1) + ' s');
-            row('Audio produced', (x.audioSeconds/60).toFixed(1) + ' min');
-            row('Verbalization cases voiced', m.verbalization.length + ' (ungraded)');
-            console.log('');
-          " >> "$GITHUB_STEP_SUMMARY"
+        env:
+          MODEL: ${{ matrix.model }}
+        run: bash report-arm.sh >> "$GITHUB_STEP_SUMMARY"
 
-      # The manifest is the reading and the audio is what a person judges. Both
-      # go up; the WAV is dropped because it is the synthesiser's output rather
-      # than a publishing format.
       - uses: actions/upload-artifact@v4
         if: always()
         with:
@@ -143,8 +133,80 @@ jobs:
           if-no-files-found: warn
           retention-days: 14
 
+  # -------------------------------------------------------------- python arms
+  python-arms:
+    needs: plan
+    if: needs.plan.outputs.python != '[]'
+    runs-on: ubuntu-latest
+    timeout-minutes: 120
+    strategy:
+      fail-fast: false
+      matrix:
+        model: ${{ fromJSON(needs.plan.outputs.python) }}
+    defaults:
+      run:
+        working-directory: test/voice-evaluation
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          fetch-depth: 1
+
+      - uses: actions/setup-python@v6
+        with:
+          python-version: "3.12"
+          cache: pip
+
+      # These models are several GB. The cache is what keeps a second run from
+      # paying the download again, and the repository still carries nothing.
+      - name: Cache the weights
+        uses: actions/cache@v6
+        with:
+          path: ~/.cache/huggingface
+          key: hf-py-${{ matrix.model }}-v2
+          restore-keys: hf-py-
+
+      - name: Install the runtime
+        run: |
+          python -m pip install --quiet --upgrade pip
+          python -m pip install --quiet \
+            onnxruntime==1.22.1 huggingface_hub transformers numpy librosa soundfile tqdm
+
+      - name: Record the runner
+        run: |
+          echo "cores: $(nproc)"
+          lscpu | grep -E 'Model name' || true
+          free -g | head -2
+          df -h / | tail -1
+
+      - name: Benchmark
+        env:
+          MODEL: ${{ matrix.model }}
+          ORT_THREADS: "4"
+          # An autoregressive model on a CPU is slow enough that the whole
+          # corpus would not finish inside the job. A bounded slice still gives
+          # a real real-time factor, which is the figure this arm exists for.
+          MAX_ITEMS: "6"
+        run: python benchmark_genai_model.py
+
+      - name: Grade the verbalization suite
+        if: ${{ inputs.grade }}
+        env:
+          MODEL: ${{ matrix.model }}
+        run: |
+          python -m pip install --quiet faster-whisper
+          python grade_verbalization.py || echo "grading skipped - no verbalization audio"
+
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: benchmark-${{ matrix.model }}
+          path: test/voice-evaluation/results/${{ matrix.model }}/
+          if-no-files-found: warn
+          retention-days: 14
+
+  # ------------------------------------------------------------------ collate
   collate:
-    needs: [plan, benchmark]
+    needs: [plan, node-arms, python-arms]
     if: always()
     runs-on: ubuntu-latest
     timeout-minutes: 10
