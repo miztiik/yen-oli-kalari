@@ -1,6 +1,6 @@
 # Run the Gates
 
-**Last Updated**: 2026-09-11
+**Last Updated**: 2026-09-12
 
 What to run locally and what to leave to CI, before a merge. This page owns the
 project's actual gate commands; the neutral PR lifecycle that calls for them is
@@ -71,8 +71,8 @@ python -m mypy backend/
 python -m pytest
 ```
 
-- **Validation today:** `collected 0 items` and `no tests ran`. That is the correct current output, not a failure.
-- **Failure mode:** any other error means the interpreter or a stray config is wrong; there are no tests to break.
+- **Validation today:** `5 passed`. The suite is [`tests/test_documentation_map.py`](../../tests/test_documentation_map.py), which checks that every page under `docs/` is reachable from [`docs/index.md`](../index.md), that every link in the map resolves, that every page carries a `**Last Updated**` stamp, and that no retired name survives as a live reference.
+- **Failure mode:** `pages are not listed in docs/index.md` means a new page was added without putting it on the map - add the row rather than deleting the check. `references 'x' without naming 'y'` means a rename missed a reference.
 
 ## Gates not built yet
 
@@ -83,7 +83,7 @@ you can type now.
 | Gate | Built by | Why it cannot run yet |
 | --- | --- | --- |
 | Backend lint + types | a `pyproject.toml` configuring ruff and mypy | no config exists, so there is no project rule to enforce |
-| Backend tests | a `pytest` suite under `tests/` and `backend/` | `tests/` is empty; `pytest` collects 0 items |
+| Backend tests | a `pytest` suite over the pipeline code | the pipeline does not exist yet; the documentation-map suite runs today |
 | Contract drift | the exporter that writes `schemas/` from the contracts package, then `git diff --exit-code` | the contracts package and `schemas/` are both empty, so there is nothing to export yet; git itself works, so the diff step will run once an exporter exists |
 | Frontend build | `frontend/package.json` and the Svelte site | `frontend/` is empty; there is no `package.json`, so `npm run build` has nothing to build |
 | Browser suite | a Playwright suite over Listen and Console | the frontend does not exist yet; per [../../CLAUDE.md](../../CLAUDE.md) section 12 a published-site change is verified in a real browser once there is a page |

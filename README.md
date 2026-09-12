@@ -72,12 +72,13 @@ Start here, in this order:
 
 | If you want to know | Read |
 | --- | --- |
+| **Where everything is, and where the project stands** | [`docs/index.md`](docs/index.md) |
 | What this is and is not | [`docs/concepts/vision.md`](docs/concepts/vision.md) |
 | The two surfaces, Listen and Console | [`docs/concepts/ui-shell.md`](docs/concepts/ui-shell.md) |
 | What each pipeline stage owns | [`docs/concepts/pipeline-loop.md`](docs/concepts/pipeline-loop.md) |
 | How a surface is judged good enough to ship | [`docs/concepts/design-system.md`](docs/concepts/design-system.md) |
 | Real numbers from real hardware | [`docs/reference/measurements.md`](docs/reference/measurements.md) |
-| The run that settled that storage is the wall | [`docs/reference/benchmarks/2026-09-11-input-volume-and-audio-cost.md`](docs/reference/benchmarks/2026-09-11-input-volume-and-audio-cost.md) |
+| The run that priced a day of audio | [`docs/reference/benchmarks/2026-09-11-input-volume-and-audio-cost.md`](docs/reference/benchmarks/2026-09-11-input-volume-and-audio-cost.md) |
 | How to run the checks before a PR | [`docs/how-to/run-the-gates.md`](docs/how-to/run-the-gates.md) |
 | What every top-level directory is for | [`docs/reference/repository-layout.md`](docs/reference/repository-layout.md) |
 | Where any other doc belongs | [`docs/reference/documentation-structure.md`](docs/reference/documentation-structure.md) |
