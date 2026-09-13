@@ -1,6 +1,6 @@
 # Model formats and inference vocabulary
 
-**Last Updated**: 2026-09-13
+**Last Updated**: 2026-09-14
 
 The words a voice-model decision is argued in. Every one of these was used
 loosely somewhere in this project's research before it was defined here, and a
@@ -125,6 +125,33 @@ files "will not load in llama.cpp" - they need that project's own runtime,
 because a TTS model has a codec and a depth decoder that llama.cpp has no
 concept of. GGUF is a container; supporting the container is not supporting
 the architecture inside it.
+
+**Measured 2026-09-14, and the claim above now has proof rather than an
+anecdote.** Three GGUF voices were run on the runner and every one of them was a
+**codec language model**: the GGUF holds a backbone that emits integers, and a
+separate neural codec decoder turns those integers into a waveform. That decoder
+is never in the file.
+
+| Model | Backbone in the GGUF | Decoder that is not | Runs under |
+| --- | --- | --- | --- |
+| Orpheus 3B | Llama-3.2-3B | SNAC 24 kHz, torch | llama.cpp |
+| NeuTTS Air | Qwen2.5-0.5B | NeuCodec | llama.cpp |
+| MagpieTTS 357M | NeMo encoder-decoder, 8 codebooks | NanoCodec | **NeMo-Speech.cpp** |
+
+Magpie is the clean case: NVIDIA publishes the GGUF *and* a separate ggml-based
+runtime for it, because it is an encoder-decoder with frame stacking and a local
+transformer that llama.cpp cannot load at all.
+
+**And the runtime's own wheels can lie about their platform.** The prebuilt
+"CPU" wheels for `llama-cpp-python` are named `linux_x86_64` but are
+**musl-linked**, so they fail to load on the glibc runner with
+`libc.musl-x86_64.so.1: cannot open shared object file`. PyPI carries no
+manylinux wheel for the package at all. There is no prebuilt path to this
+runner, so the arm compiles llama.cpp from the sdist.
+
+See [../reference/benchmarks/2026-09-14-gguf-voices.md](../reference/benchmarks/2026-09-14-gguf-voices.md)
+for the figures: Magpie reads 2.3863 and Orpheus 6.2596, against the incumbent's
+0.3591 and a single-runner budget of 0.707.
 
 ## transformers.js is not TrevorJS
 
