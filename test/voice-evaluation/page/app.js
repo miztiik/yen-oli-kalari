@@ -77,8 +77,24 @@
 		return runById(activeRunId);
 	}
 
+	/* What a run says about itself wins over the catalogue.
+	   The manifest is written by the arm that actually ran, so its licence,
+	   parameters and accent are facts about the thing measured; the catalogue is
+	   a lookup that goes stale the moment a config row is renamed. It stays as a
+	   fallback for anything the manifest does not carry. */
 	function known(run) {
-		return DATA.catalogue[run.modelSlug] || {};
+		var catalogued = DATA.catalogue[run.modelSlug] || DATA.catalogue[run.runId] || {};
+		return {
+			name: run.name || catalogued.name,
+			params: run.params || catalogued.params,
+			architecture: run.architecture || catalogued.architecture,
+			licence: run.licence || catalogued.licence,
+			commercialUse: run.commercialUse !== undefined ? run.commercialUse : catalogued.commercialUse,
+			accent: run.accent || catalogued.accent,
+			accentKnown: run.accentKnown !== undefined ? run.accentKnown : catalogued.accentKnown,
+			arenaElo: catalogued.arenaElo,
+			incumbent: catalogued.incumbent
+		};
 	}
 
 	// ------------------------------------------------------------- helpers
@@ -189,7 +205,10 @@
 				el('span', { class: 'model-card__licence', text: meta.licence || 'licence unknown',
 					'data-ok': meta.commercialUse ? 'true' : 'false' }),
 				el('span', { class: 'model-card__metrics', html:
-					'<b>RTF ' + run.totals.realTimeFactor + '</b> \u00b7 ' +
+					(run.verbalizationGrades
+						? '<b>' + (run.verbalizationGrades.verbalizationAccuracy * 100).toFixed(0) + '% verbal</b> \u00b7 '
+						: '') +
+					'RTF ' + run.totals.realTimeFactor + ' \u00b7 ' +
 					run.totals.wordsAMinute + ' wpm \u00b7 ' +
 					(run.host.isCi ? 'runner' : 'laptop') }),
 				el('span', { class: 'model-card__judged', text:

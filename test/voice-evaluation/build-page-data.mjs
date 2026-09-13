@@ -49,18 +49,23 @@ function directories(path) {
    A model id already names its quantisation and voice, so there is no second
    level to walk. */
 const runs = [];
-for (const modelSlug of directories(RESULTS_DIR)) {
-  const manifestPath = join(RESULTS_DIR, modelSlug, "manifest.json");
+for (const directoryName of directories(RESULTS_DIR)) {
+  /* The publish workflow names its artifacts `voiced-<model>`, and downloading
+     them makes that the directory name. The prefix is a packaging detail, not
+     part of a model's identity, so it is stripped before anything a reader
+     sees - otherwise the page labels a voice `voiced-kokoro-fp32-uk`. */
+  const modelSlug = directoryName.replace(/^voiced-/, "");
+  const manifestPath = join(RESULTS_DIR, directoryName, "manifest.json");
   if (existsSync(manifestPath)) {
     const manifest = JSON.parse(readFileSync(manifestPath, "utf8"));
-    const gradesPath = join(RESULTS_DIR, modelSlug, "verbalization-grades.json");
+    const gradesPath = join(RESULTS_DIR, directoryName, "verbalization-grades.json");
     if (existsSync(gradesPath)) {
       manifest.verbalizationGrades = JSON.parse(readFileSync(gradesPath, "utf8"));
     }
     if (CLIP_EXTENSION) {
       for (const clip of manifest.clips) clip.clip = clip.clip.replace(/\.wav$/, CLIP_EXTENSION);
     }
-    manifest.clipBase = `${CLIP_BASE}${modelSlug}/summaries/`;
+    manifest.clipBase = `${CLIP_BASE}${directoryName}/summaries/`;
     manifest.runId = modelSlug;
     manifest.metrics = manifest.metrics ?? summariseRun(manifest);
     runs.push(manifest);
@@ -69,13 +74,13 @@ for (const modelSlug of directories(RESULTS_DIR)) {
 
   /* The older two-level layout, kept so an existing local results/ tree still
      renders rather than silently disappearing from the page. */
-  for (const quantisation of directories(join(RESULTS_DIR, modelSlug))) {
-    const manifestPath = join(RESULTS_DIR, modelSlug, quantisation, "manifest.json");
+  for (const quantisation of directories(join(RESULTS_DIR, directoryName))) {
+    const manifestPath = join(RESULTS_DIR, directoryName, quantisation, "manifest.json");
     if (!existsSync(manifestPath)) continue;
 
     const manifest = JSON.parse(readFileSync(manifestPath, "utf8"));
     const missing = manifest.clips.filter(
-      (clip) => !existsSync(join(RESULTS_DIR, modelSlug, quantisation, clip.clip)),
+      (clip) => !existsSync(join(RESULTS_DIR, directoryName, quantisation, clip.clip)),
     );
     if (missing.length > 0) {
       console.error(`${modelSlug}/${quantisation}: ${missing.length} clip(s) named but not on disk`);
