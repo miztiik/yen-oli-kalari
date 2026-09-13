@@ -1,6 +1,6 @@
 # Where the project stands
 
-**Last Updated**: 2026-09-12
+**Last Updated**: 2026-09-13
 
 What has been decided about the voice, what is still open, and the one thing to
 do next. **Verdicts only** - every figure lives in

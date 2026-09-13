@@ -1,6 +1,6 @@
 # Documentation map
 
-**Last Updated**: 2026-09-12
+**Last Updated**: 2026-09-13
 
 Every page in `docs/`, and the question each one answers. A reader who arrives
 holding a question finds the page here; a writer deciding where a **new** page

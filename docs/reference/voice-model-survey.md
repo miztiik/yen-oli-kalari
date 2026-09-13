@@ -101,11 +101,12 @@ blocker, which means Qwen3-TTS at 1.5 GB is worth wiring.
 ## What that means against the budget
 
 With the sharding the pipeline already uses, the picture is far better than the
-withdrawn estimates suggested.
+withdrawn estimates suggested - and the incumbent now clears the single-runner
+budget on its own, so the rows below are headroom rather than a requirement.
 
 | Model | Est. RTF | 1 runner (0.707) | 4 runners (2.83) | 8 runners (5.66) |
 | --- | --- | --- | --- | --- |
-| **Kokoro-82M** | **1.0112 measured** | busts | **fits, 2.15 h** | fits, 1.07 h |
+| **Kokoro-82M fp32** | **0.359-0.453 measured** | **fits** | fits | fits |
 | Voxtral 4B | ~1.7 | busts | **fits** | fits |
 | Breeze-TTS-2 | ~2.6 | busts | **marginal** | fits |
 | Fish S2-Pro | ~5.7 | busts | busts | **marginal** |
