@@ -124,6 +124,33 @@ export function longFormDrift(clip) {
   };
 }
 
+/**
+ * What the corpus was, in the shape a manifest records it.
+ *
+ * A function rather than an object literal inside the benchmark script, because
+ * the literal version shipped a defect that no test could see: it wrote
+ * `days: corpus.days`, and `corpus.days` is a LIST of per-day records rather
+ * than a count, so every manifest carried a nested array where the contract
+ * required an integer. That only surfaced on a real CI run, twenty minutes of
+ * voicing after it could first have been caught.
+ *
+ * The count, not the array: `sampledFrom` already names every url, so copying
+ * the per-day records would duplicate the corpus header into each manifest for
+ * no reader's benefit.
+ */
+export function corpusProvenance(corpus, name = "real") {
+  return {
+    name,
+    sampledFrom: corpus.sampledFrom ?? null,
+    /* A one-day corpus makes a figure a property of that day's news, so the
+       span is provenance a reader needs rather than trivia. */
+    days: Array.isArray(corpus.days) ? corpus.days.length : (corpus.days ?? null),
+    /* How many published items it was drawn FROM, against how many it kept.
+       The ratio is what says whether the sample is a sample. */
+    poolSize: corpus.poolSize ?? null,
+  };
+}
+
 /** Every free metric for one run, in the shape a dashboard reads. */
 export function summariseRun(run) {
   const clips = run.clips;

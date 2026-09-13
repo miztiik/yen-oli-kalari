@@ -24,7 +24,7 @@ import { readFileSync, writeFileSync, mkdirSync } from "node:fs";
 import { fileURLToPath } from "node:url";
 import { cpus, totalmem, platform, arch } from "node:os";
 import { adapterFor, enabledModels, CONFIG } from "./adapters.mjs";
-import { summariseRun } from "./metrics.mjs";
+import { summariseRun, corpusProvenance } from "./metrics.mjs";
 import { runForThisProcess, resolveShard } from "./run-config.mjs";
 import { splitIntoChunks } from "../../backend/utilities/measurement-recorder.mjs";
 
@@ -291,15 +291,7 @@ const manifest = {
   voice: adapter.voice,
   sampleRate: clips[0]?.sampleRate ?? 24000,
   maxWordsAChunk: MAX_WORDS_A_CHUNK,
-  corpus: {
-    name: "real",
-    sampledFrom: corpus.sampledFrom ?? null,
-    /* How many days the corpus spans and how big the pool was. A one-day
-       corpus makes a figure a property of that day's news, so the widening to
-       five days is provenance a reader needs rather than trivia. */
-    days: corpus.days ?? null,
-    poolSize: corpus.poolSize ?? null,
-  },
+  corpus: corpusProvenance(corpus),
   shard: {
       index: SHARD_INDEX,
       total: SHARD_TOTAL,
