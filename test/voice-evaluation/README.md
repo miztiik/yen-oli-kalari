@@ -47,9 +47,9 @@ resolves its knobs through `run-config.mjs`, records all of them, and refuses to
 measure more than one model in a run. Use `benchmark-model.mjs` and the
 `benchmark one voice` workflow when the output is a figure rather than a clip.
 
-**On Windows, a deep checkout cannot load the model at all** - the native ONNX
-loader is still bound by the 260-character path limit and reports it as
-`File doesn't exist`. The way round it is in
+**A deep working copy cannot load the model at all** - the native loader is
+bound by a path-length limit and reports it as `File doesn't exist`. The pattern
+and the way round it are in
 [`../../docs/reference/agent-notes.md`](../../docs/reference/agent-notes.md).
 
 ## What the page asks
