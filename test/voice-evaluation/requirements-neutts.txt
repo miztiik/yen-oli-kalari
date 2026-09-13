@@ -1,0 +1,21 @@
+# NeuTTS Air's extras, kept apart from requirements-gguf.txt on purpose.
+#
+# WHY A SECOND FILE. `neucodec` pulls in `torchtune`, which pulls in `torchao`,
+# and that chain is the least stable thing this benchmark touches. When it was
+# in the shared file its failure took the Orpheus arm down with it - that arm
+# then started, found no `snac`, and reported a model failure that was really a
+# packaging failure two steps earlier. One model's dependency swamp must not be
+# able to sink another model's reading.
+#
+# THE PIN AND WHAT IT IS FOR. torchtune's latest release (0.6.1) still imports
+# `torchao.dtypes.nf4tensor`, which current torchao has moved, so an unpinned
+# install resolves to something that cannot be imported:
+#
+#     ModuleNotFoundError: No module named 'torchao.dtypes.nf4tensor'
+#
+# 0.11.0 is the torchao release contemporary with torchtune 0.6.1.
+torchao==0.11.0
+neucodec>=0.0.6
+
+# The runtime itself, from git because it is not published to PyPI.
+neutts @ git+https://github.com/neuphonic/neutts-air.git

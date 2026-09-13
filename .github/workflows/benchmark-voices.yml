@@ -319,17 +319,24 @@ jobs:
           set -euo pipefail
           python -m pip install --quiet --upgrade pip
           python -m pip install --quiet --index-url https://download.pytorch.org/whl/cpu torch torchaudio
+          # A RETRY LOOP THAT CANNOT FAIL IS NOT A RETRY LOOP. This one ran out
+          # of attempts, fell through, and let the benchmark start against a
+          # half-installed environment - which then reported a model failure
+          # ("No module named 'snac'") for what was a packaging failure.
+          installed=""
           for attempt in 1 2 3; do
-            python -m pip install -r requirements-gguf.txt && break
+            if python -m pip install -r requirements-gguf.txt; then installed=yes; break; fi
             echo "pip failed (attempt ${attempt}/3), retrying in $((attempt * 15))s"
             sleep $((attempt * 15))
           done
-          python -m pip install --quiet "neutts @ git+https://github.com/neuphonic/neutts-air.git" \
-            || echo "neutts library unavailable - only the neutts arm needs it"
-          python - <<'PY'
-          import torch
-          print("torch", torch.__version__, "cuda build:", torch.version.cuda)
-          PY
+          [ -n "$installed" ] || { echo "::error::the GGUF runtime did not install"; exit 1; }
+          python -c "import llama_cpp, snac; print('llama-cpp-python', llama_cpp.__version__)"
+
+      # Only the NeuTTS arm pays for this, and only the NeuTTS arm fails if it
+      # breaks. Its dependency chain is documented in the requirements file.
+      - name: Install the NeuTTS runtime
+        if: startsWith(matrix.model, 'neutts')
+        run: python -m pip install -r requirements-neutts.txt
 
       - name: Record the runner
         run: |

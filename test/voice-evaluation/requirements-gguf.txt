@@ -26,20 +26,14 @@ llama-cpp-python==0.3.35
 # without it the backbone produces integers.
 snac>=1.2.1
 
-# NeuTTS Air emits NeuCodec codes. The ONNX decoder path needs onnxruntime,
-# which the repository already pins for the Chatterbox arm.
-#
-# TORCHAO IS PINNED BECAUSE THE CHAIN BELOW IT IS NOT. Measured 2026-09-14:
-# `neucodec` imports `torchtune`, whose latest release (0.6.1) still expects
-# `torchao.dtypes.nf4tensor`. Current torchao moved it, so an unpinned install
-# resolves to something that cannot be imported:
-#
-#     ModuleNotFoundError: No module named 'torchao.dtypes.nf4tensor'
-#
-# 0.11.0 is the release contemporary with torchtune 0.6.1. This is the pinned
-# requirements file doing its job rather than a workaround.
-neucodec>=0.0.6
-torchao==0.11.0
+# NeuTTS Air's extras are NOT here. Measured 2026-09-14: `neucodec` imports
+# `torchtune`, which imports `torchao`, and that chain does not resolve cleanly
+# on Python 3.12 - it drags in a torchao carrying cpython-310 binaries and then
+# fails on a module torchtune expects and torchao has moved. Keeping it out of
+# the shared file means one model's dependency swamp cannot sink the other arm,
+# which is exactly what it did: the Orpheus run that followed found no `snac`
+# because the whole install had failed on NeuTTS's behalf. See
+# requirements-neutts.txt.
 onnxruntime==1.22.1
 
 # Shared with the ONNX arm.
