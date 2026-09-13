@@ -211,7 +211,19 @@ jobs:
           # request to read one.
           node build-page-index.mjs
           mkdir -p _site
-          cp page/index.html page/styles.css page/app.js page/store.js page/index.json _site/
+          # EVERYTHING UNDER page/ IS THE PUBLISHED SURFACE, so the whole
+          # directory ships. This was a hand-maintained list of five filenames,
+          # which is a list that goes stale the moment the page gains an asset -
+          # and it did: `page/vendor/` was added and not copied, so the site
+          # deployed successfully and then 404'd on its own charting library.
+          # Every score rail, every chart and the run panel's progress arc are
+          # drawn with it, so the page reached a reader with the instrument
+          # missing. A copy that enumerates files cannot notice a new one.
+          cp -R page/. _site/
+          # The vendored library is the one asset whose absence is SILENT: the
+          # build goes green, the page loads, and then the first call throws in
+          # the browser where no gate is watching. Fail here instead.
+          test -s _site/vendor/d3-micro.js
           # The encoded audio and the manifests only. Each manifest is the
           # measurement its own audio produced, published beside it so a figure
           # on the page can be checked against its source.

@@ -71,7 +71,6 @@ python -m mypy backend/
 ```powershell
 python -m pytest
 ```
-
 - **Validation today:** `52 passed, 17 skipped`. Five suites:
   - [`tests/test_documentation_map.py`](../../tests/test_documentation_map.py) checks that every page under `docs/` is reachable from [`docs/reference/documentation-map.md`](../reference/documentation-map.md), that every link resolves, that every page carries a `**Last Updated**` stamp, and that no retired name survives as a live reference.
   - [`tests/test_run_contract.py`](../../tests/test_run_contract.py) holds every producer to [`test/voice-evaluation/run-manifest.schema.json`](../../test/voice-evaluation/run-manifest.schema.json): the config slug is derived rather than authored, changing any knob changes it, a run refuses more than one model, isolation is asserted rather than inferred, and the resolver and the schema name the same set of knobs.
@@ -111,6 +110,25 @@ you can type now.
 | Site-weight cap | a check that the published site plus its audio stays under the 1 GB Pages cap | there is no published tree to weigh; the cap is held by the prune cycle in the Action ([../reference/measurements.md](../reference/measurements.md)) |
 
 ## What is deliberately left to CI
+
+### A local browser smoke cannot catch a packaging bug
+
+`npm run serve` serves `test/voice-evaluation/page/` **as it sits on disk**. The
+publish workflow does not: it assembles a `_site/` and deploys that. So the two
+differ in exactly one way that matters - anything the assembly step fails to
+copy is present locally and absent in production.
+
+This is not hypothetical. The assembly copied a hand-written list of filenames,
+the page gained a vendored library in a new subdirectory, the list was not
+updated, and the site deployed green while 404-ing on the library every chart
+and every score control is drawn with. A local smoke passed the whole way.
+
+So a change that **adds a file** the page loads is not proven by a local smoke.
+Either check the deployed URL after the publish run, or read the assembly step
+and confirm the new path is covered. The assembly now copies the directory
+rather than a list and hard-fails on a missing vendored bundle, which closes
+this instance - the general rule stands, because the next asset may live
+somewhere the copy still does not reach.
 
 By [../../CLAUDE.md](../../CLAUDE.md) Guardrail #2 the runner is the architecture, so
 some work never runs on a developer machine even once the gates exist. The voice
