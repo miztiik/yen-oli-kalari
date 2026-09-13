@@ -37,6 +37,10 @@ on:
         default: "1"
         type: choice
         options: ["1", "2", "4"]
+      ggufItems:
+        description: Summaries per GGUF arm. These are autoregressive on a CPU, so the corpus is capped rather than completed.
+        default: "3"
+        type: string
 
 permissions:
   contents: read
@@ -52,6 +56,7 @@ jobs:
     outputs:
       node: ${{ steps.fanout.outputs.node }}
       python: ${{ steps.fanout.outputs.python }}
+      gguf: ${{ steps.fanout.outputs.gguf }}
       shards: ${{ steps.fanout.outputs.shards }}
       shardTotal: ${{ steps.fanout.outputs.shardTotal }}
     steps:
@@ -238,9 +243,114 @@ jobs:
           if-no-files-found: warn
           retention-days: 14
 
+  # --------------------------------------------------------------- gguf arms
+  # The third toolchain. These models ship GGUF, which means llama.cpp runs the
+  # BACKBONE - and a backbone emits audio codec tokens, not audio. Each arm also
+  # carries a neural codec decoder that llama.cpp has no concept of, and Magpie
+  # does not use llama.cpp at all: its GGUF needs NVIDIA's own released runtime.
+  gguf-arms:
+    needs: plan
+    if: needs.plan.outputs.gguf != '[]'
+    runs-on: ubuntu-latest
+    timeout-minutes: 240
+    strategy:
+      fail-fast: false
+      matrix:
+        model: ${{ fromJSON(needs.plan.outputs.gguf) }}
+        shard: ${{ fromJSON(needs.plan.outputs.shards) }}
+    env:
+      RESULT_DIR: results/${{ matrix.model }}/shard-${{ matrix.shard }}
+      SHARD_INDEX: ${{ matrix.shard }}
+      SHARD_TOTAL: ${{ needs.plan.outputs.shardTotal }}
+    defaults:
+      run:
+        working-directory: test/voice-evaluation
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          fetch-depth: 1
+
+      - uses: actions/setup-python@v6
+        with:
+          python-version: "3.12"
+          cache: pip
+          cache-dependency-path: test/voice-evaluation/requirements-gguf.txt
+
+      - name: Cache the weights
+        uses: actions/cache@v6
+        with:
+          path: ~/.cache/huggingface
+          key: hf-gguf-${{ matrix.model }}-v1
+          restore-keys: hf-gguf-
+
+      # NeuTTS phonemises before it tokenises, through eSpeak. Absent it, the
+      # arm loads and then fails on the first sentence.
+      - name: Install eSpeak
+        run: sudo apt-get update -qq && sudo apt-get install -y -qq espeak-ng libsndfile1
+
+      # TORCH MUST COME FROM THE CPU INDEX. The default PyPI wheel drags CUDA
+      # with it - about 2 GB of driver payload this runner has no card for, and
+      # which would take longer to download than the benchmark takes to run.
+      # SNAC needs torch; nothing else here does.
+      - name: Install the runtime
+        run: |
+          set -euo pipefail
+          python -m pip install --quiet --upgrade pip
+          python -m pip install --quiet --index-url https://download.pytorch.org/whl/cpu torch
+          for attempt in 1 2 3; do
+            python -m pip install --quiet \
+              --extra-index-url https://abetlen.github.io/llama-cpp-python/whl/cpu \
+              -r requirements-gguf.txt && break
+            echo "pip failed (attempt ${attempt}/3), retrying in $((attempt * 15))s"
+            sleep $((attempt * 15))
+          done
+          python -m pip install --quiet "neutts @ git+https://github.com/neuphonic/neutts-air.git" \
+            || echo "neutts library unavailable - only the neutts arm needs it"
+
+      - name: Record the runner
+        run: |
+          echo "cores: $(nproc)"
+          lscpu | grep -E 'Model name' || true
+          free -g | head -2
+          df -h / | tail -1
+          python -c "import llama_cpp; print('llama-cpp-python', llama_cpp.__version__)" || true
+
+      - name: Benchmark
+        env:
+          MODEL: ${{ matrix.model }}
+          GGUF_THREADS: "4"
+          # An autoregressive backbone plus a codec decoder, on four cores with
+          # no GPU, is the slowest thing this harness runs. A bounded slice
+          # still yields a real real-time factor, which is the figure this arm
+          # exists for; finishing the corpus is not.
+          MAX_ITEMS: ${{ inputs.ggufItems }}
+        run: python benchmark_gguf_model.py
+
+      - name: Grade the verbalization suite
+        if: ${{ inputs.grade }}
+        env:
+          MODEL: ${{ matrix.model }}
+        run: |
+          python -m pip install --quiet faster-whisper
+          python grade_verbalization.py || echo "grading skipped - no verbalization audio"
+
+      - name: Report
+        if: always()
+        env:
+          MODEL: ${{ matrix.model }}
+        run: bash report-arm.sh >> "$GITHUB_STEP_SUMMARY"
+
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: benchmark-${{ matrix.model }}-shard-${{ matrix.shard }}
+          path: test/voice-evaluation/results/
+          if-no-files-found: warn
+          retention-days: 14
+
   # ------------------------------------------------------------------ collate
   collate:
-    needs: [plan, node-arms, python-arms]
+    needs: [plan, node-arms, python-arms, gguf-arms]
     if: always()
     runs-on: ubuntu-latest
     timeout-minutes: 10

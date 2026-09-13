@@ -1,0 +1,30 @@
+# The GGUF arm's toolchain, separate from the ONNX one because it shares almost
+# nothing with it: llama.cpp for the backbone, and a neural codec for the
+# waveform the backbone does not produce.
+#
+# PINNED, because a benchmark whose runtime moves between two runs makes the two
+# figures incomparable - which is the whole point of the exercise.
+
+# llama.cpp bindings. 0.3.19 is the LAST version with a prebuilt cp312
+# linux_x86_64 CPU wheel on the project's own index (verified 2026-09-14);
+# PyPI is further ahead but only as an sdist, and compiling ggml on a 4 vCPU
+# runner costs more minutes than the measurement it would enable.
+llama-cpp-python==0.3.19
+
+# Orpheus emits SNAC codes. The decoder is ~20M parameters and torch-only, so
+# this arm pays for CPU torch - the beneficiary feature is "audio at all", since
+# without it the backbone produces integers.
+snac>=1.2.1
+
+# NeuTTS Air emits NeuCodec codes. The ONNX decoder path needs onnxruntime,
+# which the repository already pins for the Chatterbox arm.
+neucodec>=0.0.6
+onnxruntime==1.22.1
+
+# Shared with the ONNX arm.
+huggingface_hub>=0.34.4
+transformers>=4.46.3
+numpy>=2.0
+librosa>=0.11.0
+soundfile>=0.13.1
+tqdm>=4.67.1

@@ -21,6 +21,16 @@
       "package": "onnxruntime-genai",
       "loads": "Higgs, Qwen3-TTS - multi-graph autoregressive models",
       "note": "NOT WIRED. These ship as several ONNX graphs (text_embed, talker, audio_encoder, code2wav) driven by a generation loop, so they need their own runner rather than a one-call adapter."
+    },
+    "llama.cpp": {
+      "package": "llama-cpp-python",
+      "loads": "Orpheus (Llama-3.2-3B backbone) and NeuTTS Air (Qwen2.5-0.5B backbone)",
+      "note": "A GGUF voice is TWO models and only the first is in the file. llama.cpp runs the backbone, which emits audio codec tokens rather than audio; a separate neural codec decoder - SNAC for Orpheus, NeuCodec for NeuTTS - turns those integers into a waveform and does not run in llama.cpp at all. Prebuilt CPU wheels stop at 0.3.19 for cp312, so that is the pin: building from source on 4 vCPU costs more than the benchmark."
+    },
+    "nemo-speech.cpp": {
+      "package": "NVIDIA/NeMo-Speech.cpp release binary",
+      "loads": "MagpieTTS Multilingual, with NanoCodec",
+      "note": "PROOF THAT A GGUF IS NOT A LLAMA.CPP FILE. Magpie's GGUF will not load in llama.cpp: it is an encoder-decoder predicting 8 codebooks with frame stacking and a local transformer, and NVIDIA ships its own ggml-based runtime for it. The linux-x86_64 CPU archive is 4.4 MB and is downloaded rather than built. The CLI reloads its weights per invocation, so this arm's real-time factor includes model load per chunk."
     }
   },
   "models": [
@@ -238,6 +248,86 @@
       "sizeGb": 3.59,
       "enabled": false,
       "blocked": "Runtime not wired, AND the licence is non-commercial. The repository totals 57 GB because it carries six variants; the cpu_int4 one is 3.59 GB."
+    },
+    {
+      "id": "orpheus-3b-q4",
+      "name": "Orpheus 3B 0.1 finetuned",
+      "runtime": "llama.cpp",
+      "family": "orpheus",
+      "modelId": "unsloth/orpheus-3b-0.1-ft-GGUF",
+      "ggufFile": "orpheus-3b-0.1-ft-Q4_K_M.gguf",
+      "dtype": "Q4_K_M",
+      "codecRepo": "hubertsiuzdak/snac_24khz",
+      "voice": "tara",
+      "accent": "en-US",
+      "accentKnown": false,
+      "params": "3B",
+      "architecture": "autoregressive",
+      "licence": "Apache-2.0",
+      "commercialUse": true,
+      "sizeGb": 2.07,
+      "sampleRate": 24000,
+      "contextLength": 4096,
+      "maxNewTokens": 1200,
+      "temperature": 0.6,
+      "topP": 0.9,
+      "repeatPenalty": 1.1,
+      "seed": 1234,
+      "enabled": true,
+      "note": "The requested repository publishes 26 quantisations of the same weights, 929 MB to 6.3 GB; sizeGb is the Q4_K_M download (1.95 GB) plus the SNAC decoder, not the 57 GB catalogue. Voices are tara, leah, jess, leo, dan, mia, zac, zoe and none is labelled British, so the accent must be judged by ear. An AR model at 3B on 4 vCPU is the slowest thing this harness has been asked to run - that is the measurement."
+    },
+    {
+      "id": "neutts-air-q4",
+      "name": "NeuTTS Air",
+      "runtime": "llama.cpp",
+      "family": "neutts",
+      "modelId": "mradermacher/neutts-air-GGUF",
+      "ggufFile": "neutts-air.Q4_K_M.gguf",
+      "dtype": "Q4_K_M",
+      "codecRepo": "neuphonic/neucodec",
+      "voice": "dave",
+      "accent": "en-GB",
+      "accentKnown": false,
+      "params": "0.5B",
+      "architecture": "autoregressive",
+      "licence": "Apache-2.0",
+      "commercialUse": true,
+      "sizeGb": 0.56,
+      "sampleRate": 24000,
+      "contextLength": 2048,
+      "temperature": 1.0,
+      "topK": 50,
+      "seed": 1234,
+      "reference": {
+        "name": "dave",
+        "baseUrl": "https://raw.githubusercontent.com/neuphonic/neutts-air/main/samples",
+        "why": "NeuTTS is a cloning model with no built-in speaker: infer() requires reference codes and the reference transcript. The samples are in the GitHub repository, which is not gated, unlike the weights."
+      },
+      "enabled": true,
+      "note": "Neuphonic gates its own weights and its codec (gated: auto, 401 anonymously, verified 2026-09-14), so the backbone is taken from an ungated community requant of the same base model. The requested neuphonic/neutts-air-q4-gguf is Q4_0 at 502 MB; this is Q4_K_M at 569 MB. Substituting the quantisation is recorded rather than hidden, because the row is what a later reader will trust."
+    },
+    {
+      "id": "magpie-multilingual-f16",
+      "name": "MagpieTTS Multilingual 357M",
+      "runtime": "nemo-speech.cpp",
+      "family": "magpie",
+      "modelId": "nvidia/magpie_tts_multilingual_357m",
+      "ggufFile": "magpie_tts_multilingual_357m.v2607.f16.gguf",
+      "dtype": "f16",
+      "codecRepo": "nvidia/nemo-nano-codec-22khz-1.89kbps-21.5fps",
+      "runtimeArchive": "https://github.com/NVIDIA/NeMo-Speech.cpp/releases/download/v0.1.0/nemo-speech-0.1.0-linux-x86_64-cpu.tar.gz",
+      "runtimeModel": "magpie",
+      "voice": null,
+      "accent": "en-US",
+      "accentKnown": false,
+      "params": "357M",
+      "architecture": "autoregressive",
+      "licence": "NVIDIA Open Model License",
+      "commercialUse": true,
+      "sizeGb": 0.53,
+      "sampleRate": 22050,
+      "enabled": true,
+      "note": "The one row that proves the vocabulary page right: this GGUF does NOT load in llama.cpp. It is an encoder-decoder predicting 8 codebooks with frame stacking, and NVIDIA ships NeMo-Speech.cpp for it. The runtime is a 4.4 MB released binary rather than a source build. Its CLI reloads weights per invocation, so this arm's real-time factor includes model load per chunk and is charitable to nothing."
     }
   ]
 }

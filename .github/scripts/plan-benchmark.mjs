@@ -16,6 +16,10 @@ const config = JSON.parse(
 
 const NODE_RUNTIMES = new Set(["kokoro-js", "transformers.js"]);
 const PYTHON_RUNTIMES = new Set(["onnxruntime-python"]);
+/* GGUF voices get their own arm because their toolchain is not the ONNX one:
+   llama.cpp for the backbone, a neural codec for the waveform, and in Magpie's
+   case a released NVIDIA binary instead of a Python runtime entirely. */
+const GGUF_RUNTIMES = new Set(["llama.cpp", "nemo-speech.cpp"]);
 
 const wanted = (process.env.WANTED ?? "all").trim();
 const filter =
@@ -26,8 +30,9 @@ const filter =
 const enabled = config.models.filter((m) => m.enabled && filter(m.id));
 const node = enabled.filter((m) => NODE_RUNTIMES.has(m.runtime)).map((m) => m.id);
 const python = enabled.filter((m) => PYTHON_RUNTIMES.has(m.runtime)).map((m) => m.id);
+const gguf = enabled.filter((m) => GGUF_RUNTIMES.has(m.runtime)).map((m) => m.id);
 
-if (node.length === 0 && python.length === 0) {
+if (node.length === 0 && python.length === 0 && gguf.length === 0) {
   console.error(`no enabled model matched "${wanted}"`);
   console.error(`configured and enabled: ${config.models.filter((m) => m.enabled).map((m) => m.id).join(", ")}`);
   process.exit(1);
@@ -35,6 +40,7 @@ if (node.length === 0 && python.length === 0) {
 
 appendFileSync(process.env.GITHUB_OUTPUT, `node=${JSON.stringify(node)}\n`);
 appendFileSync(process.env.GITHUB_OUTPUT, `python=${JSON.stringify(python)}\n`);
+appendFileSync(process.env.GITHUB_OUTPUT, `gguf=${JSON.stringify(gguf)}\n`);
 
 /* A shard is a whole runner with its own 4 vCPU, not a slice of one machine's
    cores. Fanning a model across four of them cuts elapsed time roughly fourfold
@@ -47,9 +53,10 @@ appendFileSync(process.env.GITHUB_OUTPUT, `shardTotal=${shardTotal}\n`);
 
 console.log(`node arms   (${node.length}): ${node.join(", ") || "-"}`);
 console.log(`python arms (${python.length}): ${python.join(", ") || "-"}`);
+console.log(`gguf arms   (${gguf.length}): ${gguf.join(", ") || "-"}`);
 console.log(
   `shards per model: ${shardTotal}` +
-    (shardTotal > 1 ? ` -> ${(node.length + python.length) * shardTotal} jobs` : ""),
+    (shardTotal > 1 ? ` -> ${(node.length + python.length + gguf.length) * shardTotal} jobs` : ""),
 );
 
 const blocked = config.models.filter((m) => !m.enabled);
