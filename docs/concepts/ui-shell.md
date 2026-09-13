@@ -1,6 +1,6 @@
 # UI Shell
 
-**Last Updated**: 2026-09-11
+**Last Updated**: 2026-09-14
 
 The shell around the audio: the two surfaces, the frames they sit in, the one docked player, the component vocabulary, and the states every row must handle. The visual language lives in [design-system.md](design-system.md); where the payload comes from is [pipeline-loop.md](pipeline-loop.md). This page is the structure.
 
@@ -32,8 +32,23 @@ One row component, one player, drawn from the payload with no per-item special c
 - **TimeRail** - the inherited rail that prints the time once per group, newest first. Unchanged.
 - **TopicSpine** - the Topic filter down the left, each Topic carrying its live count from the payload.
 - **TagChips** - the Tag filter above the list, drawn only for Tags present today, capped with a "more" disclosure.
-- **PlayerDock** - the one docked player: now-playing title, the track, previous and next, and the auto-advance toggle. It sits on a raised surface with a panel shadow, in front of the list, not a flat strip glued to the bottom.
+- **PlayerDock** - the one docked player: now-playing title, the track, previous and next, and the auto-advance toggle. It sits on a raised surface with a panel shadow, in front of the list, not a flat strip glued to the bottom. It is bounded by `--frame-reading`, not the console frame ([design-system.md](design-system.md)).
 - **ProgressTrack** - the player's track. Its signature is **`ProgressTrack(elapsed, buffered, duration, peaks|null)`**: `elapsed` fills the played portion, `buffered` shows how much has arrived from the network, `duration` sets the scale, and `peaks` - a per-item loudness array when the payload carries one - draws the track as a waveform. When `peaks` is `null` it draws a plain groove. One component, two renders; the colours are in [design-system.md](design-system.md).
+
+## One component, two renders, and never both at once
+
+**`ProgressTrack` has two renders and exactly one is on screen.** The waveform where the payload carries a peak array, the plain groove where it does not - and `buffered` layers inside whichever render is live, rather than having a surface of its own.
+
+This has to be stated because it was got wrong. The voice-evaluation player stacked a waveform canvas **above** a groove and drew both, which is the same component drawn twice: two seek surfaces for one job, and a listener with two places to click to do one thing. With `peaks` null under owner ruling 4 the canvas was permanently hidden, so what was actually on screen was a hidden element sitting above the only live one - a bug that could not be seen, which is the kind that survives. Corrected 2026-09-14.
+
+## The player's own controls
+
+The dock is the one place a listener changes how they are hearing, so two controls live there and nowhere else:
+
+- **Volume**, on the leading edge beside a mute toggle. A defect at the bottom of the mix is easier to hear loud. It is removed below 640px, where the device has volume keys.
+- **Playback speed**, a pill cycling 0.75x, 1x, 1.25x, 1.5x, 2x. A suspected mispronunciation is easier to resolve slow. **It announces itself at any rate other than 1x** - `--band-medium`, 600 weight - because prosody at 1.5x is not the prosody that will ship, and a listener scoring an axis has to know the playback is not the product.
+
+Both persist to the reader's own browser storage, because they are set once a session and not once a clip. Neither reports anywhere (Guardrail #1).
 
 ## One docked player, not one per row
 

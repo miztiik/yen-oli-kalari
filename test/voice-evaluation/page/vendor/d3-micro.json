@@ -1,0 +1,17 @@
+{
+  "note": "What is in the vendored d3 bundle and what it weighs. Written by vendor-d3.mjs so the figure on the page and in the docs comes from a measurement rather than a memory.",
+  "builtAt": "2026-09-13T16:33:35.559Z",
+  "modules": {
+    "d3-array": "^3.2.4",
+    "d3-axis": "^3.0.0",
+    "d3-drag": "^3.0.0",
+    "d3-ease": "^3.0.1",
+    "d3-format": "^3.1.2",
+    "d3-scale": "^4.0.2",
+    "d3-selection": "^3.0.0",
+    "d3-shape": "^3.2.0",
+    "d3-transition": "^3.0.1"
+  },
+  "bytes": 70767,
+  "gzippedBytes": 24486
+}

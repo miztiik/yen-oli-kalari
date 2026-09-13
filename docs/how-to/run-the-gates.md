@@ -1,6 +1,6 @@
 # Run the Gates
 
-**Last Updated**: 2026-09-13
+**Last Updated**: 2026-09-14
 
 What to run locally and what to leave to CI, before a merge. This page owns the
 project's actual gate commands; the neutral PR lifecycle that calls for them is
@@ -72,9 +72,10 @@ python -m mypy backend/
 python -m pytest
 ```
 
-- **Validation today:** `47 passed, 6 skipped`. Four suites:
+- **Validation today:** `52 passed, 17 skipped`. Five suites:
   - [`tests/test_documentation_map.py`](../../tests/test_documentation_map.py) checks that every page under `docs/` is reachable from [`docs/reference/documentation-map.md`](../reference/documentation-map.md), that every link resolves, that every page carries a `**Last Updated**` stamp, and that no retired name survives as a live reference.
   - [`tests/test_run_contract.py`](../../tests/test_run_contract.py) holds every producer to [`test/voice-evaluation/run-manifest.schema.json`](../../test/voice-evaluation/run-manifest.schema.json): the config slug is derived rather than authored, changing any knob changes it, a run refuses more than one model, isolation is asserted rather than inferred, and the resolver and the schema name the same set of knobs.
+  - [`tests/test_model_catalogue.py`](../../tests/test_model_catalogue.py) holds the catalogue to [`test/voice-evaluation/model-catalogue.schema.json`](../../test/voice-evaluation/model-catalogue.schema.json) AND checks the delivery: that the page index actually ships a catalogue, keyed the way the page looks it up, and that a model with no catalogue row still builds. It drives the builder with a fixture run in a temporary directory, never with `results/`.
   - [`tests/test_shard_merge.py`](../../tests/test_shard_merge.py) splits a real manifest four ways, merges it back, and checks nothing moved - including that shards of two different configurations are REFUSED.
   - [`tests/test_verbalization_grader.py`](../../tests/test_verbalization_grader.py) covers the ASR grading pass.
 - **Skips are expected** when `test/voice-evaluation/results/` is empty or holds pre-contract manifests. They name the reason; a skip that says "predates the run contract" means re-measuring that model, not a broken test.
