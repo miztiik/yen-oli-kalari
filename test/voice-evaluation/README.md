@@ -25,6 +25,17 @@ npm run serve            # http://127.0.0.1:8791/page/index.html
 `index.json` at runtime and then one run manifest at a time, and a browser
 reading a `file://` document refuses `fetch` against a sibling JSON file.
 
+Checking the page without waiting on a model:
+
+```bash
+npm run build-fixture-run && npm run build-page && npm run serve
+```
+
+That writes a run of synthesised tones - real WAV files a browser plays, a real
+manifest, a real peak envelope - so the surface can be exercised in seconds. It
+is shaped like speech rather than a steady tone on purpose: a sine wave draws as
+a flat rectangle and would hide a waveform sampled too coarsely to read.
+
 Rebuilding the page without re-synthesising the audio:
 
 ```bash
@@ -148,6 +159,7 @@ without a budget it cannot be compared against.
 | `collate-benchmarks.mjs` | Ranks what finished, says what did not, and refuses to draw the job-cap table for an unisolated reading. |
 | `build-evaluation-clips.mjs` | Synthesises one WAV a summary into `results/<model>/<quant>/`. Never overwrites another run. |
 | `build-page-index.mjs` | Writes the small index the page fetches at runtime: each run, where its manifest lives, and the catalogue rows for the models that actually ran. |
+| `build-fixture-run.mjs` | A run of synthesised tones, so the page can be checked in a browser without a 310 MB model. A development aid, never a reading - the manifest it writes says so in `notIsolatedBecause`. |
 | `d3-entry.mjs` | The d3 surface the page is allowed to use. Widening the bundle means adding an export here, which is the moment to ask whether it is needed. |
 | `vendor-d3.mjs` | Builds `page/vendor/d3-micro.js` from that entry and measures what it weighs into `page/vendor/d3-micro.json`. |
 | `serve.mjs` | Static server with range support. The page is a shell, so it needs a URL rather than a file path. |
@@ -209,6 +221,15 @@ The dock is a raised card bounded by `--frame-reading` at every width, not a
 strip glued to the viewport edge. It carries volume and a playback-speed pill,
 which the published Listen surface will inherit; the speed pill turns amber at
 any rate other than 1x, because prosody at 1.5x is not the prosody that ships.
+
+**The peak envelope is sampled above what the painter can draw.** The painter
+asks for `clamp(96, width / 6, 240)` bars, so the producer writes 256 buckets
+and every bar is the maximum of a real range. Sampling below that ceiling makes
+the painter interpolate, and an interpolated speech envelope reads as a row of
+wide flat blocks rather than as syllables and pauses. The cost of the resolution
+is about 1 KB a clip, measured, and two decimals rather than three pays for most
+of it - the waveform is 56 px tall, so the third decimal is a hundredth of a
+pixel.
 
 ## The page reads every run it finds, and one picker chooses between them
 

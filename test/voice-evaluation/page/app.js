@@ -1146,6 +1146,16 @@
 		var mount = $('clip-list');
 		mount.innerHTML = '';
 
+		/* THE TOGGLE IS LIVE WHEN THE RUN HAS SOMETHING TO PLAY, which is a
+		   different condition from the rest of the transport and is why it had
+		   never worked at all. It ships `disabled` in the markup, and `play()` -
+		   which switches on prev, next, mark and stop - simply missed it, so the
+		   one control a listener reaches for first was dead on every load. It
+		   does not belong in `play()` either: `play` runs when a clip is
+		   LOADED, and pressing play with nothing loaded is how a listener
+		   starts the run. So it is set here, from the clip count. */
+		$('toggle').disabled = run.clips.length === 0;
+
 		run.clips.forEach(function (clip, index) {
 			var playBtn = el('button', { class: 'clip__play', type: 'button', 'aria-label': 'Play ' + clip.id });
 			playBtn.appendChild(icon('play'));
@@ -1418,9 +1428,11 @@
 		var maxHeight = cssHeight - 8;
 		var minHeight = 3;
 
-		/* The payload carries 64 peaks and the bar count is higher, so a bar
-		   between two peaks is interpolated rather than repeated - repeating
-		   produces visible stair-stepping. */
+		/* The payload may carry fewer peaks than there are bars, so a bar between
+		   two peaks is interpolated rather than repeated - repeating produces
+		   visible stair-stepping. The producer samples above this function's
+		   ceiling precisely so this path is not the normal one: interpolation
+		   smooths, and a smoothed speech envelope reads as flat blocks. */
 		function sampledPeak(i) {
 			var start = i * peaks.length / count;
 			var end = (i + 1) * peaks.length / count;

@@ -27,6 +27,8 @@ The audio player is the only surface with no inherited slot, so it is the only t
 
 No new space, radius, or tint token is minted. The waveform bars reuse the two aliases - played bars `--audio-elapsed`, unplayed bars `--audio-track` - with bar gap `--space-1`, bar radius `--radius-sm`, and groove ends `--radius-full`. The now-playing row highlight reuses `--tint-accent`. Whether bars are drawn at all is a payload question owned by [ui-shell.md](ui-shell.md); when they are not, the track is a plain groove in the same two colours.
 
+**A peak envelope is sampled above what the painter can draw, never below.** The waveform render asks for `clamp(96, width / 6, 240)` bars, so a payload carrying fewer peaks than that forces the painter to interpolate - and an interpolated speech envelope is not a quieter waveform, it is a different picture: three or four neighbouring bars carry almost the same value, so syllables and pauses flatten into wide blocks. The producer writes 256 buckets, above the 240 ceiling, so every bar is the maximum of a real range. Two decimals is the stored precision, because the waveform is drawn about 56px tall and the third decimal is a hundredth of a pixel.
+
 ## An ordered judgement is the one thing the confidence ramp is for
 
 A score out of five is ordered, so its colour walks the inherited confidence ramp - `--band-low` at 1 and 2, `--band-medium` at 3, `--band-high` at 4 and 5. This is the ramp used for the thing it exists for, and it does not weaken the colour law: **the numeral and the word are always on screen beside the fill** (`5 - excellent`), which is the required second signal. A fill with no numeral would be semantic colour standing alone and is not allowed.

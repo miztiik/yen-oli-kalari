@@ -77,15 +77,29 @@ function encodeWav(samples, sampleRate) {
 }
 
 /**
- * A coarse loudness envelope for the scrubber, computed here rather than in the
+ * A loudness envelope for the scrubber, computed here rather than in the
  * browser.
  *
  * Decoding audio client-side to draw a waveform means downloading the whole
  * clip before the first pixel, and `decodeAudioData` inflates a compressed clip
- * to float32 PCM at roughly sixty times its file size. 64 peaks is about 500
- * bytes of JSON and draws instantly.
+ * to float32 PCM at roughly sixty times its file size. An envelope in the
+ * payload draws on the first frame and costs a couple of kilobytes.
+ *
+ * THE BUCKET COUNT IS SET BY THE PAINTER, NOT CHOSEN. `paintWaveform` draws
+ * `clamp(96, width / 6, 240)` bars, so 240 is the most it can ever ask for.
+ * This was 64, which meant every width upsampled - the painter interpolated 64
+ * points across as many as 240 bars, so three or four neighbouring bars carried
+ * almost the same value and a speech envelope read as a row of wide flat
+ * blocks. Sampling ABOVE the painter's ceiling inverts that: every bar is the
+ * maximum of a real range, so a syllable stays a peak and a pause stays a gap.
+ *
+ * Two decimals rather than three, which pays for most of the increase. The
+ * waveform is drawn about 56 px tall, so the third decimal is a hundredth of a
+ * pixel - a figure nobody can see, stored for every bucket of every clip.
  */
-function peaksOf(samples, buckets = 64) {
+const WAVEFORM_BUCKETS = 256;
+
+function peaksOf(samples, buckets = WAVEFORM_BUCKETS) {
   const width = Math.floor(samples.length / buckets) || 1;
   const peaks = [];
   for (let b = 0; b < buckets; b += 1) {
@@ -96,7 +110,7 @@ function peaksOf(samples, buckets = 64) {
       const magnitude = Math.abs(samples[i]);
       if (magnitude > peak) peak = magnitude;
     }
-    peaks.push(Number(peak.toFixed(3)));
+    peaks.push(Number(peak.toFixed(2)));
   }
   return peaks;
 }
