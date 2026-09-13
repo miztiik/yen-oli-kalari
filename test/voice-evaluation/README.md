@@ -71,6 +71,9 @@ heard one.
 
 Scores persist to the browser's local storage as you work. **Download
 evaluation** writes a JSON file shaped by [`evaluation-schema.json`](evaluation-schema.json).
+It fetches every run's manifest first: the page is a shell that loads one run at
+a time, so an export that only read what happened to be in memory would write a
+partial record that looked complete.
 
 ## The manifest records its host, and that is not decoration
 
@@ -162,6 +165,14 @@ readings of the same model ended up scattered across three different files.
 
 The page reads every run it finds and puts them beside each other: a model panel
 down the left, cross-run charts, and an A/B tab.
+
+**A run is named by its configuration, not just its model.** Two readings of one
+model at different chunk sizes are different readings, so each card carries the
+knobs that differ from the other runs on the page, and one helper (`runLabel()`)
+names a run everywhere it appears. A card also says when a reading is **not
+isolated** or lost a shard, and the host note will not call an unisolated figure
+the one the design is priced on. See
+[`../../docs/how-to/benchmark-a-voice.md`](../../docs/how-to/benchmark-a-voice.md).
 
 **A/B is there because pairwise beats absolute scoring.** "Which of these two is
 better" is a more reliable judgement than scoring one clip out of context, which

@@ -74,6 +74,20 @@ for (const directoryName of directories(RESULTS_DIR)) {
     config: manifest.run?.config ?? null,
     isolated: manifest.run?.isolated ?? false,
     notIsolatedBecause: manifest.run?.notIsolatedBecause ?? null,
+    /* Whether the run got every shard back. A run that lost one measured a
+       shorter corpus than it asked for, so its clip count and byte totals are
+       short - the card has to be able to say so before the manifest is
+       fetched, which means it belongs in the index rather than only in the
+       manifest the page loads on demand. */
+    shard: manifest.shard
+      ? {
+          merged: manifest.shard.merged ?? false,
+          complete: manifest.shard.complete ?? true,
+          shardsMerged: manifest.shard.shardsMerged ?? null,
+          shardsExpected: manifest.shard.shardsExpected ?? null,
+          incompleteBecause: manifest.shard.incompleteBecause ?? null,
+        }
+      : null,
     name: manifest.name ?? catalogue[modelSlug]?.name ?? modelSlug,
     modelId: manifest.modelId,
     quantisation: manifest.quantisation,

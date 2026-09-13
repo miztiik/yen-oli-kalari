@@ -137,6 +137,94 @@
 		};
 	}
 
+	/* ------------------------------------------------- telling runs apart
+
+	   A run is one model at ONE CONFIGURATION, so two runs of the same model at
+	   different settings are different readings and must never look like the
+	   same row. The page used to label every run `name + quantisation`, which
+	   made `kokoro-fp32-uk` at 40-word chunks and the same model at 25-word
+	   chunks render identically in six places - the model card, both cross-run
+	   charts, the dock title, the A/B selector and the A/B tally. That is the
+	   false comparison the whole run contract exists to prevent, reintroduced
+	   at the last step.
+
+	   The configuration lives in `run.config` (index) or `run.run.config`
+	   (manifest), depending on which the page has fetched. Both are read. */
+
+	function configOf(r) {
+		return (r && ((r.run && r.run.config) || r.config)) || null;
+	}
+
+	function isolatedOf(r) {
+		if (!r) return false;
+		if (r.run && typeof r.run.isolated === 'boolean') return r.run.isolated;
+		return r.isolated === true;
+	}
+
+	function notIsolatedBecauseOf(r) {
+		return (r && ((r.run && r.run.notIsolatedBecause) || r.notIsolatedBecause)) || '';
+	}
+
+	/* How a knob reads to a person. `0` means "no limit" for two of them, and a
+	   reader should not have to know that. */
+	var KNOB_LABELS = {
+		maxWordsAChunk: function (v) { return v + 'w chunks'; },
+		repeats: function (v) { return v + ' repeats'; },
+		threads: function (v) { return v ? v + ' threads' : 'auto threads'; },
+		maxItems: function (v) { return v ? v + ' items' : 'all items'; },
+		shards: function (v) { return v + ' shards'; }
+	};
+	var KNOB_SHORT = {
+		maxWordsAChunk: function (v) { return 'c' + v; },
+		repeats: function (v) { return 'r' + v; },
+		threads: function (v) { return 't' + (v || 'auto'); },
+		maxItems: function (v) { return 'i' + (v || 'all'); },
+		shards: function (v) { return 's' + v; }
+	};
+
+	/* Which knobs actually DIFFER across the runs on the page.
+	   Showing all five on every label would be noise when every run shares
+	   them; showing none is the bug. So the label carries exactly the knobs
+	   that distinguish this run from the others, which is the smallest honest
+	   answer and shrinks to nothing when there is nothing to say. */
+	function varyingKnobs() {
+		var seen = {};
+		var any = false;
+		DATA.runs.forEach(function (r) {
+			var c = configOf(r);
+			if (!c) return;
+			any = true;
+			Object.keys(KNOB_LABELS).forEach(function (k) {
+				if (!seen[k]) seen[k] = {};
+				seen[k][String(c[k])] = true;
+			});
+		});
+		if (!any) return [];
+		return Object.keys(KNOB_LABELS).filter(function (k) {
+			return Object.keys(seen[k] || {}).length > 1;
+		});
+	}
+
+	/* THE ONE PLACE A RUN IS NAMED. Every surface calls this, so a run cannot
+	   be labelled one way on a card and another in a chart. */
+	function runLabel(r, opts) {
+		opts = opts || {};
+		var meta = known(r);
+		var base = (meta.name || r.modelSlug || r.runId);
+		if (opts.short) base = base.split(' ')[0];
+		var parts = [base];
+		if (r.quantisation) parts.push(r.quantisation);
+		if (r.voice && !opts.short) parts.push(r.voice);
+
+		var vary = varyingKnobs();
+		var c = configOf(r);
+		if (c && vary.length) {
+			var table = opts.short ? KNOB_SHORT : KNOB_LABELS;
+			parts.push(vary.map(function (k) { return table[k](c[k]); }).join(opts.short ? '-' : ', '));
+		}
+		return parts.join(' \u00b7 ');
+	}
+
 	// ------------------------------------------------------------- helpers
 
 	function el(tag, attrs, kids) {
@@ -237,6 +325,10 @@
 			var meta = known(run);
 			var counts = tallyFor(run.runId, run);
 			var judged = counts.publishable + counts.borderline + counts.reject;
+			var vary = varyingKnobs();
+			var config = configOf(run);
+			var isolated = isolatedOf(run);
+			var shard = run.shard || null;
 
 			var card = el('button', {
 				class: 'model-card',
@@ -246,6 +338,12 @@
 				el('span', { class: 'model-card__name', text: meta.name || run.modelSlug }),
 				el('span', { class: 'model-card__quant', text:
 					run.quantisation + (run.voice ? ' \u00b7 ' + run.voice : '') }),
+				/* The knobs that differ from the other runs on this page. Without
+				   this, two configurations of one model are the same card. */
+				config && vary.length
+					? el('span', { class: 'model-card__config', text:
+						vary.map(function (k) { return KNOB_LABELS[k](config[k]); }).join(' \u00b7 ') })
+					: null,
 				el('span', { class: 'model-card__facts', text:
 					(meta.params ? meta.params + ' \u00b7 ' : '') +
 					(meta.architecture || '') }),
@@ -262,6 +360,16 @@
 					(counts.up || counts.down ? counts.up + ' up / ' + counts.down + ' down \u00b7 ' : '') +
 					judged + ' of ' + counts.total + ' judged' +
 					(counts.defects ? ' \u00b7 ' + counts.defects + ' defect' + (counts.defects === 1 ? '' : 's') : '') }),
+				/* Whether this reading may be priced against the job cap. A
+				   contended run is still a real cost for that clip on that
+				   machine; it is simply not a property of the model. */
+				config && !isolated
+					? el('span', { class: 'model-card__tag', 'data-warn': 'true', text: 'not isolated' })
+					: null,
+				shard && shard.complete === false
+					? el('span', { class: 'model-card__tag', 'data-warn': 'true',
+						text: shard.shardsMerged + '/' + shard.shardsExpected + ' shards' })
+					: null,
 				meta.incumbent ? el('span', { class: 'model-card__tag', text: 'incumbent' }) : null,
 				meta.arenaElo ? el('span', { class: 'model-card__tag', text: 'Arena ' + meta.arenaElo }) : null
 			]);
@@ -312,7 +420,15 @@
 				'+/- ' + (m.rateStability.coefficientOfVariation * 100).toFixed(1) + '% across clips'],
 			['Long-form drift', m.drift ? (m.drift.medianDriftPercent > 0 ? '+' : '') + m.drift.medianDriftPercent.toFixed(1) + '%' : 'n/a',
 				m.drift ? 'pace, opening third vs closing' : 'needs 3+ chunks'],
-			['Voice', run.voice, run.quantisation]
+			['Voice', run.voice, run.quantisation],
+			/* The configuration, so a figure on this page always sits beside the
+			   settings that produced it. */
+			['Chunk size', (configOf(run) ? configOf(run).maxWordsAChunk : run.maxWordsAChunk || '?') + ' words',
+				'where a summary is split for inference'],
+			['Isolated', configOf(run) ? (isolatedOf(run) ? 'yes' : 'no') : 'unrecorded',
+				configOf(run)
+					? (isolatedOf(run) ? 'nothing else was voicing' : 'not comparable to the job cap')
+					: 'this run predates the run contract']
 		].forEach(function (row) {
 			mount.appendChild(el('div', { class: 'readout' }, [
 				el('span', { class: 'readout__label', text: row[0] }),
@@ -339,14 +455,44 @@
 	function renderHostNote() {
 		var run = activeRun();
 		var onRunner = Boolean(run.host.isCi);
-		$('host-note').innerHTML = onRunner
-			? 'Timed on <b>' + run.host.cpuModel + '</b>, ' + run.host.cpuCount +
-			  ' cores &mdash; the production runner. This real-time factor is the figure the design is priced on.'
-			: 'Timed on <b>' + run.host.cpuModel + '</b>, ' + run.host.cpuCount +
-			  ' cores &mdash; <b>not the production runner</b>, so the real-time factor measures this machine and ' +
-			  'no budget comparison is drawn. Audio duration and speaking pace are unaffected: the model is ' +
-			  'deterministic, so those transfer and the wall clock does not.';
-		$('host-note').setAttribute('data-band', onRunner ? 'high' : 'medium');
+		var config = configOf(run);
+		var isolated = isolatedOf(run);
+		var note = $('host-note');
+
+		if (!onRunner) {
+			note.innerHTML = 'Timed on <b>' + run.host.cpuModel + '</b>, ' + run.host.cpuCount +
+				' cores &mdash; <b>not the production runner</b>, so the real-time factor measures this machine and ' +
+				'no budget comparison is drawn. Audio duration and speaking pace are unaffected: the model is ' +
+				'deterministic, so those transfer and the wall clock does not.';
+			note.setAttribute('data-band', 'medium');
+			return;
+		}
+
+		/* ON THE RUNNER IS NOT ENOUGH. A run measured while other jobs were
+		   voicing carries their contention in its wall clock, so it is a real
+		   cost for that clip on that afternoon and not a property of the model.
+		   Saying "the figure the design is priced on" over such a reading is
+		   exactly the claim the run contract was written to stop. */
+		if (config && !isolated) {
+			/* The reason comes from the manifest, written as a clause, so it is
+			   capitalised and terminated here rather than spliced raw into the
+			   middle of a sentence. */
+			var why = notIsolatedBecauseOf(run) || 'isolation was not asserted';
+			why = why.charAt(0).toUpperCase() + why.slice(1);
+			if (!/[.!?]$/.test(why)) why += '.';
+			note.innerHTML = 'Timed on <b>' + run.host.cpuModel + '</b>, ' + run.host.cpuCount +
+				' cores &mdash; the production runner, but <b>this reading is not isolated</b>, so no budget ' +
+				'comparison is drawn. ' + why +
+				' Speaking pace and audio duration still transfer, because the model is deterministic.';
+			note.setAttribute('data-band', 'medium');
+			return;
+		}
+
+		note.innerHTML = 'Timed on <b>' + run.host.cpuModel + '</b>, ' + run.host.cpuCount +
+			' cores &mdash; the production runner' +
+			(config ? ', with nothing else voicing' : '') +
+			'. This real-time factor is the figure the design is priced on.';
+		note.setAttribute('data-band', 'high');
 	}
 
 	function renderCharts() {
@@ -357,7 +503,7 @@
 		mount.innerHTML = '';
 		[
 			metricCard('Runs compared', String(DATA.runs.length), 'nothing overwritten'),
-			metricCard('Selected', run.quantisation, known(run).name || run.modelSlug),
+			metricCard('Selected', run.quantisation, runLabel(run)),
 			metricCard('Real-time factor', String(run.totals.realTimeFactor),
 				onRunner ? 'on the runner' : 'this machine only'),
 			metricCard('Speaking pace', run.totals.wordsAMinute + ' wpm', 'host-independent'),
@@ -374,20 +520,27 @@
 		barChart($('chart-rtf'), {
 			title: 'Real-time factor by run',
 			values: DATA.runs.map(function (r) { return r.totals.realTimeFactor; }),
-			labels: DATA.runs.map(function (r) { return (known(r).name || r.modelSlug).split(' ')[0] + ' ' + r.quantisation; }),
+			labels: DATA.runs.map(function (r) { return runLabel(r, { short: true }); }),
 			colours: DATA.runs.map(function (r) { return r.runId === run.runId ? 'var(--color-accent)' : 'var(--chart-1)'; }),
 			decimals: 3,
 			xLabel: 'run'
 		});
-		$('chart-rtf-why').innerHTML = oneHost
+		/* Two reasons a cross-run bar chart can lie, and they are different:
+		   different machines, and contended readings on the same machine. */
+		var mixedIsolation = DATA.runs.some(function (r) { return configOf(r) && !isolatedOf(r); });
+		$('chart-rtf-why').innerHTML = (oneHost
 			? 'Lower is better. Every run here was timed on the same machine, so the bars are comparable.'
 			: '<b>These runs were timed on different machines, so the bars are not directly comparable.</b> ' +
-			  'Wall clock is a property of the host; only a ratio between two runs on ONE machine transfers.';
+			  'Wall clock is a property of the host; only a ratio between two runs on ONE machine transfers.') +
+			(mixedIsolation
+				? ' <b>Some bars are not isolated readings</b>, so they carry contention from whatever else was ' +
+				  'voicing at the time and may not be priced against the job cap.'
+				: '');
 
 		barChart($('chart-wpm'), {
 			title: 'Speaking pace by run',
 			values: DATA.runs.map(function (r) { return r.totals.wordsAMinute; }),
-			labels: DATA.runs.map(function (r) { return (known(r).name || r.modelSlug).split(' ')[0] + ' ' + r.quantisation; }),
+			labels: DATA.runs.map(function (r) { return runLabel(r, { short: true }); }),
 			colours: DATA.runs.map(function (r) { return r.runId === run.runId ? 'var(--color-accent)' : 'var(--chart-3)'; }),
 			decimals: 1,
 			xLabel: 'run'
@@ -677,7 +830,7 @@
 			current = index;
 			audioB.pause();
 			audio.src = run.clipBase + clip.clip;
-			$('dock-title').textContent = clip.id + ' \u00b7 ' + (known(run).name || run.modelSlug) + ' ' + run.quantisation;
+			$('dock-title').textContent = clip.id + ' \u00b7 ' + runLabel(run);
 			$('dock-title').setAttribute('data-idle', 'false');
 			$('time-total').textContent = clock(clip.audioSeconds);
 			$('time-now').textContent = '0:00';
@@ -976,7 +1129,7 @@
 			DATA.runs.forEach(function (r) {
 				select.appendChild(el('option', {
 					value: r.runId,
-					text: (known(r).name || r.modelSlug) + ' ' + r.quantisation
+					text: runLabel(r)
 				}));
 			});
 			select.selectedIndex = pair[1];
@@ -1036,7 +1189,7 @@
 			sides.appendChild(el('div', { class: 'ab-side' }, [
 				btn,
 				el('span', { class: 'clip__facts', text: abBlind ? 'hidden until you choose' :
-					(known(run).name || run.modelSlug) + ' ' + run.quantisation + ' \u00b7 ' + clock(c.audioSeconds) })
+					runLabel(run) + ' \u00b7 ' + clock(c.audioSeconds) })
 			]));
 		});
 		mount.appendChild(sides);
@@ -1070,7 +1223,7 @@
 			mount.appendChild(el('p', { class: 'seam-note', text:
 				votes.length + ' vote' + (votes.length === 1 ? '' : 's') + ' so far \u00b7 ' +
 				Object.keys(tally).map(function (k) {
-					var r = k === 'tie' ? 'tie' : (known(runById(k)).name || k) + ' ' + runById(k).quantisation;
+					var r = k === 'tie' ? 'tie' : runLabel(runById(k));
 					return r + ': ' + tally[k];
 				}).join(' \u00b7 ') }));
 		}
@@ -1118,41 +1271,19 @@
 
 	function wireExport() {
 		$('export').addEventListener('click', function () {
-			var payload = {
-				schemaVersion: '2026-09-13',
-				ratedAt: new Date().toISOString(),
-				rater: $('rater').value || 'unnamed',
-				listeningConditions: $('conditions').value,
-				runs: DATA.runs.map(function (run) {
-					return {
-						runId: run.runId,
-						subject: {
-							model: run.modelId, quantisation: run.quantisation, voice: run.voice,
-							maxWordsAChunk: run.maxWordsAChunk, sampleRate: run.sampleRate,
-							host: run.host, realTimeFactor: run.totals.realTimeFactor,
-							wordsAMinute: run.totals.wordsAMinute
-						},
-						clips: run.clips.map(function (c) {
-							var e = (state.runs[run.runId] || {})[c.id] || {};
-							return {
-								id: c.id, verdict: e.verdict || null, scores: e.scores || {},
-								defects: e.defects || [], note: e.note || ''
-							};
-						})
-					};
-				}),
-				pairwise: state.pairs
-			};
-			var blob = new Blob([JSON.stringify(payload, null, 2) + '\n'], { type: 'application/json' });
-			var a = el('a', {
-				href: URL.createObjectURL(blob),
-				download: 'evaluation-' + new Date().toISOString().slice(0, 10) + '-' +
-					(payload.rater.replace(/\W+/g, '-').toLowerCase() || 'unnamed') + '.json'
+			/* EVERY RUN'S MANIFEST IS FETCHED FIRST. The page is a shell: only
+			   the run a listener has opened has its clips in memory, so mapping
+			   over `run.clips` for every run threw on the first unopened one and
+			   no file was written at all. Exporting only the loaded runs would be
+			   worse - a verdict file silently missing five of six voices reads as
+			   a complete record. The export is a deliberate click and the
+			   manifests are small static JSON, so it pays for them. */
+			$('export-status').textContent = 'Collecting every run\u2026';
+			Promise.all(DATA.runs.map(function (r) { return loadRun(r.runId); })).then(function () {
+				writeEvaluation();
+			}).catch(function (error) {
+				$('export-status').textContent = 'Could not read every run: ' + error.message;
 			});
-			document.body.appendChild(a);
-			a.click();
-			document.body.removeChild(a);
-			$('export-status').textContent = 'Written. Keep it beside the clips it judged.';
 		});
 
 		$('reset').addEventListener('click', function () {
@@ -1163,6 +1294,68 @@
 			renderAll();
 			$('export-status').textContent = 'Cleared.';
 		});
+	}
+
+	function writeEvaluation() {
+		var payload = {
+			schemaVersion: '2026-09-13',
+			ratedAt: new Date().toISOString(),
+			rater: $('rater').value || 'unnamed',
+			listeningConditions: $('conditions').value,
+			runs: DATA.runs.map(function (row) {
+				/* The index row merged with whatever the manifest carries, which
+				   is the same view the rest of the page renders from. */
+				var run = Object.assign({ clips: [] }, row, manifestCache[row.runId] || {});
+				return {
+					runId: run.runId,
+					/* WHICH READING WAS JUDGED. A listening verdict outlives the
+					   clips it was formed on, so it has to name the run that
+					   produced them - otherwise two verdicts on the same model at
+					   different chunk sizes are indistinguishable after the fact,
+					   which is the same failure the run contract fixed upstream. */
+					benchmarkRunId: (run.run && run.run.runId) || run.benchmarkRunId || null,
+					configSlug: (run.run && run.run.configSlug) || run.configSlug || null,
+					config: configOf(run),
+					isolated: configOf(run) ? isolatedOf(run) : null,
+					/* A run whose manifest would not load is reported as such
+					   rather than as a run with nothing judged. */
+					loadError: run.loadError || null,
+					subject: {
+						model: run.modelId, quantisation: run.quantisation, voice: run.voice,
+						maxWordsAChunk: run.maxWordsAChunk, sampleRate: run.sampleRate,
+						host: run.host,
+						realTimeFactor: run.totals ? run.totals.realTimeFactor : null,
+						wordsAMinute: run.totals ? run.totals.wordsAMinute : null
+					},
+					clips: (run.clips || []).map(function (c) {
+						var e = (state.runs[run.runId] || {})[c.id] || {};
+						return {
+							id: c.id, verdict: e.verdict || null, scores: e.scores || {},
+							defects: e.defects || [], note: e.note || ''
+						};
+					})
+				};
+			}),
+			pairwise: state.pairs
+		};
+
+		var blob = new Blob([JSON.stringify(payload, null, 2) + '\n'], { type: 'application/json' });
+		var a = el('a', {
+			href: URL.createObjectURL(blob),
+			download: 'evaluation-' + new Date().toISOString().slice(0, 10) + '-' +
+				(payload.rater.replace(/\W+/g, '-').toLowerCase() || 'unnamed') + '.json'
+		});
+		document.body.appendChild(a);
+		a.click();
+		document.body.removeChild(a);
+
+		var judged = payload.runs.reduce(function (n, r) {
+			return n + r.clips.filter(function (c) { return c.verdict; }).length;
+		}, 0);
+		$('export-status').textContent =
+			'Written: ' + payload.runs.length + ' run' + (payload.runs.length === 1 ? '' : 's') +
+			', ' + judged + ' judged clip' + (judged === 1 ? '' : 's') +
+			'. Keep it beside the clips it judged.';
 	}
 
 	function renderAll() {

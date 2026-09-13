@@ -171,6 +171,27 @@ because it is a ratio; the clip count, byte total and audio duration do not.
 Peak memory is the **maximum** across shards, never the sum: four shards are four
 machines, and a deployment provisions for the worst one.
 
+## On the page
+
+The listening page reads the run block, so two readings of one model can never
+look like one row:
+
+- Each model card carries **only the knobs that differ** between the runs on the
+  page. When every run shares a configuration the cards stay clean; the moment
+  one differs, every card says which. One helper, `runLabel()`, names a run for
+  the card, both cross-run charts, the dock title, the A/B selector and the A/B
+  tally - six places that each used to build `name + quantisation` themselves and
+  therefore rendered two configurations identically.
+- A reading that is not isolated carries a **not isolated** badge, the host note
+  refuses to call it "the figure the design is priced on", and the cross-run
+  chart says some bars carry contention.
+- A run that lost a shard carries a **3/4 shards** badge, because its clip count
+  and byte totals are short.
+- The run readout shows **Chunk size** and **Isolated** beside the speed figures.
+- A downloaded evaluation records `benchmarkRunId`, `configSlug`, `config` and
+  `isolated` for every run, so a verdict still names the reading it judged after
+  the clips are gone.
+
 ## Running it locally
 
 You can, and the manifest will say `isolated: false` and `host.isCi: false`, so
