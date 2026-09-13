@@ -104,12 +104,29 @@ def build_orpheus(spec: dict):
     import torch
     from snac import SNAC
 
-    START_TOKEN = 128259
-    END_TOKENS = [128009, 128260]
-    # The model announces the start of audio and can emit ordinary text tokens
-    # before it settles. Only these genuinely end the utterance.
-    STOP_TOKENS = {128258, 128009, 128260, 128261}
-    AUDIO_BASE = 128266
+    # THE ORPHEUS CONTROL TOKENS, from the official tokeniser layout rather than
+    # inferred. Everything is an offset from the base Llama vocabulary size,
+    # which is why they look arbitrary written as bare numbers:
+    #
+    #   128000 start_of_text     128256 + 1 = 128257 start_of_speech
+    #   128009 end_of_text       128256 + 2 = 128258 end_of_speech
+    #   128256 + 3 = 128259 start_of_human
+    #   128256 + 4 = 128260 end_of_human
+    #   128256 + 5 = 128261 start_of_ai
+    #   128256 + 6 = 128262 end_of_ai
+    #   128256 + 10 = 128266  the first audio token
+    #
+    # MEASURED 2026-09-14 AND THIS COST TWO RUNS. start_of_ai and
+    # start_of_speech are the FIRST TWO TOKENS THE MODEL IS SUPPOSED TO EMIT.
+    # Treating them as terminators - which "any low-numbered token ends the
+    # utterance" does - stops generation on the first token every time, and the
+    # arm reports an empty clip rather than a wrong one. Only end_of_speech and
+    # end_of_ai actually end it.
+    VOCAB = 128256
+    START_OF_TEXT, END_OF_TEXT = 128000, 128009
+    START_OF_HUMAN, END_OF_HUMAN = VOCAB + 3, VOCAB + 4
+    STOP_TOKENS = {VOCAB + 2, VOCAB + 6}  # end_of_speech, end_of_ai
+    AUDIO_BASE = VOCAB + 10
     CODES_A_FRAME = 7
     CODEBOOK = 4096
 
@@ -128,14 +145,12 @@ def build_orpheus(spec: dict):
         # The item's text is DATA. It is tokenised as ordinary text with
         # special=False, so a summary containing "<|eot_id|>" is voiced rather
         # than obeyed - guardrail 11, at the one boundary where it bites.
-        #
-        # add_bos=True MATTERS AND COST A RUN. The reference builds its prompt
-        # from a Hugging Face tokenizer call, which prepends Llama's BOS (128000)
-        # before the caller wraps it in 128259 / 128009,128260. Tokenising
-        # without it produced a sequence the model read as already finished: it
-        # emitted one end token and nothing else, three clips in a row.
+        # add_bos supplies start_of_text, which the reference gets free from the
+        # Hugging Face tokenizer call it wraps.
         body = backbone.tokenize(f"{voice}: {text}".encode("utf-8"), add_bos=True, special=False)
-        prompt = [START_TOKEN] + body + END_TOKENS
+        if not body or body[0] != START_OF_TEXT:
+            body = [START_OF_TEXT] + body
+        prompt = [START_OF_HUMAN] + body + [END_OF_TEXT, END_OF_HUMAN]
 
         codes: list[int] = []
         seen: list[int] = []
@@ -149,12 +164,9 @@ def build_orpheus(spec: dict):
             if len(seen) >= max_tokens or token in STOP_TOKENS:
                 break
             seen.append(token)
-            # MEASURED 2026-09-14: ending the utterance at the first non-audio
-            # token produced three empty clips. Orpheus emits a start-of-audio
-            # marker and can emit stray text tokens, and the reference decoder
-            # SKIPS anything that is not a custom token rather than stopping. A
-            # token that is dropped also does not advance the frame position,
-            # which is what keeps the seven-code frame aligned.
+            # A control or stray text token is SKIPPED, not fatal. Skipping also
+            # does not advance the frame position, which is what keeps the
+            # seven-code frame aligned.
             if token < AUDIO_BASE:
                 continue
             code = token - AUDIO_BASE - (len(codes) % CODES_A_FRAME) * CODEBOOK
