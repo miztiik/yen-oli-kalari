@@ -153,14 +153,22 @@
 	--wordmark-leading: 1.1;
 	--wordmark-tracking: 0.06em;
 
+	/* Both named frames from design-system.md. The console frame bounds the
+	   instrument, because a table of every clip in a run is operator work; the
+	   reading frame bounds the player, because listening is reading work and
+	   ui-shell.md puts PlayerDock in it. Only one of the two was declared here
+	   until now, so the dock was drawn 320px wider than its own spec. */
 	--frame-console: 1600px;
+	--frame-reading: 1280px;
 	--gutter: clamp(16px, 4vw, 32px);
 
 	--font-sans: ui-sans-serif, system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
-	--font-mono: ui-monospace, SFMono-Regular, 'SF Mono', Menlo, Consolas, monospace;
+	--font-mono: ui-mono, ui-monospace, SFMono-Regular, 'SF Mono', Menlo, Consolas, monospace;
 
-	/* The dock is fixed, so the list needs a floor to clear it. */
-	--dock-height: 7.5rem;
+	/* The dock floats, so the list needs a floor to clear it AND the gap it
+	   leaves beneath itself. */
+	--dock-height: 12.5rem;
+	--dock-float: var(--space-4);
 }
 
 * {
@@ -433,6 +441,34 @@ body {
 	stroke-width: 1;
 }
 
+/* d3 draws the axes now. The grid comes from a negative tick size on the value
+   axis, so there is one thing setting the horizontal rules rather than a hand
+   loop and a separate gridline class. */
+.chart .axis text {
+	fill: var(--chart-axis);
+	font-size: 11px;
+	font-family: var(--font-mono);
+}
+
+.chart .axis .domain {
+	stroke: var(--color-rule);
+}
+
+.chart .axis line {
+	stroke: var(--chart-grid);
+}
+
+.chart .axis--y .domain {
+	display: none;
+}
+
+.chart .bar-value {
+	fill: var(--chart-marker);
+	font-size: 11px;
+	font-family: var(--font-mono);
+	font-weight: 600;
+}
+
 .chart .axis-text {
 	fill: var(--chart-axis);
 	font-size: 10px;
@@ -555,34 +591,97 @@ body {
 	min-width: 0;
 }
 
+/* THREE NAMED PARTS, one to a line.
+   All of this used to sit on one baseline row joined by middots, so an id
+   ending in a digit ran into a fact starting with one - `real-034` plus
+   `7 words` read as `real-0347 words` - and the source name ran straight into
+   the hazard chips behind it. Separate lines dissolve both collisions, and the
+   source name becomes the thing the eye lands on, which is what a listener
+   actually navigates twenty-four rows by. */
 .clip__head {
+	display: grid;
+	gap: var(--space-2);
+}
+
+.clip__identity {
 	display: flex;
 	flex-wrap: wrap;
-	gap: var(--space-2) var(--space-3);
-	align-items: baseline;
+	gap: var(--space-2);
+	align-items: center;
 }
 
 .clip__id {
 	font-family: var(--font-mono);
-	font-size: var(--text-sm);
-	font-weight: 600;
+	font-size: var(--text-xs);
+	line-height: 1;
+	color: var(--color-text-tertiary);
+	background: var(--tint-neutral);
+	border-radius: var(--radius-sm);
+	padding: 0.3em 0.5em;
 }
 
-.clip__facts {
-	font-size: var(--text-xs);
+.clip__source {
+	font-size: var(--text-sm);
+	font-weight: 600;
+	color: var(--color-text);
+	min-width: 0;
+}
+
+.clip__source[data-unknown='true'] {
+	font-weight: 400;
 	color: var(--color-text-tertiary);
+}
+
+/* One figure, one label, tabular so a column of rows lines up. */
+.clip__facts {
+	display: flex;
+	flex-wrap: wrap;
+	gap: var(--space-1) var(--space-4);
+	font-size: var(--text-xs);
+	line-height: var(--leading-xs);
+	color: var(--color-text-tertiary);
+}
+
+.clip__fact {
+	display: flex;
+	gap: 0.35em;
+	align-items: baseline;
+	white-space: nowrap;
+}
+
+.clip__fact b {
+	color: var(--color-text-secondary);
+	font-weight: 600;
 	font-variant-numeric: tabular-nums;
 }
 
+.clip__hazards {
+	display: flex;
+	flex-wrap: wrap;
+	gap: var(--space-2);
+	align-items: center;
+}
+
+.clip__hazards-label {
+	font-size: var(--text-xs);
+	color: var(--color-text-tertiary);
+}
+
 /* A hazard is a landmark, not a verdict: it says this clip holds a currency
-   amount, never that the model got it wrong. Neutral tint, no confidence hue. */
+   amount, never that the model got it wrong. Neutral treatment always - a
+   colour here would put a judgement on a signpost, and "the model got this
+   wrong" already has a home in the timestamped defect list.
+   It gets a real border and a sunken ground because at 6% tint on a dark
+   surface it was invisible, and three invisible chips after a source name read
+   as one run-on word. */
 .hazard {
 	font-size: var(--text-xs);
 	line-height: 1;
-	padding: 0.25em 0.5em;
+	padding: 0.3em 0.55em;
 	border-radius: var(--radius-full);
-	background: var(--tint-neutral);
-	color: var(--color-text-tertiary);
+	background: var(--color-surface-sunken);
+	border: 1px solid var(--color-rule);
+	color: var(--color-text-secondary);
 	white-space: nowrap;
 }
 
@@ -611,7 +710,7 @@ body {
 .score-grid {
 	display: grid;
 	grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-	gap: var(--space-3);
+	gap: var(--space-3) var(--space-5);
 	margin-top: var(--space-4);
 	padding-top: var(--space-4);
 	border-top: 1px solid var(--color-rule);
@@ -622,10 +721,13 @@ body {
 }
 
 .score__label {
-	display: block;
+	display: flex;
+	justify-content: space-between;
+	align-items: baseline;
+	gap: var(--space-2);
 	font-size: var(--text-xs);
 	color: var(--color-text-tertiary);
-	margin-bottom: var(--space-2);
+	margin-bottom: var(--space-1);
 }
 
 .score__label b {
@@ -633,36 +735,89 @@ body {
 	font-weight: 600;
 }
 
-.score__buttons {
-	display: flex;
-	gap: var(--space-1);
-}
-
-.score__buttons button {
-	flex: 1;
-	appearance: none;
-	border: 1px solid var(--color-rule);
-	background: var(--color-surface-sunken);
-	color: var(--color-text-tertiary);
-	border-radius: var(--radius-sm);
-	padding: var(--space-1) 0;
-	font: inherit;
+/* The word the number means. Unrated is the fourth state and reads as
+   tertiary, so an unscored axis never looks like a low score. */
+.score__word {
 	font-size: var(--text-xs);
-	font-variant-numeric: tabular-nums;
-	cursor: pointer;
-	transition: all var(--dur-fast) var(--ease-standard);
+	font-weight: 600;
+	white-space: nowrap;
+	color: var(--color-text-tertiary);
+	transition: color var(--dur-fast) var(--ease-standard);
 }
 
-.score__buttons button:hover {
-	border-color: var(--color-rule-strong);
+.score__rail {
+	display: block;
+	width: 100%;
+	height: 34px;
+	cursor: pointer;
+	touch-action: none;
+	border-radius: var(--radius-md);
+}
+
+.score__rail:focus-visible {
+	outline: none;
+	box-shadow: var(--shadow-focus);
+}
+
+.score__hint {
+	font-size: var(--text-xs);
+	color: var(--color-text-tertiary);
+}
+
+/* --- Judgement column --------------------------------------------------- */
+
+/* The order a listener actually works in: hear it, call it, then only if the
+   call was hard, say why. Twenty-eight controls of one weight in one column is
+   what "arrange the elements appropriate" was about. */
+.judge__primary {
+	display: flex;
+	flex-wrap: wrap;
+	gap: var(--space-2) var(--space-3);
+	align-items: center;
+}
+
+.judge__detail {
+	margin-top: var(--space-4);
+	border-top: 1px solid var(--color-rule);
+	padding-top: var(--space-2);
+}
+
+.judge__detail > summary {
+	font-size: var(--text-xs);
+	color: var(--color-text-tertiary);
+	cursor: pointer;
+	list-style: none;
+	display: flex;
+	align-items: center;
+	gap: var(--space-2);
+	padding: var(--space-1) 0;
+}
+
+.judge__detail > summary::-webkit-details-marker {
+	display: none;
+}
+
+.judge__detail > summary::before {
+	content: '+';
+	font-family: var(--font-mono);
+	color: var(--color-text-tertiary);
+}
+
+.judge__detail[open] > summary::before {
+	content: '-';
+}
+
+.judge__detail > summary:hover {
 	color: var(--color-text);
 }
 
-.score__buttons button[aria-pressed='true'] {
-	background: var(--color-accent);
-	border-color: var(--color-accent);
-	color: var(--color-on-accent);
-	font-weight: 600;
+/* A count of what is already logged, so a closed disclosure never hides a
+   defect somebody wrote down. */
+.judge__count {
+	margin-inline-start: auto;
+	font-size: var(--text-xs);
+	color: var(--band-low);
+	font-variant-numeric: tabular-nums;
 }
 
 .verdict-row {
@@ -670,7 +825,7 @@ body {
 	flex-wrap: wrap;
 	gap: var(--space-2);
 	align-items: center;
-	margin-top: var(--space-4);
+	margin-top: 0;
 }
 
 .verdict-row > span:first-child {
@@ -805,28 +960,38 @@ body {
 
 /* --- Dock --------------------------------------------------------------- */
 
+/* ONE INLINE TRANSPORT, and a raised card at every width.
+   ui-shell.md says PlayerDock "sits on a raised surface with a panel shadow, in
+   front of the list, not a flat strip glued to the bottom", and below 1200px
+   this page did exactly the opposite. It is bounded by the reading frame rather
+   than the console frame, because listening is reading work. */
 .dock {
 	position: fixed;
 	inset-inline: 0;
 	bottom: 0;
 	z-index: 20;
-	background: var(--color-surface-raised);
-	box-shadow: var(--shadow-lg);
-	border-top: 1px solid var(--color-rule);
-	padding-block: var(--space-3);
+	padding: 0 var(--gutter) var(--dock-float);
+	pointer-events: none;
 }
 
 .dock__inner {
-	display: flex;
-	flex-direction: column;
+	pointer-events: auto;
+	max-width: var(--frame-reading);
+	margin-inline: auto;
+	display: grid;
 	gap: var(--space-2);
+	padding: var(--space-3) var(--space-4) var(--space-3);
+	background: var(--gradient-panel);
+	border: 1px solid var(--color-rule);
+	border-radius: var(--radius-lg);
+	box-shadow: var(--shadow-lg);
 }
 
-.dock__head {
+.dock__now {
 	display: flex;
 	gap: var(--space-3);
-	align-items: center;
-	flex-wrap: wrap;
+	align-items: baseline;
+	min-width: 0;
 }
 
 .dock__title {
@@ -844,51 +1009,80 @@ body {
 	font-weight: 400;
 }
 
-.dock button {
-	appearance: none;
-	background: var(--color-surface);
-	border: 1px solid var(--color-rule);
-	color: var(--color-text-secondary);
-	border-radius: var(--radius-full);
-	width: 2.25rem;
-	height: 2.25rem;
-	display: grid;
-	place-items: center;
-	cursor: pointer;
-	font: inherit;
-	font-size: var(--text-sm);
-	flex: none;
-}
-
-.dock button:hover:not(:disabled) {
-	color: var(--color-text);
-	border-color: var(--color-accent);
-}
-
-.dock button:disabled {
-	opacity: 0.4;
-	cursor: not-allowed;
-}
-
-.dock__advance {
-	display: flex;
-	align-items: center;
-	gap: var(--space-2);
+.dock__slow {
+	color: var(--band-medium);
 	font-size: var(--text-xs);
-	color: var(--color-text-tertiary);
 	white-space: nowrap;
 }
 
-/* ProgressTrack. peaks is null under the 2026-09-11 owner ruling, so this is
-   the plain-groove render: elapsed over buffered over track, three layers in
-   the two aliases plus the buffered value. */
+/* A clip that would not load. Whatever is on screen stays and the dock says
+   what happened, because a silent player that will not start reads as a broken
+   page rather than as a failed fetch. */
+.dock__failed {
+	display: flex;
+	align-items: center;
+	gap: var(--space-2);
+	color: var(--band-low);
+	font-size: var(--text-xs);
+	white-space: nowrap;
+}
+
+.dock__failed[hidden] {
+	display: none;
+}
+
+.dock__retry {
+	appearance: none;
+	background: none;
+	border: 1px solid var(--band-low);
+	border-radius: var(--radius-full);
+	color: var(--band-low);
+	font: inherit;
+	font-size: var(--text-xs);
+	padding: 0.1rem var(--space-2);
+	cursor: pointer;
+}
+
+.dock__retry:hover {
+	background: var(--tint-bad);
+}
+
+/* The one seek surface. It holds both renders of ProgressTrack and shows
+   exactly one: the waveform when the payload carries peaks, the groove when it
+   does not. A canvas stacked above a groove was the component drawn twice, and
+   gave a listener two things to click for one job. */
+.seek {
+	position: relative;
+	cursor: pointer;
+	padding-block: var(--space-2);
+	border-radius: var(--radius-md);
+}
+
+.seek:focus-visible {
+	outline: none;
+	box-shadow: var(--shadow-focus);
+}
+
+.waveform {
+	display: block;
+	width: 100%;
+	height: 56px;
+}
+
+.waveform[hidden] {
+	display: none;
+}
+
 .track {
 	position: relative;
 	height: 0.5rem;
 	border-radius: var(--radius-full);
 	background: var(--audio-track);
-	cursor: pointer;
-	overflow: hidden;
+	overflow: visible;
+}
+
+.track[hidden] {
+	display: none;
 }
 
 .track__buffered,
@@ -904,8 +1098,30 @@ body {
 	background: var(--audio-buffered);
 }
 
+/* The played portion, with a brighter leading edge so the eye can find the
+   playhead on a long groove without a second element to draw. */
 .track__elapsed {
 	background: var(--audio-elapsed);
+}
+
+.track__head {
+	position: absolute;
+	top: 50%;
+	inset-inline-start: 0;
+	width: 0.75rem;
+	height: 0.75rem;
+	margin-inline-start: -0.375rem;
+	border-radius: var(--radius-full);
+	background: var(--audio-elapsed);
+	border: 2px solid var(--color-surface-raised);
+	transform: translateY(-50%) scale(0);
+	transition: transform var(--dur-fast) var(--ease-standard);
+}
+
+.dock[data-playing='true'] .track__head,
+.seek:hover .track__head,
+.seek:focus-visible .track__head {
+	transform: translateY(-50%) scale(1);
 }
 
 .dock__times {
@@ -913,12 +1129,191 @@ body {
 	justify-content: space-between;
 	font-size: var(--text-xs);
 	font-family: var(--font-mono);
+	font-variant-numeric: tabular-nums;
 	color: var(--color-text-tertiary);
+	margin-top: calc(-1 * var(--space-1));
 }
 
-.dock__slow {
-	color: var(--band-medium);
+/* Volume and speed on the leading edge, the transport centred, the two clip
+   actions and the auto-advance toggle on the trailing edge. The three groups
+   are equal columns so the transport is centred on the card and not on
+   whatever the two side groups happen to measure. */
+.dock__controls {
+	display: grid;
+	grid-template-columns: 1fr auto 1fr;
+	align-items: center;
+	gap: var(--space-3);
+}
+
+.dock__side {
+	display: flex;
+	align-items: center;
+	gap: var(--space-2);
+	min-width: 0;
+}
+
+.dock__side--end {
+	justify-content: flex-end;
+}
+
+.dock__transport {
+	display: flex;
+	align-items: center;
+	gap: var(--space-2);
+}
+
+/* Five identical outline circles gave a listener no idea which one to press.
+   Play is the one filled control on this card; everything else is quiet. */
+.dock__icon {
+	appearance: none;
+	background: none;
+	border: none;
+	border-radius: var(--radius-full);
+	color: var(--color-text-secondary);
+	width: 2.25rem;
+	height: 2.25rem;
+	display: grid;
+	place-items: center;
+	cursor: pointer;
+	flex: none;
+	transition: all var(--dur-fast) var(--ease-standard);
+}
+
+.dock__icon:hover:not(:disabled) {
+	background: var(--tint-neutral);
+	color: var(--color-text);
+}
+
+.dock__icon:disabled {
+	opacity: 0.35;
+	cursor: not-allowed;
+}
+
+.dock__play {
+	appearance: none;
+	width: 2.75rem;
+	height: 2.75rem;
+	border-radius: var(--radius-full);
+	border: none;
+	background: var(--color-accent);
+	color: var(--color-on-accent);
+	display: grid;
+	place-items: center;
+	cursor: pointer;
+	flex: none;
+	transition: all var(--dur-fast) var(--ease-standard);
+}
+
+.dock__play:hover:not(:disabled) {
+	background: var(--color-accent-strong);
+	transform: scale(1.06);
+}
+
+.dock__play:disabled {
+	background: var(--color-rule-strong);
+	color: var(--color-text-tertiary);
+	cursor: not-allowed;
+}
+
+.icon {
+	width: 1.125rem;
+	height: 1.125rem;
+	fill: currentColor;
+	display: block;
+}
+
+.dock__play .icon {
+	width: 1.25rem;
+	height: 1.25rem;
+}
+
+.icon-set {
+	position: absolute;
+	width: 0;
+	height: 0;
+	overflow: hidden;
+}
+
+.dock__pill {
+	appearance: none;
+	background: none;
+	border: 1px solid var(--color-rule-strong);
+	border-radius: var(--radius-full);
+	color: var(--color-text-secondary);
+	font: inherit;
 	font-size: var(--text-xs);
+	font-variant-numeric: tabular-nums;
+	padding: 0.15rem var(--space-2);
+	min-width: 2.75rem;
+	cursor: pointer;
+	transition: all var(--dur-fast) var(--ease-standard);
+}
+
+.dock__pill:hover {
+	border-color: var(--color-accent);
+	color: var(--color-text);
+}
+
+/* A speed other than 1x changes what a listener is judging, so it announces
+   itself rather than sitting quietly at the same weight as everything else. */
+.dock__pill[data-off-normal='true'] {
+	border-color: var(--band-medium);
+	color: var(--band-medium);
+	font-weight: 600;
+}
+
+.dock__volume {
+	appearance: none;
+	width: 5rem;
+	height: 0.25rem;
+	border-radius: var(--radius-full);
+	background: var(--audio-track);
+	cursor: pointer;
+	flex: none;
+}
+
+.dock__volume::-webkit-slider-thumb {
+	appearance: none;
+	width: 0.75rem;
+	height: 0.75rem;
+	border-radius: var(--radius-full);
+	background: var(--color-text-secondary);
+	cursor: pointer;
+}
+
+.dock__volume::-moz-range-thumb {
+	width: 0.75rem;
+	height: 0.75rem;
+	border: none;
+	border-radius: var(--radius-full);
+	background: var(--color-text-secondary);
+	cursor: pointer;
+}
+
+.dock__advance {
+	display: flex;
+	align-items: center;
+	gap: var(--space-2);
+	font-size: var(--text-xs);
+	color: var(--color-text-tertiary);
+	white-space: nowrap;
+	cursor: pointer;
+}
+
+/* Narrow: the three groups stack rather than crushing the transport off
+   centre, and volume goes - a phone has hardware volume keys. */
+@media (max-width: 640px) {
+	.dock__controls {
+		grid-template-columns: 1fr;
+		justify-items: center;
+		gap: var(--space-2);
+	}
+	.dock__side--end {
+		justify-content: center;
+	}
+	.dock__volume {
+		display: none;
+	}
 }
 
 /* --- Export ------------------------------------------------------------- */
@@ -1033,7 +1428,7 @@ body {
 	}
 }
 
-/* --- Layout: model panel beside the content -------------------------- */
+/* --- Layout: the run panel beside the content -------------------------- */
 
 .layout {
 	display: grid;
@@ -1043,11 +1438,14 @@ body {
 
 @media (min-width: 1000px) {
 	.layout {
-		grid-template-columns: 17rem minmax(0, 1fr);
+		grid-template-columns: 19rem minmax(0, 1fr);
 	}
 	.panel-models {
 		position: sticky;
 		top: var(--space-4);
+		max-height: calc(100vh - var(--dock-height) - var(--space-5));
+		overflow-y: auto;
+		scrollbar-width: thin;
 	}
 }
 
@@ -1069,114 +1467,226 @@ body {
 }
 
 .panel-models__note {
-	margin: var(--space-3) 0 0;
+	margin: var(--space-4) 0 0;
 	font-size: var(--text-xs);
 	line-height: var(--leading-xs);
 	color: var(--color-text-tertiary);
 }
 
-#model-list {
+.field__label {
+	display: block;
+	font-size: var(--text-xs);
+	color: var(--color-text-tertiary);
+	margin-bottom: var(--space-1);
+}
+
+/* ONE PICKER, NOT A COLUMN OF CARDS. A card a run meant the panel grew by nine
+   lines with every model added; a seventh model now costs one option. Each
+   option carries its speed rank and its real-time factor, so the cheap
+   comparison the card stack gave survives the change - the expensive one is
+   what A/B and Charts are for. */
+.run-pick {
+	width: 100%;
+	appearance: none;
+	font: inherit;
+	font-size: var(--text-sm);
+	font-weight: 600;
+	color: var(--color-text);
+	background: var(--color-surface-raised);
+	border: 1px solid var(--color-rule-strong);
+	border-radius: var(--radius-md);
+	padding: var(--space-2) var(--space-3);
+	cursor: pointer;
+}
+
+.run-pick:hover {
+	border-color: var(--color-accent);
+}
+
+.run-pick__rank {
+	margin: var(--space-2) 0 0;
+	font-size: var(--text-xs);
+	line-height: var(--leading-xs);
+	color: var(--color-text-tertiary);
+}
+
+/* The one thing in this panel the eye should land on: how far through this run
+   the listener is. */
+.run-progress {
+	display: flex;
+	align-items: center;
+	gap: var(--space-3);
+	margin-top: var(--space-4);
+	padding: var(--space-3);
+	background: var(--color-surface);
+	border: 1px solid var(--color-rule);
+	border-radius: var(--radius-md);
+}
+
+.run-progress__figure {
 	display: grid;
+	gap: 0.1rem;
+	min-width: 0;
+}
+
+.run-progress__count {
+	font-size: var(--text-xl);
+	line-height: 1.1;
+	font-weight: 650;
+	color: var(--color-text);
+	font-variant-numeric: tabular-nums;
+}
+
+.run-progress__of {
+	font-size: var(--text-xs);
+	line-height: var(--leading-xs);
+	color: var(--color-text-tertiary);
+}
+
+.run-progress__defects {
+	font-size: var(--text-xs);
+	color: var(--band-low);
+}
+
+/* --- The spec sheet ----------------------------------------------------- */
+
+/* Every row is drawn from the payload. A run that does not carry a field says
+   "not recorded" rather than dropping the row, because a row that vanishes
+   makes unknown and absent look the same - and the reader cannot tell whether
+   nobody measured it or the page forgot to draw it. */
+.spec {
+	margin-top: var(--space-4);
+	display: grid;
+	gap: var(--space-4);
+}
+
+.spec__group {
+	display: grid;
+	gap: var(--space-1);
+}
+
+.spec__heading {
+	font-size: var(--text-xs);
+	letter-spacing: 0.06em;
+	text-transform: uppercase;
+	color: var(--color-text-tertiary);
+	padding-bottom: var(--space-1);
+	border-bottom: 1px solid var(--color-rule);
+	margin-bottom: var(--space-1);
+}
+
+.spec__row {
+	display: grid;
+	grid-template-columns: minmax(0, 8.5rem) minmax(0, 1fr);
+	gap: var(--space-2);
+	align-items: baseline;
+}
+
+.spec__label {
+	font-size: var(--text-xs);
+	line-height: var(--leading-sm);
+	color: var(--color-text-tertiary);
+	min-width: 0;
+}
+
+.spec__value {
+	font-size: var(--text-sm);
+	line-height: var(--leading-sm);
+	color: var(--color-text);
+	font-variant-numeric: tabular-nums;
+	min-width: 0;
+	overflow-wrap: anywhere;
+}
+
+.spec__value[data-empty='true'] {
+	color: var(--color-text-tertiary);
+	font-style: italic;
+	font-size: var(--text-xs);
+}
+
+.spec__foot {
+	grid-column: 2;
+	font-size: var(--text-xs);
+	line-height: var(--leading-xs);
+	color: var(--color-text-tertiary);
+	margin-top: -0.1rem;
+}
+
+.spec__value[data-band='high'] {
+	color: var(--band-high);
+}
+.spec__value[data-band='medium'] {
+	color: var(--band-medium);
+}
+.spec__value[data-band='low'] {
+	color: var(--band-low);
+}
+
+/* Where this model came from. The catalogue has carried these URLs since it was
+   written and the page never drew one, because the index did not ship the
+   catalogue and the join key was wrong. */
+.spec__links {
+	display: flex;
+	flex-wrap: wrap;
 	gap: var(--space-2);
 }
 
-/* One run: a model at a quantisation. The whole card is the control, because a
-   list where only a small radio is clickable makes the eye and the hand
-   disagree about where the target is. */
-.model-card {
-	display: grid;
-	gap: var(--space-1);
-	text-align: start;
-	width: 100%;
-	appearance: none;
-	cursor: pointer;
-	font: inherit;
-	background: var(--color-surface);
+.spec__link {
+	font-size: var(--text-xs);
+	color: var(--color-accent-strong);
+	text-decoration: none;
 	border: 1px solid var(--color-rule);
-	border-inline-start: 3px solid var(--color-rule);
-	border-radius: var(--radius-md);
-	padding: var(--space-3);
-	color: var(--color-text-secondary);
+	border-radius: var(--radius-full);
+	padding: 0.25em 0.6em;
+	white-space: nowrap;
 	transition: all var(--dur-fast) var(--ease-standard);
 }
 
-.model-card:hover {
-	border-color: var(--color-rule-strong);
-	border-inline-start-color: var(--color-accent);
-}
-
-.model-card[aria-pressed='true'] {
-	background: var(--tint-accent);
+.spec__link:hover {
 	border-color: var(--color-accent);
-	border-inline-start-color: var(--color-accent);
+	background: var(--tint-accent);
 }
 
-.model-card__name {
-	font-size: var(--text-sm);
-	font-weight: 650;
-	color: var(--color-text);
+.spec__link::after {
+	content: ' \2197';
+	color: var(--color-text-tertiary);
 }
 
-.model-card__quant {
-	font-family: var(--font-mono);
-	font-size: var(--text-xs);
-	color: var(--color-accent-strong);
-}
-
-.model-card__facts,
-.model-card__judged {
+/* A trap in shipping these weights. It is the one field on the sheet that can
+   stop a merge, so it is the one field with a colour. */
+.spec__warning {
 	font-size: var(--text-xs);
 	line-height: var(--leading-xs);
-	color: var(--color-text-tertiary);
-}
-
-.model-card__metrics {
-	font-size: var(--text-xs);
-	font-variant-numeric: tabular-nums;
-	color: var(--color-text-secondary);
-}
-
-/* A licence is a gate, not a preference, so it gets a second signal beyond
-   colour: the word itself is always on screen. */
-.model-card__licence {
-	font-size: var(--text-xs);
-	justify-self: start;
-	padding: 0.1em 0.45em;
+	color: var(--band-medium);
+	background: var(--tint-warn);
 	border-radius: var(--radius-sm);
-	background: var(--tint-neutral);
-	color: var(--color-text-tertiary);
+	padding: var(--space-2);
+	margin: 0;
 }
 
-.model-card__licence[data-ok='true'] {
-	background: var(--tint-good);
-	color: var(--band-high);
+.spec__flags {
+	display: flex;
+	flex-wrap: wrap;
+	gap: var(--space-1);
 }
 
-.model-card__tag {
-	justify-self: start;
+.spec__flag {
 	font-size: var(--text-xs);
-	padding: 0.1em 0.45em;
+	line-height: 1;
+	padding: 0.3em 0.55em;
 	border-radius: var(--radius-full);
 	background: var(--tint-neutral);
 	color: var(--color-text-tertiary);
 }
 
-/* A reading that may not be priced against the job cap, and a run that lost a
-   shard. Both are warnings about what a figure MEANS rather than errors, so
-   they use the existing warn tint rather than an error colour - the number is
-   real, it simply cannot be compared with an isolated one. */
-.model-card__tag[data-warn='true'] {
-	background: var(--tint-warn);
-	color: var(--band-medium);
+.spec__flag[data-tone='accent'] {
+	background: var(--tint-accent);
+	color: var(--color-accent-strong);
 }
 
-/* The knobs that differ between the runs on this page. Monospace because these
-   are settings rather than prose, and two of them differ by one character. */
-.model-card__config {
-	font-family: var(--font-mono);
-	font-size: var(--text-xs);
-	line-height: var(--leading-xs);
-	color: var(--color-text-secondary);
+.spec__flag[data-tone='warn'] {
+	background: var(--tint-warn);
+	color: var(--band-medium);
 }
 
 /* --- Follow the text -------------------------------------------------- */
@@ -1298,67 +1808,28 @@ body {
 	border-color: var(--color-accent);
 	color: var(--color-on-accent);
 }
-/* --- Run readout ------------------------------------------------------- */
-
-/* The figures a dashboard shows first, on one line each. Both real-time
-   conventions appear together - the factor and its reciprocal - because vendors
-   publish each and a card claiming "RTF 0.32, about 3.1x real time" is stating
-   one number twice. */
-.readouts {
-	display: grid;
-	grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
-	gap: var(--space-3);
-	margin-bottom: var(--space-5);
-	padding: var(--space-4);
-	background: var(--gradient-panel);
-	border-radius: var(--radius-lg);
-	box-shadow: var(--shadow-panel);
-}
-
-.readout {
-	display: grid;
-	gap: 0.15rem;
-	min-width: 0;
-}
-
-.readout__label {
-	font-size: var(--text-xs);
-	color: var(--color-text-tertiary);
-	letter-spacing: 0.03em;
-	text-transform: uppercase;
-}
-
-.readout__value {
-	font-size: var(--text-lg);
-	font-weight: 650;
-	font-variant-numeric: tabular-nums;
-	color: var(--color-text);
-}
-
-.readout__foot {
-	font-size: var(--text-xs);
-	color: var(--color-text-tertiary);
-}
-
 /* --- Thumbs ------------------------------------------------------------ */
 
 /* The fastest first pass. A listener can get through two dozen clips on one
    axis in the time four scales take for six, so this is what gets filled in
-   when somebody has ten minutes rather than an hour. */
+   when somebody has ten minutes rather than an hour.
+   It sits beside the verdict rather than above it, and it is the quieter of
+   the two: a thumb is a first impression, a verdict is the call. */
 .thumbs {
 	display: flex;
-	gap: var(--space-2);
-	margin-bottom: var(--space-3);
+	gap: var(--space-1);
+	flex: none;
 }
 
 .thumb {
 	appearance: none;
-	flex: 1;
 	cursor: pointer;
 	font: inherit;
-	font-size: var(--text-sm);
+	font-size: var(--text-xs);
+	line-height: 1;
+	white-space: nowrap;
 	padding: var(--space-2) var(--space-3);
-	border-radius: var(--radius-md);
+	border-radius: var(--radius-full);
 	border: 1px solid var(--color-rule);
 	background: var(--color-surface-sunken);
 	color: var(--color-text-secondary);
@@ -1384,28 +1855,15 @@ body {
 	font-weight: 600;
 }
 
-/* --- Waveform ---------------------------------------------------------- */
 
-/* Drawn from peaks the build computed, not from audio decoded here: decoding
-   client-side means downloading the whole clip before the first pixel, and
-   inflating it about sixtyfold in memory to do it. */
-.waveform {
-	display: block;
-	width: 100%;
-	height: 48px;
-	cursor: pointer;
-	margin-bottom: var(--space-2);
-}
-
-.waveform[hidden] {
-	display: none;
-}
-/* --- Susan's theming ruling, 2026-09-13 --------------------------------- */
+/* --- Elevation and rhythm, Susan's theming ruling 2026-09-13 ------------ */
 
 /* The page used its screen and was flat: figure and ground barely separated,
    the tab bar read as browser chrome, and the dock was glued to the bottom
    edge. No new colour token is minted - this is elevation, spacing and type
-   scale within the inherited set. */
+   scale within the inherited set. Carried forward through the 2026-09-14
+   redesign; the rules that styled the retired model-card stack and the retired
+   run readout went with them rather than being left to rot. */
 
 body {
 	background:
@@ -1424,15 +1882,6 @@ body {
 
 .layout {
 	gap: var(--space-5);
-}
-
-@media (min-width: 1000px) {
-	.layout {
-		grid-template-columns: 19rem minmax(0, 1fr);
-	}
-	.panel-models {
-		top: var(--space-4);
-	}
 }
 
 /* A segmented control rather than a row of underlines: it says these are
@@ -1470,29 +1919,7 @@ body {
 	box-shadow: var(--shadow-panel);
 }
 
-#model-list {
-	gap: var(--space-3);
-}
-
-.model-card {
-	background: var(--color-surface-sunken);
-	border-radius: var(--radius-lg);
-	padding: var(--space-3) var(--space-4);
-}
-
-/* The selected run is marked by a bar on its leading edge rather than by a
-   border colour, which survives both themes and reads at a glance. */
-.model-card[aria-pressed='true'] {
-	background: var(--tint-accent);
-	box-shadow: inset 4px 0 0 var(--color-accent), var(--shadow-panel);
-}
-
-.model-card__name {
-	font-size: var(--text-base);
-	line-height: var(--leading-sm);
-}
-
-/* The readouts and the verdict tally sit side by side on a wide screen, so the
+/* The host note and the verdict tally sit side by side on a wide screen, so the
    first clip starts near the top of the fold instead of below two full-width
    bands of cards. */
 #panel-listen {
@@ -1500,48 +1927,24 @@ body {
 	gap: var(--space-4);
 }
 
+/* `hidden` has to win, and here it needs the flag to do it: `#panel-listen`
+   sets a display for the Listen panel's own layout, an id beats a class, and a
+   selected tab was therefore leaving the whole clip list on screen underneath
+   the panel it had switched to. This is the one place on the page where a
+   display switch must beat every other rule, so it says so. */
+.panel[hidden] {
+	display: none !important;
+}
+
 #panel-listen .host-note,
-#panel-listen .readouts,
 #panel-listen .metrics {
 	margin: 0;
 }
 
 @media (min-width: 1200px) {
 	#panel-listen {
-		grid-template-columns: minmax(0, 1.35fr) minmax(22rem, 0.65fr);
-		align-items: start;
+		grid-template-columns: minmax(0, 1fr);
 	}
-	#panel-listen .host-note {
-		grid-column: 1 / -1;
-		max-width: none;
-	}
-	#panel-listen .readouts {
-		grid-column: 1;
-	}
-	#panel-listen #verdict-metrics {
-		grid-column: 2;
-	}
-	#panel-listen .clip-list,
-	#panel-listen .export-bar {
-		grid-column: 1 / -1;
-	}
-}
-
-.readouts {
-	padding: var(--space-3);
-	gap: var(--space-2);
-}
-
-.readout {
-	padding: var(--space-2) var(--space-3);
-	border: 1px solid var(--color-rule);
-	border-radius: var(--radius-md);
-	background: var(--color-surface-sunken);
-}
-
-.readout__value {
-	font-size: var(--text-xl);
-	line-height: var(--leading-xl);
 }
 
 .metrics {
@@ -1552,6 +1955,19 @@ body {
 	padding: var(--space-3);
 	border: 1px solid var(--color-rule);
 	border-top: 3px solid var(--color-rule-strong);
+}
+
+/* The cap carries the band. The word and the count are always beside it, so
+   the colour is a second reading of something already said rather than the
+   only thing saying it. */
+.metric[data-band='high'] {
+	border-top-color: var(--band-high);
+}
+.metric[data-band='medium'] {
+	border-top-color: var(--band-medium);
+}
+.metric[data-band='low'] {
+	border-top-color: var(--band-low);
 }
 
 .metric__value {
@@ -1582,27 +1998,22 @@ body {
 /* The dock floats on a fade rather than sitting behind a hard rule, so the list
    passes under it instead of stopping at it. */
 .dock {
-	background: linear-gradient(180deg, transparent 0%, var(--color-bg) 45%);
-	border-top: 0;
-	box-shadow: none;
-	padding-block: var(--space-2) var(--space-3);
+	background: linear-gradient(180deg, transparent 0%, var(--color-bg) 55%);
 }
 
-.dock__inner {
-	padding: var(--space-3) var(--space-4);
-	background: var(--color-surface-raised);
-	border: 1px solid var(--color-rule);
-	border-radius: var(--radius-lg);
-	box-shadow: var(--shadow-lg);
-}
+/* --- Motion ------------------------------------------------------------- */
 
-.waveform {
-	height: 52px;
-	margin-bottom: var(--space-1);
-}
-
-/* Stop is not pause. Pause keeps a position a listener may not want kept, and
-   with auto-advance on there was no way to leave the dock silent at all. */
-.dock__stop {
-	font-size: var(--text-xs);
+/* A score fill that springs is feedback; a score fill that springs when a
+   reader has asked for no motion is an obstacle. d3 reads this flag and
+   transitions at zero duration, so the value still lands - it simply arrives
+   rather than travelling. */
+@media (prefers-reduced-motion: reduce) {
+	*,
+	*::before,
+	*::after {
+		animation-duration: 0.01ms !important;
+		animation-iteration-count: 1 !important;
+		transition-duration: 0.01ms !important;
+		scroll-behavior: auto !important;
+	}
 }

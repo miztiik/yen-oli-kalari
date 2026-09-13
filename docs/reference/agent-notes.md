@@ -1,6 +1,6 @@
 # Agent Notes
 
-**Last Updated**: 2026-09-11
+**Last Updated**: 2026-09-14
 
 Environment and tool traps that make a command lie about its result in this
 repository, on this machine. Each entry names the false result, its cause, and
@@ -53,6 +53,48 @@ lives under the old-style path. To build a file URL from wherever you are:
 ```powershell
 ([Uri]((Resolve-Path .).Path)).AbsoluteUri
 ```
+
+## The 260-character path limit, which the model loader hits first
+
+**A deep checkout cannot load an ONNX model on Windows, and the error names the
+wrong cause.** `onnxruntime-node` opens the weights through a native call that
+is still bound by the classic 260-character `MAX_PATH`, and the cache path it
+opens is long before the repository contributes anything:
+
+```
+node_modules/kokoro-js/node_modules/@huggingface/transformers/.cache/
+  onnx-community/Kokoro-82M-v1.0-ONNX/onnx/model.onnx
+```
+
+That is about 120 characters on its own. Any checkout deeper than roughly 140
+characters fails, and it fails as:
+
+```
+Error: Load model from <path> failed:Load model <path> failed. File doesn't exist
+```
+
+The file does exist. Verified 2026-09-14 from a worktree under
+`...\OneDrive - Microsoft\Documents\Microsoft Scout\yen-oli-kalari-worktrees\...`,
+where the model had downloaded correctly - 310 MB of `model.onnx` sitting on
+disk - and every one of three runs died on the same line.
+
+**A directory junction does not fix it.** Node resolves the real path before the
+native call, so `C:\short` pointing at the deep directory fails identically.
+
+What works: run the harness from a genuinely short real path. Mirror the tree,
+install there, and copy `results/` back:
+
+```powershell
+robocopy <checkout> C:\yokrun /E /XD node_modules .git results
+cd C:\yokrun\test\voice-evaluation
+npm install --no-audit --no-fund
+node benchmark-model.mjs
+robocopy C:\yokrun\test\voice-evaluation\results <checkout>\test\voice-evaluation\results /E
+```
+
+Seed `C:\yokrun\...\.cache` from the deep checkout's copy first and the 310 MB
+download is not paid twice. None of this applies in CI, where the runner's
+workspace path is short.
 
 ## PowerShell
 

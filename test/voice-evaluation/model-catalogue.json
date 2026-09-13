@@ -1,60 +1,250 @@
 {
-  "note": "What is known about each model from its card and licence, separate from what this project measured. A row here is a claim with a source; a figure in results/ is a measurement with a host. Keeping them apart is what stops a vendor's number being read as ours.",
-  "schemaVersion": "2026-09-13",
+  "note": "What is known about each model from its card and its licence, separate from what this project measured. A row here is a claim with a source; a figure in results/ is a measurement with a host. Keeping them apart is what stops a vendor's number being read as ours. Shape is fixed by model-catalogue.schema.json. Rows are keyed by Hugging Face repository id, which is what a run manifest carries as `modelId` - three runs of one model at two voices and two quantisations share one row here. A field nobody has a source for is written `null` on purpose: the page prints `not recorded` for a null and would print nothing at all for a missing key, and those are different facts.",
+  "schemaVersion": "2026-09-14",
   "models": {
-    "kokoro-82m-v1-0-onnx": {
+    "onnx-community/Kokoro-82M-v1.0-ONNX": {
       "name": "Kokoro-82M",
       "params": "82M",
+      "sizeGb": null,
       "architecture": "feed-forward",
       "architectureNote": "StyleTTS2 + ISTFTNet. One pass produces the whole utterance, so nothing is sequential across the audio.",
       "licence": "Apache-2.0",
       "commercialUse": true,
-      "card": "https://huggingface.co/hexgrad/Kokoro-82M",
-      "onnx": "https://huggingface.co/onnx-community/Kokoro-82M-v1.0-ONNX",
+      "languages": null,
+      "accent": "en-GB",
+      "accentKnown": true,
+      "voices": ["bm_george", "bm_lewis", "bf_emma", "bf_alice"],
+      "sampleRateHz": null,
+      "releasedOn": null,
       "arenaElo": 1477,
       "arenaRank": 30,
       "arenaNote": "TTS Arena V2, read 2026-09-12. Highest-rated model on the board flagged open.",
-      "incumbent": true
+      "incumbent": true,
+      "warning": null,
+      "links": {
+        "card": { "url": "https://huggingface.co/hexgrad/Kokoro-82M", "label": "Model card" },
+        "onnx": { "url": "https://huggingface.co/onnx-community/Kokoro-82M-v1.0-ONNX", "label": "ONNX weights" }
+      }
     },
-    "kitten-tts-nano-0-8": {
+
+    "onnx-community/KittenTTS-Nano-v0.8-ONNX": {
       "name": "KittenTTS nano 0.8",
       "params": "15M",
+      "sizeGb": 0.06,
       "architecture": "feed-forward",
       "architectureNote": "StyleTTS2 + ISTFTNet + mini-ALBERT - the same family as the incumbent, at a fifth the size.",
       "licence": "Apache-2.0",
       "commercialUse": true,
-      "card": "https://huggingface.co/KittenML/kitten-tts-nano-0.8",
-      "onnx": "https://huggingface.co/onnx-community/KittenTTS-Nano-v0.8-ONNX",
+      "languages": null,
+      "accent": "en-US",
+      "accentKnown": false,
+      "voices": null,
+      "sampleRateHz": null,
+      "releasedOn": null,
       "arenaElo": null,
       "arenaRank": null,
       "arenaNote": "Not in TTS Arena V2. Won a blind listening test against the compact field at 71.2 percent.",
-      "warning": "Do not use the int8 build - upstream reports open issues, and an independent port measured altered durations."
+      "incumbent": false,
+      "warning": "Do not use the int8 build - upstream reports open issues, and an independent port measured altered durations. The fp32 build will not load under kokoro-js either: the repository ships kitten_config.json and voices.npz but no tokenizer.json, which kokoro-js fetches unconditionally. Verified 2026-09-13.",
+      "links": {
+        "card": { "url": "https://huggingface.co/KittenML/kitten-tts-nano-0.8", "label": "Model card" },
+        "onnx": { "url": "https://huggingface.co/onnx-community/KittenTTS-Nano-v0.8-ONNX", "label": "ONNX weights" }
+      }
     },
-    "chatterbox": {
-      "name": "Chatterbox",
+
+    "onnx-community/KittenTTS-Mini-v0.8-ONNX": {
+      "name": "KittenTTS mini 0.8",
+      "params": "80M",
+      "sizeGb": 0.08,
+      "architecture": "feed-forward",
+      "architectureNote": "StyleTTS2 + ISTFTNet + mini-ALBERT, the larger of the two KittenTTS builds.",
+      "licence": "Apache-2.0",
+      "commercialUse": true,
+      "languages": null,
+      "accent": "en-US",
+      "accentKnown": false,
+      "voices": null,
+      "sampleRateHz": null,
+      "releasedOn": null,
+      "arenaElo": null,
+      "arenaRank": null,
+      "arenaNote": null,
+      "incumbent": false,
+      "warning": "Blocked for the same reason as the nano build: no tokenizer.json in the repository, so kokoro-js cannot load it. Verified 2026-09-13.",
+      "links": {
+        "onnx": { "url": "https://huggingface.co/onnx-community/KittenTTS-Mini-v0.8-ONNX", "label": "ONNX weights" }
+      }
+    },
+
+    "onnx-community/chatterbox-multilingual-ONNX": {
+      "name": "Chatterbox multilingual",
       "params": "0.5B",
+      "sizeGb": 4.64,
       "architecture": "autoregressive",
-      "architectureNote": "Llama backbone plus S3Gen flow decoder. One forward pass per audio frame, which is what makes an AR model slow on a CPU.",
+      "architectureNote": "Llama backbone plus S3Gen flow decoder. One forward pass per audio frame, which is what makes an autoregressive model slow on a processor with no graphics card.",
       "licence": "MIT",
       "commercialUse": true,
-      "card": "https://huggingface.co/ResembleAI/chatterbox",
-      "onnx": null,
+      "languages": null,
+      "accent": "en-US",
+      "accentKnown": false,
+      "voices": ["default_voice"],
+      "sampleRateHz": 24000,
+      "releasedOn": null,
       "arenaElo": 1480,
       "arenaRank": 28,
-      "arenaNote": "TTS Arena V2, read 2026-09-12. Ranks ABOVE the incumbent, and the licence is more permissive."
+      "arenaNote": "TTS Arena V2, read 2026-09-12. Ranks ABOVE the incumbent, and the licence is more permissive.",
+      "incumbent": false,
+      "warning": "Watermarking is off for a measurement and would have to be on for anything published.",
+      "links": {
+        "card": { "url": "https://huggingface.co/ResembleAI/chatterbox", "label": "Model card" },
+        "onnx": { "url": "https://huggingface.co/onnx-community/chatterbox-multilingual-ONNX", "label": "ONNX weights" }
+      }
     },
-    "inflect-micro-v2": {
+
+    "onnx-community/Supertonic-TTS-ONNX": {
+      "name": "Supertonic TTS",
+      "params": "~99M",
+      "sizeGb": 0.25,
+      "architecture": "feed-forward",
+      "architectureNote": null,
+      "licence": "OpenRAIL-M",
+      "commercialUse": false,
+      "languages": null,
+      "accent": null,
+      "accentKnown": false,
+      "voices": ["F1", "F2", "F3", "F4", "F5", "M1", "M2", "M3", "M4", "M5"],
+      "sampleRateHz": 44100,
+      "releasedOn": null,
+      "arenaElo": null,
+      "arenaRank": null,
+      "arenaNote": null,
+      "incumbent": false,
+      "warning": "The voices carry no accent labels, so an accent here can only be judged by ear and must never be printed as a fact about the model. The upstream source repository is archived.",
+      "links": {
+        "onnx": { "url": "https://huggingface.co/onnx-community/Supertonic-TTS-ONNX", "label": "ONNX weights" }
+      }
+    },
+
+    "Xenova/mms-tts-eng": {
+      "name": "MMS-TTS English",
+      "params": "~36M",
+      "sizeGb": 0.15,
+      "architecture": "feed-forward",
+      "architectureNote": "VITS. It needs no speaker embedding, which is what makes it the control arm: if this one fails, the harness is the problem and not the model.",
+      "licence": "CC-BY-NC-4.0",
+      "commercialUse": false,
+      "languages": ["en"],
+      "accent": null,
+      "accentKnown": false,
+      "voices": ["default"],
+      "sampleRateHz": 16000,
+      "releasedOn": null,
+      "arenaElo": null,
+      "arenaRank": null,
+      "arenaNote": null,
+      "incumbent": false,
+      "warning": "Non-commercial licence, so it could never ship. It is on the page as a control, not as a candidate.",
+      "links": {
+        "card": { "url": "https://huggingface.co/facebook/mms-tts-eng", "label": "Model card" },
+        "onnx": { "url": "https://huggingface.co/Xenova/mms-tts-eng", "label": "ONNX weights" }
+      }
+    },
+
+    "owensong/Inflect-Micro-v2-ONNX": {
       "name": "Inflect-Micro-v2",
       "params": "9.36M",
+      "sizeGb": null,
       "architecture": "feed-forward",
       "architectureNote": "VITS.",
       "licence": "Apache-2.0",
       "commercialUse": true,
-      "card": "https://huggingface.co/owensong/Inflect-Micro-v2",
-      "onnx": "https://huggingface.co/owensong/Inflect-Micro-v2-ONNX",
+      "languages": null,
+      "accent": null,
+      "accentKnown": false,
+      "voices": null,
+      "sampleRateHz": null,
+      "releasedOn": null,
       "arenaElo": null,
       "arenaRank": null,
-      "arenaNote": "Not in TTS Arena V2. Highest UTMOS22 of the compact set in its own published benchmark."
+      "arenaNote": "Not in TTS Arena V2. Highest UTMOS22 of the compact set in its own published benchmark, which is the author's measurement rather than ours.",
+      "incumbent": false,
+      "warning": null,
+      "links": {
+        "card": { "url": "https://huggingface.co/owensong/Inflect-Micro-v2", "label": "Model card" },
+        "onnx": { "url": "https://huggingface.co/owensong/Inflect-Micro-v2-ONNX", "label": "ONNX weights" }
+      }
+    },
+
+    "onnx-community/Qwen3-TTS-12Hz-0.6B-Base": {
+      "name": "Qwen3-TTS 0.6B",
+      "params": "0.6B",
+      "sizeGb": 1.5,
+      "architecture": "autoregressive",
+      "architectureNote": "Several ONNX graphs - text embedding, talker, audio encoder, waveform decoder - driven by a generation loop, so it needs its own runner rather than a one-call adapter.",
+      "licence": "Apache-2.0",
+      "commercialUse": true,
+      "languages": null,
+      "accent": null,
+      "accentKnown": false,
+      "voices": null,
+      "sampleRateHz": null,
+      "releasedOn": null,
+      "arenaElo": null,
+      "arenaRank": null,
+      "arenaNote": null,
+      "incumbent": false,
+      "warning": "Runtime not wired. The most plausible autoregressive candidate on size alone: against the runner's measured 23.7 GB a second, 1.5 GB of weights is roughly 16 backbone steps a second against a 12.5 Hz frame rate.",
+      "links": {
+        "onnx": { "url": "https://huggingface.co/onnx-community/Qwen3-TTS-12Hz-0.6B-Base", "label": "ONNX weights" }
+      }
+    },
+
+    "onnx-community/Qwen3-TTS-12Hz-1.7B-Base": {
+      "name": "Qwen3-TTS 1.7B",
+      "params": "1.7B",
+      "sizeGb": 3.4,
+      "architecture": "autoregressive",
+      "architectureNote": "The larger sibling of the 0.6B build, on the same multi-graph generation loop.",
+      "licence": "Apache-2.0",
+      "commercialUse": true,
+      "languages": null,
+      "accent": null,
+      "accentKnown": false,
+      "voices": null,
+      "sampleRateHz": null,
+      "releasedOn": null,
+      "arenaElo": null,
+      "arenaRank": null,
+      "arenaNote": null,
+      "incumbent": false,
+      "warning": "Runtime not wired.",
+      "links": {
+        "onnx": { "url": "https://huggingface.co/onnx-community/Qwen3-TTS-12Hz-1.7B-Base", "label": "ONNX weights" }
+      }
+    },
+
+    "onnx-community/higgs-audio-v3-tts-4b": {
+      "name": "Higgs Audio v3 TTS",
+      "params": "4B",
+      "sizeGb": 3.59,
+      "architecture": "autoregressive",
+      "architectureNote": "Multi-graph, on the same generation loop as the Qwen3 builds.",
+      "licence": "Boson research and non-commercial",
+      "commercialUse": false,
+      "languages": null,
+      "accent": null,
+      "accentKnown": false,
+      "voices": null,
+      "sampleRateHz": null,
+      "releasedOn": null,
+      "arenaElo": null,
+      "arenaRank": null,
+      "arenaNote": null,
+      "incumbent": false,
+      "warning": "Runtime not wired, AND the licence is non-commercial, so it could never ship. The repository totals 57 GB because it carries six variants; the processor-only 4-bit one is 3.59 GB.",
+      "links": {
+        "onnx": { "url": "https://huggingface.co/onnx-community/higgs-audio-v3-tts-4b", "label": "ONNX weights" }
+      }
     }
   }
 }

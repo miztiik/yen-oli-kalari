@@ -6,6 +6,8 @@
   "scripts": {
     "build-clips": "node build-evaluation-clips.mjs && node build-page-index.mjs",
     "build-page": "node build-page-index.mjs",
+    "build-fixture-run": "node build-fixture-run.mjs",
+    "vendor-d3": "node vendor-d3.mjs",
     "benchmark": "node benchmark-model.mjs",
     "run-config": "node run-config.mjs",
     "serve": "node serve.mjs"
@@ -13,5 +15,17 @@
   "dependencies": {
     "@huggingface/transformers": "^4.2.0",
     "kokoro-js": "^1.2.1"
+  },
+  "devDependencies": {
+    "d3-array": "^3.2.4",
+    "d3-axis": "^3.0.0",
+    "d3-drag": "^3.0.0",
+    "d3-ease": "^3.0.1",
+    "d3-format": "^3.1.2",
+    "d3-scale": "^4.0.2",
+    "d3-selection": "^3.0.0",
+    "d3-shape": "^3.2.0",
+    "d3-transition": "^3.0.1",
+    "esbuild": "^0.28.2"
   }
 }

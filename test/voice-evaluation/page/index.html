@@ -8,6 +8,21 @@
 		<link rel="stylesheet" href="styles.css" />
 	</head>
 	<body>
+		<!-- The icon set, defined once and referenced by <use>. Small marks drawn
+		     on one grid at one stroke weight, rather than the arrowhead
+		     characters this replaced - a text glyph is whatever the reader's
+		     font decides it is, which on Windows was a set of black blocks. -->
+		<svg class="icon-set" aria-hidden="true" focusable="false">
+			<symbol id="i-prev" viewBox="0 0 24 24"><path d="M19 5v14L8.5 12 19 5z"/><rect x="4" y="5" width="2.2" height="14" rx="1.1"/></symbol>
+			<symbol id="i-next" viewBox="0 0 24 24"><path d="M5 5v14L15.5 12 5 5z"/><rect x="17.8" y="5" width="2.2" height="14" rx="1.1"/></symbol>
+			<symbol id="i-play" viewBox="0 0 24 24"><path d="M8 5.2v13.6L19 12 8 5.2z"/></symbol>
+			<symbol id="i-pause" viewBox="0 0 24 24"><rect x="6.5" y="5" width="3.6" height="14" rx="1.4"/><rect x="13.9" y="5" width="3.6" height="14" rx="1.4"/></symbol>
+			<symbol id="i-clear" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 11a9 9 0 1 1 2.6 6.4"/><path d="M3 5.5V11h5.5"/></symbol>
+			<symbol id="i-flag" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 21V4"/><path d="M5 4.5h11l-2.2 4L16 13H5z"/></symbol>
+			<symbol id="i-volume" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 9.5h3.5L12 5.5v13L7.5 14.5H4z" fill="currentColor" stroke="none"/><path d="M15.5 9.2a4 4 0 0 1 0 5.6"/><path d="M18.2 6.5a7.8 7.8 0 0 1 0 11"/></symbol>
+			<symbol id="i-muted" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 9.5h3.5L12 5.5v13L7.5 14.5H4z" fill="currentColor" stroke="none"/><path d="M16 9.5l5 5"/><path d="M21 9.5l-5 5"/></symbol>
+		</svg>
+
 		<header class="masthead">
 			<div class="frame">
 				<h1 class="wordmark">Voice evaluation</h1>
@@ -25,12 +40,29 @@
 		</header>
 
 		<div class="frame layout">
-			<!-- Model panel: every run measured, newest and incumbent first. -->
-			<aside class="panel-models" aria-label="Models measured">
-				<h2 class="panel-models__title">Models</h2>
-				<div id="model-list"></div>
+			<!-- The run being judged: one picker, then everything known about
+			     what it picked. A stack of cards, one per run, was a column of
+			     sixty text fragments that grew by nine lines with every model
+			     added. -->
+			<aside class="panel-models" aria-label="The run being judged">
+				<h2 class="panel-models__title">Run</h2>
+
+				<label class="field__label" for="run-pick">Model, voice and configuration</label>
+				<select class="run-pick" id="run-pick"></select>
+				<p class="run-pick__rank" id="run-rank"></p>
+
+				<!-- How far through this run the listener is. The one thing in
+				     this panel the eye should land on. -->
+				<div class="run-progress" id="run-progress"></div>
+
+				<!-- Every field below is drawn from the payload. A field the run
+				     does not carry says so rather than vanishing, because a row
+				     that disappears makes "unknown" and "absent" look alike. -->
+				<div class="spec" id="run-spec"></div>
+
 				<p class="panel-models__note">
-					A run is one model at one quantisation. Nothing is overwritten, so two can be compared.
+					A run is one model at one configuration. Nothing is overwritten, so two can be compared
+					&mdash; side by side on <b>A/B</b>, and bar against bar on <b>Charts</b>.
 				</p>
 			</aside>
 
@@ -53,7 +85,6 @@
 				<!-- ------------------------------------------------------------ -->
 				<section class="panel" role="tabpanel" id="panel-listen" aria-labelledby="tab-listen">
 					<p class="host-note" id="host-note"></p>
-					<div class="readouts" id="run-readout"></div>
 					<div class="metrics" id="verdict-metrics"></div>
 					<ul class="clip-list" id="clip-list"></ul>
 
@@ -156,6 +187,17 @@
 						</tbody>
 					</table>
 
+					<h2>A score has five steps, and no score is not a zero</h2>
+					<p>
+						Each score is a rail with five stops. Click a stop, click anywhere on the rail to jump
+						to the nearest one, drag the handle, or press <kbd>1</kbd> to <kbd>5</kbd> with the rail
+						focused. <strong>A rail with no handle has not been scored</strong> &mdash; it reads
+						"unrated" and counts as nothing, which is a different fact from a 1. The rail was
+						chosen over five numbered boxes because the fill says at a glance how a clip did; the
+						five stops were kept because a listener working through twenty-four clips needs to set
+						an exact value in one action, and a free-moving handle cannot be.
+					</p>
+
 					<h2>Follow-the-text is exact between chunks and interpolated within one</h2>
 					<p>
 						Each chunk is its own inference call, so where it begins in the finished clip is known
@@ -179,32 +221,83 @@
 		</div>
 
 		<!-- One docked player, shared. A median day is 370 rows; a player per row
-		     is a wall of media elements nobody can use. -->
-		<div class="dock">
-			<div class="frame dock__inner">
-				<div class="dock__head">
-					<button id="prev" type="button" aria-label="Previous clip" disabled>&#9664;&#9664;</button>
-					<button id="toggle" type="button" aria-label="Play or pause" disabled>&#9654;</button>
-					<button id="next" type="button" aria-label="Next clip" disabled>&#9654;&#9654;</button>
-					<button id="stop" class="dock__stop" type="button" aria-label="Stop and clear the player" disabled>&#9632;</button>
+		     is a wall of media elements nobody can use.
+
+		     It is a raised card bounded by the reading frame at every width, not
+		     a full-bleed strip glued to the viewport edge - ui-shell.md says so,
+		     and below 1200px the page used to do the opposite.
+
+		     ONE SEEK SURFACE, never two. ProgressTrack has two renders and
+		     exactly one is on screen: the waveform when the payload carries a
+		     peak array, the plain groove when it does not. Stacking a canvas
+		     above a groove gave a listener two things to click for one job. -->
+		<div class="dock" id="dock" data-playing="false">
+			<div class="dock__inner">
+				<div class="dock__now">
 					<span class="dock__title" id="dock-title" data-idle="true">Nothing playing</span>
 					<span class="dock__slow" id="dock-slow" hidden>Fetching audio&hellip;</span>
-					<label class="dock__advance"><input type="checkbox" id="auto-advance" checked /> Auto-advance</label>
-					<button id="mark" type="button" title="Mark a defect at the current position" disabled>&#9873;</button>
+					<span class="dock__failed" id="dock-failed" hidden>
+						This clip did not load.
+						<button class="dock__retry" id="retry" type="button">Retry</button>
+					</span>
 				</div>
-				<canvas class="waveform" id="waveform" height="48" aria-hidden="true"></canvas>
-				<div class="track" id="track" role="slider" tabindex="0" aria-label="Seek"
-					aria-valuemin="0" aria-valuemax="100" aria-valuenow="0">
-					<div class="track__buffered" id="track-buffered"></div>
-					<div class="track__elapsed" id="track-elapsed"></div>
+
+				<div class="seek" id="seek" role="slider" tabindex="0" aria-label="Seek"
+					aria-valuemin="0" aria-valuemax="100" aria-valuenow="0" aria-valuetext="0:00">
+					<canvas class="waveform" id="waveform" height="56" aria-hidden="true" hidden></canvas>
+					<div class="track" id="track">
+						<div class="track__buffered" id="track-buffered"></div>
+						<div class="track__elapsed" id="track-elapsed"></div>
+						<span class="track__head" id="track-head"></span>
+					</div>
 				</div>
-				<div class="dock__times"><span id="time-now">0:00</span><span id="time-total">0:00</span></div>
+				<div class="dock__times">
+					<span id="time-now">0:00</span>
+					<span id="time-total">0:00</span>
+				</div>
+
+				<div class="dock__controls">
+					<div class="dock__side">
+						<button class="dock__icon" id="mute" type="button" aria-label="Mute" aria-pressed="false">
+							<svg class="icon" aria-hidden="true"><use href="#i-volume"></use></svg>
+						</button>
+						<input class="dock__volume" id="volume" type="range" min="0" max="1" step="0.05" value="1" aria-label="Volume" />
+						<button class="dock__pill" id="speed" type="button" aria-label="Playback speed">1x</button>
+					</div>
+
+					<div class="dock__transport">
+						<button class="dock__icon" id="prev" type="button" aria-label="Previous clip" disabled>
+							<svg class="icon" aria-hidden="true"><use href="#i-prev"></use></svg>
+						</button>
+						<button class="dock__play" id="toggle" type="button" aria-label="Play" disabled>
+							<svg class="icon" aria-hidden="true"><use href="#i-play" id="toggle-glyph"></use></svg>
+						</button>
+						<button class="dock__icon" id="next" type="button" aria-label="Next clip" disabled>
+							<svg class="icon" aria-hidden="true"><use href="#i-next"></use></svg>
+						</button>
+					</div>
+
+					<div class="dock__side dock__side--end">
+						<button class="dock__icon" id="mark" type="button" aria-label="Mark a defect at this position" disabled>
+							<svg class="icon" aria-hidden="true"><use href="#i-flag"></use></svg>
+						</button>
+						<button class="dock__icon" id="stop" type="button" aria-label="Clear the player" disabled>
+							<svg class="icon" aria-hidden="true"><use href="#i-clear"></use></svg>
+						</button>
+						<label class="dock__advance"><input type="checkbox" id="auto-advance" checked /> Auto-advance</label>
+					</div>
+				</div>
 			</div>
 		</div>
 
 		<audio id="audio" preload="none"></audio>
 		<audio id="audio-b" preload="none"></audio>
 
+		<!-- d3, trimmed to the nine modules this page uses and committed rather
+		     than fetched: nothing on this site calls a third party at runtime
+		     (Guardrail #1), and the page must open from a file path. What it
+		     weighs is measured into page/vendor/d3-micro.json by vendor-d3.mjs. -->
+		<script src="vendor/d3-micro.js"></script>
 		<script src="store.js"></script>
 		<script src="app.js"></script>
 	</body>

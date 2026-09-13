@@ -18,15 +18,20 @@
  * Usage:
  *   node build-page-index.mjs
  *   CLIP_BASE=./results/ CLIP_EXTENSION=.ogg node build-page-index.mjs
+ *   RESULTS_DIR=/tmp/run INDEX_PATH=/tmp/index.json node build-page-index.mjs
  */
 
 import { readFileSync, writeFileSync, existsSync, readdirSync, statSync } from "node:fs";
 import { fileURLToPath } from "node:url";
 import { join } from "node:path";
 
-const RESULTS_DIR = fileURLToPath(new URL("./results/", import.meta.url));
+const RESULTS_DIR = process.env.RESULTS_DIR
+  ? `${process.env.RESULTS_DIR.replace(/[\\/]?$/, "/")}`
+  : fileURLToPath(new URL("./results/", import.meta.url));
 const CATALOGUE_PATH = fileURLToPath(new URL("./model-catalogue.json", import.meta.url));
-const OUTPUT_PATH = fileURLToPath(new URL("./page/index.json", import.meta.url));
+const OUTPUT_PATH = process.env.INDEX_PATH
+  ? process.env.INDEX_PATH
+  : fileURLToPath(new URL("./page/index.json", import.meta.url));
 
 /* Where the page looks for audio and manifests, and what the clips are called
    there. Locally they sit in results/<model>/; the published site flattens and
@@ -42,6 +47,17 @@ if (!existsSync(RESULTS_DIR)) {
 const catalogue = existsSync(CATALOGUE_PATH)
   ? JSON.parse(readFileSync(CATALOGUE_PATH, "utf8")).models
   : {};
+
+/* THE CATALOGUE IS KEYED BY HUGGING FACE REPOSITORY ID, not by the results
+   directory name. The directory is named for a RUN (`kokoro-fp32-uk`), and a
+   run is a model at a voice at a quantisation; the catalogue describes the
+   MODEL, so three of those runs share one row. Joining on the directory name
+   was the original bug and it failed silently - every lookup missed, so the
+   licence, the architecture note and both source URLs resolved to undefined and
+   the page drew nothing where they should have been. */
+function catalogued(manifest, modelSlug) {
+  return catalogue[manifest.modelId] ?? catalogue[modelSlug] ?? {};
+}
 
 function directories(path) {
   return readdirSync(path).filter((name) => statSync(join(path, name)).isDirectory());
@@ -59,6 +75,7 @@ for (const directoryName of directories(RESULTS_DIR)) {
   const manifest = JSON.parse(readFileSync(manifestPath, "utf8"));
   const gradesPath = join(RESULTS_DIR, directoryName, "verbalization-grades.json");
   const grades = existsSync(gradesPath) ? JSON.parse(readFileSync(gradesPath, "utf8")) : null;
+  const known = catalogued(manifest, modelSlug);
 
   /* The index carries only what the model panel needs to draw a card and rank
      the runs. Everything per-clip stays in the manifest the page fetches on
@@ -88,20 +105,24 @@ for (const directoryName of directories(RESULTS_DIR)) {
           incompleteBecause: manifest.shard.incompleteBecause ?? null,
         }
       : null,
-    name: manifest.name ?? catalogue[modelSlug]?.name ?? modelSlug,
+    /* `?? null` on every field the catalogue can fill, rather than letting
+       JSON.stringify drop an undefined key. The page prints "not recorded" for
+       a null and cannot tell a missing key from a field nobody has drawn yet,
+       so an explicit null is what makes the empty state honest. */
+    name: manifest.name ?? known.name ?? modelSlug,
     modelId: manifest.modelId,
     quantisation: manifest.quantisation,
     runtime: manifest.runtime,
     voice: manifest.voice,
-    accent: manifest.accent ?? catalogue[modelSlug]?.accent,
-    accentKnown: manifest.accentKnown ?? catalogue[modelSlug]?.accentKnown,
-    params: manifest.params ?? catalogue[modelSlug]?.params,
-    architecture: manifest.architecture ?? catalogue[modelSlug]?.architecture,
-    licence: manifest.licence ?? catalogue[modelSlug]?.licence,
-    commercialUse: manifest.commercialUse ?? catalogue[modelSlug]?.commercialUse,
-    arenaElo: catalogue[modelSlug]?.arenaElo ?? null,
-    incumbent: Boolean(catalogue[modelSlug]?.incumbent),
-    sizeGb: manifest.sizeGb ?? catalogue[modelSlug]?.sizeGb,
+    accent: manifest.accent ?? known.accent ?? null,
+    accentKnown: manifest.accentKnown ?? known.accentKnown ?? null,
+    params: manifest.params ?? known.params ?? null,
+    architecture: manifest.architecture ?? known.architecture ?? null,
+    licence: manifest.licence ?? known.licence ?? null,
+    commercialUse: manifest.commercialUse ?? known.commercialUse ?? null,
+    arenaElo: known.arenaElo ?? null,
+    incumbent: Boolean(known.incumbent),
+    sizeGb: manifest.sizeGb ?? known.sizeGb ?? null,
     host: manifest.host,
     peakMemoryMb: manifest.peakMemoryMb,
     modelLoadMs: manifest.modelLoadMs,
@@ -137,8 +158,20 @@ runs.sort((a, b) => {
 });
 
 const index = {
-  schemaVersion: "2026-09-13",
+  schemaVersion: "2026-09-14",
   generatedAt: new Date().toISOString(),
+  /* THE CATALOGUE TRAVELS WITH THE INDEX. `app.js` has always merged what a run
+     says about itself over what the catalogue claims, but the index never
+     carried a catalogue, so the merge ran against an empty object on every load
+     and the source URLs - the only route from a run back to the model's own
+     card - were never on screen. Only the rows for models that actually ran are
+     carried: the file holds ten and a page usually shows six, and a reader
+     should not pay for four models nobody voiced. */
+  catalogue: Object.fromEntries(
+    [...new Set(runs.map((run) => run.modelId))]
+      .filter((modelId) => catalogue[modelId])
+      .map((modelId) => [modelId, catalogue[modelId]]),
+  ),
   runs,
 };
 

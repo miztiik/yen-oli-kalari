@@ -1,6 +1,6 @@
 # Where the project stands
 
-**Last Updated**: 2026-09-13
+**Last Updated**: 2026-09-14
 
 What has been decided about the voice, what is still open, and the one thing to
 do next. **Verdicts only** - every figure lives in
@@ -72,6 +72,13 @@ verbalization suite and its ASR grader, the listening page published to Pages,
 the corpus builders, the sharded workflow, the budget calculator, and the
 documentation-map test. Full state in
 [`../reference/delivery-status.md`](../reference/delivery-status.md).
+
+The listening page was redesigned on 2026-09-14 and two silent payload failures
+went with it: **the model catalogue had never reached the browser**, because the
+page index did not carry one and the join was keyed on the results directory
+rather than on the model, so no source URL had ever been on screen. It now has a
+contract, [`../../test/voice-evaluation/model-catalogue.schema.json`](../../test/voice-evaluation/model-catalogue.schema.json),
+and a test that checks the delivery rather than only the shape.
 
 **Not built** - the pipeline itself. No stage of the daily loop exists in code:
 no read, no synthesise, no publish, no prune. The Listen and Console surfaces are

@@ -1,0 +1,145 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "https://github.com/miztiik/yen-oli-kalari/test/voice-evaluation/model-catalogue.schema.json",
+  "title": "Model catalogue",
+  "description": "WHAT IS KNOWN ABOUT A MODEL FROM ITS CARD AND ITS LICENCE, separate from what this project measured. A row here is a claim with a source; a figure in `results/` is a measurement with a host, and keeping the two apart is what stops a vendor's number being read as ours. The catalogue existed as a hand-written file with no contract, and that cost it twice. First, `build-page-index.mjs` copied seven of its fields onto each run and dropped the rest, so `card` and `onnx` - the only URLs in the project that say where a model came from - never reached the page; `app.js` looked them up in a `DATA.catalogue` the index never wrote, so the lookup returned an empty object on every load and no source URL has ever been on screen. Second, the join was keyed on the results directory name, which is a RUN id from `voices.config.json` (`kokoro-fp32-uk`), while the rows were keyed on a model slug (`kokoro-82m-v1-0-onnx`) - so even a delivered catalogue would have matched nothing. Both are the same failure: a payload nobody validated is a payload nobody notices is undelivered. This contract closes the model row and fixes the key to the Hugging Face repository id, which is the one identifier a run manifest already carries and the one that is genuinely a property of the MODEL rather than of a reading of it - three runs of Kokoro at two voices and two quantisations share exactly one catalogue row.",
+  "type": "object",
+  "required": ["schemaVersion", "models"],
+  "additionalProperties": false,
+  "changelog": [
+    {
+      "version": "2026-09-14",
+      "change": "First contract for the catalogue. Rekeyed the rows from a hand-made model slug to the Hugging Face repository id, closed the model row, moved `card` and `onnx` into a `links` map that carries a label with each URL, and added `releasedOn`, `voices`, `sampleRateHz` and `languages`.",
+      "why": "The left panel became a spec sheet that draws one row a fact, so a field with no name in a contract is a field that renders as a blank nobody can explain. The rekey is the load-bearing part: the old slugs matched no results directory, so the join silently produced nothing. The links became a map rather than two fixed keys because the next model will arrive with a paper, a demo or a source repository and none of those had a slot - a new link kind should cost one entry, not a schema change plus three render branches."
+    }
+  ],
+  "properties": {
+    "schemaVersion": {
+      "type": "string",
+      "description": "The date this shape was fixed. A reader that does not know this version refuses the file rather than guessing at it.",
+      "const": "2026-09-14"
+    },
+    "note": {
+      "type": "string",
+      "description": "What the file is for, in the file, so somebody opening it cold does not have to find this schema first."
+    },
+    "models": {
+      "type": "object",
+      "description": "KEYED BY HUGGING FACE REPOSITORY ID - `onnx-community/Kokoro-82M-v1.0-ONNX` - because that is the one identifier a run manifest already carries (`modelId`) and the one that names the MODEL rather than a reading of it. Keying on the results directory name was the original mistake: that name is a run id from `voices.config.json`, so `kokoro-fp32-uk`, `kokoro-fp32-uk-female` and `kokoro-q8-uk` would each have needed a duplicate row and the facts would have drifted apart the first time one was edited. A model with no row here is not an error: the page falls back to what the manifest itself carries, and the manifest is the better source anyway because the arm that ran wrote it.",
+      "propertyNames": { "pattern": "^[A-Za-z0-9][A-Za-z0-9._-]*/[A-Za-z0-9][A-Za-z0-9._-]*$" },
+      "additionalProperties": { "$ref": "#/definitions/model" }
+    }
+  },
+  "definitions": {
+    "model": {
+      "type": "object",
+      "description": "One model. CLOSED on purpose: the spec sheet renders a row for every field it knows about, and a field that is present in the data but absent from this list would render nowhere and be silently lost. Every property is optional and every one may be null - an honest `null` is what makes the page able to say 'not recorded' instead of hiding the row, which is the difference between unknown and absent.",
+      "additionalProperties": false,
+      "properties": {
+        "name": {
+          "type": "string",
+          "description": "What a person calls it. The slug is for machines."
+        },
+        "params": {
+          "type": ["string", "null"],
+          "description": "Parameter count as published, as a string with its unit - `82M`, `0.5B`. A string rather than a number because the cards publish it at different precisions and a parsed number would invent digits nobody measured."
+        },
+        "sizeGb": {
+          "type": ["number", "null"],
+          "minimum": 0,
+          "description": "Weights on disk for the REFERENCE variant named in `links.onnx`, which is a download the runner pays for on every cold job. Null wherever a repository ships several quantisations and no single figure is true of the model - the per-variant byte cost is a property of a run, so `voices.config.json` and the run manifest own it, and a number copied here would go stale the first time a variant was added."
+        },
+        "architecture": {
+          "type": ["string", "null"],
+          "enum": ["feed-forward", "autoregressive", "diffusion", null],
+          "description": "The property that decides whether a model can finish the corpus inside the 6 h job cap on 4 vCPU with no GPU. A feed-forward model produces the whole utterance in one pass; an autoregressive one runs a forward pass per audio frame, which is what makes it slow on a CPU. Constrained to a short list because it is used as a filter, and a free-text field would have produced three spellings of the same architecture by the fourth model."
+        },
+        "architectureNote": {
+          "type": ["string", "null"],
+          "description": "The one sentence that says what the architecture means for this model in particular - the blocks it is built from, and the consequence. Held apart from `architecture` so the enum can stay an enum."
+        },
+        "licence": {
+          "type": ["string", "null"],
+          "description": "The SPDX identifier from the model card. Named in British spelling to match the rest of this project's prose."
+        },
+        "commercialUse": {
+          "type": ["boolean", "null"],
+          "description": "Whether the licence permits use in a published product. This is a gate rather than a preference, which is why the page always prints the licence word beside the colour - a colour alone is one signal and a gate needs two."
+        },
+        "languages": {
+          "type": ["array", "null"],
+          "items": { "type": "string" },
+          "description": "BCP-47 tags the model card claims. The digest is English today, so this is a claim to check rather than a requirement to meet."
+        },
+        "accent": {
+          "type": ["string", "null"],
+          "description": "The accent of the default voice, where the card states one."
+        },
+        "accentKnown": {
+          "type": ["boolean", "null"],
+          "description": "Whether the accent above is stated by the card or inferred by listening. An inferred accent is a listener's opinion and must not be printed as a fact about the model."
+        },
+        "voices": {
+          "type": ["array", "null"],
+          "items": { "type": "string" },
+          "description": "The voice ids the model ships. A run picks one of these, and a reader comparing two runs of one model needs to know whether a difference they heard is the model or the voice."
+        },
+        "sampleRateHz": {
+          "type": ["integer", "null"],
+          "minimum": 1,
+          "description": "The rate the model emits at, which sets the ceiling on what the encoder can keep. Storage is the binding constraint on this project, so this is a cost input rather than a specification detail."
+        },
+        "releasedOn": {
+          "type": ["string", "null"],
+          "format": "date",
+          "description": "When the weights were published. A two-year-old model losing to a six-month-old one is a different finding from two contemporaries differing."
+        },
+        "arenaElo": {
+          "type": ["number", "null"],
+          "description": "TTS Arena V2 rating, which is a crowd's pairwise judgement and not ours. Null means the model is not on the board - never that it scored zero."
+        },
+        "arenaRank": {
+          "type": ["integer", "null"],
+          "minimum": 1,
+          "description": "Position on that board on the day it was read. A rank moves when other models are added, so it is only readable beside the date in `arenaNote`."
+        },
+        "arenaNote": {
+          "type": ["string", "null"],
+          "description": "The standing in words, WITH THE DATE IT WAS READ. A rating with no date is a number that was true once. Where a model is absent from the board this is where the substitute evidence goes, so the page is never left printing a bare 'not rated'."
+        },
+        "incumbent": {
+          "type": ["boolean", "null"],
+          "description": "Whether this is the voice the pipeline uses today. Exactly one model should carry it. The page sorts it forward so the page opens on something worth hearing, and every comparison is read against it."
+        },
+        "warning": {
+          "type": ["string", "null"],
+          "description": "A known trap in shipping these weights - a build that is broken upstream, a quantisation that alters durations. It is on the model rather than on a run because it is true before anybody runs anything, and it is the one field on this row that can stop a merge."
+        },
+        "links": {
+          "type": ["object", "null"],
+          "description": "WHERE THIS MODEL CAME FROM. A map rather than fixed keys, so a paper, a demo or a source repository costs one entry instead of a schema change and a new render branch. The page draws whatever is here, in the order given, and draws nothing where there is nothing - which is why the value carries its own label rather than the page holding a lookup table of link kinds.",
+          "propertyNames": { "pattern": "^[a-z][a-zA-Z0-9]*$" },
+          "additionalProperties": { "$ref": "#/definitions/link" }
+        }
+      }
+    },
+    "link": {
+      "type": "object",
+      "description": "One place a reader can go to check a claim on this row. HTTPS only: a link in a payload is an outbound URL, and the only safe answer to a scheme we did not expect is to refuse the file (Guardrail #11).",
+      "required": ["url", "label"],
+      "additionalProperties": false,
+      "properties": {
+        "url": {
+          "type": "string",
+          "format": "uri",
+          "pattern": "^https://",
+          "description": "The address. Never built from fetched text, never templated from a model id - it is authored here and copied verbatim."
+        },
+        "label": {
+          "type": "string",
+          "description": "What a reader sees and what they will get - `Model card`, `ONNX weights`, `Paper`. Never a bare hostname: 'huggingface.co' says where somebody once put a file, and 'Model card' says what the reader is about to open."
+        }
+      }
+    }
+  }
+}
