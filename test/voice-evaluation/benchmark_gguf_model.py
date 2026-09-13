@@ -128,11 +128,17 @@ def build_orpheus(spec: dict):
         # The item's text is DATA. It is tokenised as ordinary text with
         # special=False, so a summary containing "<|eot_id|>" is voiced rather
         # than obeyed - guardrail 11, at the one boundary where it bites.
-        body = backbone.tokenize(f"{voice}: {text}".encode("utf-8"), add_bos=False, special=False)
+        #
+        # add_bos=True MATTERS AND COST A RUN. The reference builds its prompt
+        # from a Hugging Face tokenizer call, which prepends Llama's BOS (128000)
+        # before the caller wraps it in 128259 / 128009,128260. Tokenising
+        # without it produced a sequence the model read as already finished: it
+        # emitted one end token and nothing else, three clips in a row.
+        body = backbone.tokenize(f"{voice}: {text}".encode("utf-8"), add_bos=True, special=False)
         prompt = [START_TOKEN] + body + END_TOKENS
 
         codes: list[int] = []
-        seen = 0
+        seen: list[int] = []
         backbone.reset()
         for token in backbone.generate(
             prompt,
@@ -140,9 +146,9 @@ def build_orpheus(spec: dict):
             top_p=top_p,
             repeat_penalty=repeat_penalty,
         ):
-            seen += 1
-            if seen > max_tokens or token in STOP_TOKENS:
+            if len(seen) >= max_tokens or token in STOP_TOKENS:
                 break
+            seen.append(token)
             # MEASURED 2026-09-14: ending the utterance at the first non-audio
             # token produced three empty clips. Orpheus emits a start-of-audio
             # marker and can emit stray text tokens, and the reference decoder
@@ -158,7 +164,9 @@ def build_orpheus(spec: dict):
 
         frames = len(codes) // CODES_A_FRAME
         if frames == 0:
-            print(f"    no audio codes from {seen} tokens", flush=True)
+            # Say what the model actually emitted. "No audio" is not a
+            # diagnosis; the first few token ids are.
+            print(f"    no codes from {len(seen)} tokens, first: {seen[:8]}", flush=True)
             return np.zeros(0, dtype=np.float32), sample_rate
 
         coarse, middle, fine = [], [], []
