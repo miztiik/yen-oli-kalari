@@ -281,6 +281,37 @@ def test_the_schema_refuses_an_unknown_knob(schema):
 
 # ----------------------------------------------- real manifests satisfy the contract
 
+def test_the_corpus_block_the_producer_writes_satisfies_the_contract(schema):
+    """Run the producer's corpus helper over the REAL corpus file.
+
+    This is the cheap version of a twenty-minute CI run. The defect it exists to
+    catch shipped once: the producer wrote `days: corpus.days` as an inline
+    literal, and `corpus.days` is a list of per-day records rather than a count,
+    so every manifest carried a nested array where the contract required an
+    integer. Nothing saw it until a real run had voiced the whole corpus.
+    """
+    if NODE is None:
+        pytest.skip("node is not on PATH")
+    printed = subprocess.run(
+        [
+            NODE,
+            "-e",
+            "Promise.all([import('./metrics.mjs'),import('node:fs')]).then(([m,fs])=>"
+            "console.log(JSON.stringify(m.corpusProvenance(JSON.parse("
+            "fs.readFileSync('../onnx-runtime-comparison/real-summaries/summaries.json','utf8'))))))",
+        ],
+        cwd=HARNESS, capture_output=True, text=True,
+    )
+    assert printed.returncode == 0, printed.stderr
+    block = json.loads(printed.stdout)
+
+    errors = list(jsonschema.Draft7Validator(schema["properties"]["corpus"]).iter_errors(block))
+    assert not errors, "\n".join(f"{list(e.absolute_path)}: {e.message}" for e in errors)
+    # And it is the count, not a copy of the per-day records.
+    assert isinstance(block["days"], int)
+    assert block["days"] >= 1
+
+
 def real_manifests():
     results = HARNESS / "results"
     if not results.is_dir():
