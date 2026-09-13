@@ -112,7 +112,18 @@ jobs:
           key: hf-${{ matrix.model }}-v2
           restore-keys: hf-
 
-      - run: npm ci --no-audit --no-fund
+      # Sharding multiplies this step by the shard count, so a whole model's
+      # readings can be lost to one transient socket timeout. onnxruntime-node's
+      # postinstall downloads a native binary, and 28 runners asking at once is
+      # a thundering herd: the first 4-shard run lost an arm to ETIMEDOUT here.
+      - name: Install the runtime
+        run: |
+          for attempt in 1 2 3; do
+            npm ci --no-audit --no-fund && exit 0
+            echo "npm ci failed (attempt ${attempt}/3), retrying in $((attempt * 15))s"
+            sleep $((attempt * 15))
+          done
+          exit 1
 
       - name: Record the runner
         run: |
