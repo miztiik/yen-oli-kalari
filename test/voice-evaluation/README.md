@@ -1,6 +1,6 @@
 # Voice evaluation
 
-**Last Updated**: 2026-09-12
+**Last Updated**: 2026-09-13
 
 Keeps the audio a voice model produced, beside the text it was made from, so a
 person can decide whether it is good enough to publish.
@@ -16,7 +16,7 @@ audible."* This harness is the other half.
 
 ```bash
 npm install
-npm run build-clips     # synthesises the corpus and writes the page manifest
+npm run build-clips     # synthesises the corpus and writes the page index
 ```
 
 Then open `page/index.html`. It needs no server: the manifest is emitted as a
@@ -45,6 +45,12 @@ MODEL_ID=onnx-community/Kokoro-82M-v1.0-ONNX VOICE=af_bella npm run build-clips
 `MODEL_ID`, `QUANTISATION`, `VOICE` and `MAX_WORDS_A_CHUNK` are all read from the
 environment. The manifest records whichever were used, so two evaluations of
 different voices can be told apart after the fact.
+
+That applies to `build-evaluation-clips.mjs`, which is the older
+listen-and-judge path. **The benchmark path is different and stricter**: it
+resolves its knobs through `run-config.mjs`, records all of them, and refuses to
+measure more than one model in a run. Use `benchmark-model.mjs` and the
+`benchmark one voice` workflow when the output is a figure rather than a clip.
 
 ## What the page asks
 
@@ -88,12 +94,44 @@ without a budget it cannot be compared against.
 
 | Path | What it is |
 | --- | --- |
+| `run-manifest.schema.json` | **The contract.** What a run manifest must contain, and why each field is there. Four producers write it; the collator, the page index and every benchmark record read it. |
+| `run-config.mjs` | The single resolver. The only thing that may turn environment knobs into a run configuration or derive a `configSlug`. Run it with no arguments to see what a configuration resolves to. |
+| `benchmark-model.mjs` | Voices the corpus and the verbalization suite on the node runtimes, and writes the manifest. |
+| `benchmark_genai_model.py` | The same for multi-graph autoregressive models that need a generation loop. Reads its configuration from the resolver rather than keeping a second copy of the rules. |
+| `merge-shards.mjs` | Puts the shards of ONE run back into one manifest. Refuses shards whose run ids differ. |
+| `collate-benchmarks.mjs` | Ranks what finished, says what did not, and refuses to draw the job-cap table for an unisolated reading. |
 | `build-evaluation-clips.mjs` | Synthesises one WAV a summary into `results/<model>/<quant>/`. Never overwrites another run. |
-| `build-page-data.mjs` | Scans every run and emits `page/data.js` for a page with no server. |
+| `build-page-index.mjs` | Writes the small index the page fetches at runtime, naming each run and where its manifest lives. |
 | `serve.mjs` | Static server with range support, for browser checks only. |
-| `evaluation-schema.json` | The shape a downloaded evaluation takes. |
+| `evaluation-schema.json` | The shape a downloaded listening evaluation takes. |
 | `page/` | The listening surface. No framework, no build step. |
 | `results/` | Generated audio and one manifest per run. Not committed. |
+
+## One model, one configuration, one run
+
+A benchmark figure is only comparable against another figure taken the same way,
+so a run measures **one model at one configuration** with nothing else voicing.
+The full reasoning, the knobs and how to tweak one at a time is in
+[`../../docs/how-to/benchmark-a-voice.md`](../../docs/how-to/benchmark-a-voice.md).
+
+The short version: every knob that changes a figure - chunk size, repeats,
+threads, item ceiling, shard count - is resolved by `run-config.mjs`, flattened
+into a `configSlug`, and written into the manifest as a `run` block:
+
+```
+kokoro-fp32-uk__c40-r1-t4-iall-s4
+```
+
+`run.config` is **closed** in the schema, so adding a knob without recording it
+fails the contract test rather than silently producing a number nobody can
+attribute. That is not hypothetical: the thread count was hardcoded in a
+workflow and the item ceiling existed on one arm only, so neither was recorded
+in any reading taken before the contract landed.
+
+```powershell
+# what does this configuration resolve to?
+$env:MODEL = "kokoro-fp32-uk"; $env:SHARDS = "4"; node run-config.mjs
+```
 
 ## It reuses the shell, it does not reinvent it
 
@@ -145,6 +183,15 @@ because it is the one place a seam can be heard.
 
 `.github/workflows/publish-listening-page.yml` voices the corpus on the runner,
 encodes the WAV to opus, and deploys to Pages. The clips are not committed - 24
-summaries is 42 MB of WAV per run - so the publish job has to make them, which
-turns it into a measurement: the runner voices the day, and the figures it
-produces are the only ones that may be compared against the job cap.
+summaries is 42 MB of WAV per run - so the publish job has to make them.
+
+**The publish is not a benchmark**, and its manifests say so. It voices every
+model in parallel on purpose, so the page builds in twenty minutes rather than
+two hours; that means each arm's wall clock carries the other arms' contention.
+Every manifest it writes is stamped `run.isolated: false` with the reason, and
+`collate-benchmarks.mjs` will not draw the job-cap table for such a reading.
+
+A comparable figure comes from `benchmark one voice`, which measures one model
+at one configuration with nothing else voicing. Both workflows hold the
+`voice-measurement` concurrency group, so a publish can never start while a
+benchmark is being timed.

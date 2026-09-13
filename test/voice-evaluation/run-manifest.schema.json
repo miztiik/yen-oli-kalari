@@ -1,0 +1,323 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "https://github.com/miztiik/yen-oli-kalari/test/voice-evaluation/run-manifest.schema.json",
+  "title": "Benchmark run manifest",
+  "description": "ONE model, at ONE configuration, measured on the runner. This is the contract four producers and three consumers agree on: the node arm, the python arm, the shard merger and the publish job write it; the collator, the page index and the benchmark records read it. Before this schema existed the agreement was implicit, and it had already drifted - `maxWordsAChunk` was recorded at the top level, `repeats` was buried inside `shard`, and the two knobs that most changed a reading, inference thread count and the item cap, were recorded NOWHERE. A run whose configuration is not written down cannot be compared with another run, which makes it not a benchmark but an anecdote. The rule this schema enforces: every knob that changes a figure is named in `run.config`, and `run.config` is closed, so adding a knob without adding it here fails the gate rather than silently producing an unattributable number.",
+  "type": "object",
+  "required": ["schemaVersion", "generatedAt", "model", "runtime", "run", "host", "clips", "totals"],
+  "properties": {
+    "schemaVersion": {
+      "type": "string",
+      "description": "The date this shape was fixed. A reader that does not know this version refuses the file rather than guessing at it.",
+      "const": "2026-09-13"
+    },
+    "generatedAt": { "type": "string", "format": "date-time" },
+
+    "run": {
+      "type": "object",
+      "description": "WHAT THIS RUN WAS, and whether its numbers may be believed. Everything here is decided once, before any audio is made, and carried unchanged through sharding and merging.",
+      "required": ["runId", "model", "configSlug", "isolated", "config"],
+      "additionalProperties": false,
+      "properties": {
+        "runId": {
+          "type": "string",
+          "description": "`<model>__<configSlug>`. The identity of a reading. Two runs of the same model at different settings have different run ids, so an artifact name, a merged manifest and a row on the page can never confuse them.",
+          "pattern": "^[a-zA-Z0-9._-]+__c[0-9]+-r[0-9]+-t(auto|[0-9]+)-i(all|[0-9]+)-s[0-9]+$"
+        },
+        "model": {
+          "type": "string",
+          "description": "The one model id this run measured. One run measures one model: a run that voiced several has no single real-time factor, and the models would have been contending for the same runner while being timed."
+        },
+        "configSlug": {
+          "type": "string",
+          "description": "Every knob in `config`, flattened into a filename-safe string in a fixed order: words-a-chunk, repeats, threads, items, shards. DERIVED, never authored - `run-config.mjs` is the only thing that computes it and `tests/test_run_contract.py` proves the value here matches the `config` beside it. A hand-written slug that disagreed with its own config would be worse than no slug at all.",
+          "pattern": "^c[0-9]+-r[0-9]+-t(auto|[0-9]+)-i(all|[0-9]+)-s[0-9]+$"
+        },
+        "isolated": {
+          "type": "boolean",
+          "description": "May this run's wall clock be compared against the 6 h job cap? TRUE only when the run measured one model at one config with nothing else voicing at the same time. This is the load-bearing field in the file. A 28-job fan-out of seven models across four shards apiece was contending for Hugging Face, for npm and for the Actions pool while every arm was being timed; one arm died of ETIMEDOUT in a native postinstall. Whatever those wall clocks measured, it was not a property of a model. An unisolated figure is still a real reading of what that clip cost on that machine - it is simply not a number the design may be priced on."
+        },
+        "notIsolatedBecause": {
+          "type": "string",
+          "description": "Required when `isolated` is false. Names the contention, so a reader knows what the figure is polluted BY rather than being told only that it is untrustworthy."
+        },
+        "config": {
+          "type": "object",
+          "description": "THE COMPLETE SET OF KNOBS THAT CHANGE A READING. Closed on purpose: a new knob must be added here, which forces it to be recorded, which is the only thing that keeps two runs comparable. Nothing that merely describes the model belongs here - that is what the model row in voices.config.json is for. The test is: if changing it changes a number, it lives here.",
+          "required": ["maxWordsAChunk", "repeats", "threads", "maxItems", "shards"],
+          "additionalProperties": false,
+          "properties": {
+            "maxWordsAChunk": {
+              "type": "integer",
+              "minimum": 1,
+              "description": "Where a summary is split for inference. Changes the figures twice over: it sets how many inference calls a clip costs, and it creates the seams a listener is later asked whether they can hear."
+            },
+            "repeats": {
+              "type": "integer",
+              "minimum": 1,
+              "description": "How many times each clip is voiced. The reported wall clock is the MEDIAN of the repeats, so this buys a defence against one unlucky moment on a shared runner at a linear cost in job time. 1 means a single reading with no spread."
+            },
+            "threads": {
+              "type": "integer",
+              "minimum": 0,
+              "description": "Inference threads. 0 means the runtime chooses, which is a DIFFERENT configuration from an explicit 4 even on a 4-vCPU box, and the slug writes it `auto` so the two can never be read as the same run. This was hardcoded to 4 in the workflow and recorded nowhere, so no reading before this schema can say what it used."
+            },
+            "maxItems": {
+              "type": "integer",
+              "minimum": 0,
+              "description": "Corpus ceiling, applied BEFORE sharding so every shard slices the same bounded corpus. 0 is the whole corpus. A ceiling exists because an autoregressive model on a CPU will not finish the corpus inside the job cap, and a run killed at the cap measures nothing; a bounded slice still yields a real real-time factor. A capped run is NOT comparable with an uncapped one, which is exactly why this is in the slug."
+            },
+            "shards": {
+              "type": "integer",
+              "minimum": 1,
+              "description": "How many whole runners split the corpus. A shard is a 4-vCPU machine voicing its own slice, NOT a slice of one machine's cores, so fanning out cuts elapsed time without changing what any single clip cost. It is in the slug anyway: which clips land together changes the drift measurement, and a merged reading should never be silently compared with an unsharded one."
+            }
+          }
+        },
+        "notes": {
+          "type": "string",
+          "description": "What this run was tweaking, in the operator's own words. A sweep produces many runs whose slugs differ by one character, and this is where the intent behind that character lives."
+        },
+        "dispatch": {
+          "type": "object",
+          "description": "Which CI run produced this, so a figure on a page can be walked back to the logs that made it.",
+          "properties": {
+            "workflow": { "type": "string" },
+            "runId": { "type": "string" },
+            "runNumber": { "type": "integer" },
+            "runAttempt": { "type": "integer" },
+            "url": { "type": "string" },
+            "sha": { "type": "string" },
+            "ref": { "type": "string" }
+          }
+        }
+      },
+      "allOf": [
+        {
+          "description": "A run that cannot be compared against the cap must say what polluted it. 'Do not trust this' without a reason is not a finding.",
+          "if": { "properties": { "isolated": { "const": false } }, "required": ["isolated"] },
+          "then": { "required": ["notIsolatedBecause"] }
+        }
+      ]
+    },
+
+    "model": {
+      "type": "string",
+      "description": "The model id, repeated at the top level because every existing consumer reads it there. It MUST equal `run.model`; the contract test checks it."
+    },
+    "name": { "type": "string" },
+    "modelId": { "type": "string", "description": "The Hugging Face repository the weights were streamed from." },
+    "runtime": { "type": "string", "enum": ["kokoro-js", "transformers.js", "onnxruntime-python", "onnxruntime-genai"] },
+    "voice": { "type": "string" },
+    "quantisation": { "type": "string" },
+    "accent": { "type": "string" },
+    "accentKnown": { "type": "boolean" },
+    "licence": { "type": "string" },
+    "commercialUse": { "type": "boolean" },
+    "params": { "type": "string" },
+    "architecture": { "type": "string" },
+    "sizeGb": { "type": "number" },
+    "modelSlug": { "type": "string" },
+    "sampleRate": { "type": "integer" },
+    "maxWordsAChunk": {
+      "type": "integer",
+      "description": "DEPRECATED as a source of truth; `run.config.maxWordsAChunk` owns it. Still written so an older reader does not break, and the contract test asserts the two agree - a duplicated field that is allowed to drift is worse than no field."
+    },
+
+    "corpus": {
+      "type": "object",
+      "description": "What was read. `sampledFrom` names the published digests the summaries came from, so the text behind a figure can be fetched years later.",
+      "properties": {
+        "name": { "type": "string" },
+        "sampledFrom": {
+          "description": "One digest URL, or several. It became a LIST when the corpus was widened from a single day to five - 36 summaries drawn from a pool of 1,736 items - because a one-day corpus makes a model's figures a property of that day's news. A reader must handle both shapes: readings taken before the widening carry a single string.",
+          "oneOf": [
+            { "type": "string" },
+            { "type": "null" },
+            { "type": "array", "items": { "type": "string" }, "minItems": 1 }
+          ]
+        },
+        "days": { "type": ["integer", "null"], "minimum": 1 },
+        "poolSize": {
+          "type": ["integer", "null"],
+          "description": "How many published items the corpus was drawn FROM, as against how many it kept. The ratio is what says whether the sample is a sample or simply everything there was."
+        }
+      }
+    },
+
+    "shard": {
+      "type": "object",
+      "description": "This run's place in its fan-out. An unsharded run writes index 0 of total 1, so a reader never has to ask which kind of run it is holding.",
+      "required": ["index", "total"],
+      "properties": {
+        "index": { "type": "integer", "minimum": 0 },
+        "total": { "type": "integer", "minimum": 1 },
+        "repeats": { "type": "integer", "minimum": 1, "description": "Mirrors `run.config.repeats`. Kept for the existing readers." },
+        "summariesVoiced": { "type": "integer" },
+        "summariesInCorpus": { "type": "integer" },
+        "merged": { "type": "boolean", "description": "True on a manifest assembled from shards. A reader comparing this with an unsharded figure is comparing several machines against one, and this is the only place that fact survives." },
+        "shardsExpected": {
+          "type": "integer",
+          "description": "How many shards the run CONFIGURED, taken from `run.config.shards` rather than by counting the directories that arrived. A shard that dies before writing its first clip uploads no artifact at all, so counting the tree would report three of three for a four-shard run."
+        },
+        "shardsMerged": { "type": "integer" },
+        "complete": {
+          "type": "boolean",
+          "description": "False when a shard produced no manifest. The totals are then recomputed over a short corpus - a real reading of fewer clips, not a reading of the corpus - so `clipCount` is not what the run asked for. A real-time factor stays meaningful because it is a ratio; the byte and duration totals do not."
+        },
+        "incompleteBecause": { "type": "string", "description": "Required in spirit when `complete` is false: how many shards were lost and what the totals therefore cover." },
+        "wallSecondsPerShard": { "type": "array", "items": { "type": "number" } },
+        "elapsedSecondsIfParallel": {
+          "type": "number",
+          "description": "The slowest shard. Fanning out only buys the difference between that and the sum, so this is the run's real elapsed cost and the figure that goes against the 6 h cap."
+        }
+      }
+    },
+
+    "host": {
+      "type": "object",
+      "description": "WHO TIMED IT. Audio duration and speaking pace are host-independent because the model is deterministic; wall clock is not. The same corpus measured 1.0112 on the runner and 2.576 on a laptop - both plausible, and a laptop reading compared against the runner's budget would price the design on hardware it will never run on. So no consumer may draw a budget line unless `isCi` is true.",
+      "required": ["isCi"],
+      "properties": {
+        "isCi": { "type": "boolean" },
+        "platform": { "type": "string" },
+        "arch": { "type": "string" },
+        "cpuModel": { "type": "string" },
+        "cpuCount": { "type": "integer" },
+        "totalMemoryGb": { "type": "number" },
+        "nodeVersion": { "type": "string" },
+        "python": { "type": "string" }
+      }
+    },
+
+    "modelLoadMs": { "type": "integer", "minimum": 0 },
+    "peakMemoryMb": {
+      "type": "integer",
+      "minimum": 0,
+      "description": "Resident set, which decides whether a model is deployable at all. On a merged manifest this is the MAXIMUM across shards and never the sum: four shards are four machines, so what a deployment must provision for is the worst single reading. It also excludes whatever the ONNX runtime maps outside the heap, so it is a floor rather than a total."
+    },
+
+    "clips": {
+      "type": "array",
+      "description": "One entry per summary voiced. Ordered by id on a merged manifest so two runs of the same corpus line up row against row.",
+      "items": {
+        "type": "object",
+        "required": ["id", "clip", "audioSeconds", "wallClockMs", "words"],
+        "properties": {
+          "id": { "type": "string" },
+          "text": { "type": "string" },
+          "words": { "type": "integer", "minimum": 0 },
+          "clip": { "type": "string", "description": "File name only, never a path: the merger moves audio up a level and a stored path would be wrong the moment it did." },
+          "chunks": { "type": "integer", "minimum": 1 },
+          "chunkTimings": {
+            "type": "array",
+            "description": "Where each inference call begins and ends in the finished clip. Exact between chunks and interpolated within one, which is what makes long-form drift free to compute and the seam positions honest.",
+            "items": {
+              "type": "object",
+              "required": ["text", "startSeconds", "endSeconds"],
+              "properties": {
+                "text": { "type": "string" },
+                "startSeconds": { "type": "number", "minimum": 0 },
+                "endSeconds": { "type": "number", "minimum": 0 }
+              }
+            }
+          },
+          "peaks": { "type": "array", "items": { "type": "number" } },
+          "audioSeconds": { "type": "number", "exclusiveMinimum": 0 },
+          "wallClockMs": { "type": "integer", "minimum": 0 },
+          "wallClockRepeatsMs": {
+            "type": "array",
+            "items": { "type": "integer" },
+            "description": "Every repeat, not just the median that was reported. The spread is the evidence that the median was worth taking."
+          },
+          "realTimeFactor": { "type": "number", "minimum": 0 },
+          "wordsAMinute": { "type": "number", "minimum": 0 },
+          "bytes": { "type": "integer", "minimum": 0 },
+          "hazards": { "type": "array", "items": { "type": "string" } },
+          "sourceName": { "type": ["string", "null"] },
+          "vertical": { "type": ["string", "null"] }
+        }
+      }
+    },
+
+    "verbalization": {
+      "type": "array",
+      "description": "The verbalization suite, voiced here and graded elsewhere. Grading needs an ASR pass with its own dependencies, so this carries the audio beside the expected spoken form and `graded` stays false until that job runs.",
+      "items": {
+        "type": "object",
+        "required": ["id", "clip"],
+        "properties": {
+          "id": { "type": "string" },
+          "category": { "type": "string" },
+          "text": { "type": "string" },
+          "expectedSpoken": {
+            "type": ["string", "null"],
+            "description": "The exact words a competent newsreader would say. NULL IS MEANINGFUL: a long-form-drift case is scored on whether pace, pitch and energy hold across nine sentences, not on which words come out, so it has no expected spoken form and the grader scores 27 of the 28 cases. A null here must never be graded as a miss - a model would be marked wrong for a question that was never asked."
+          },
+          "acceptableAlternatives": { "type": "array", "items": { "type": "string" } },
+          "trap": { "type": "string" },
+          "clip": { "type": "string" },
+          "audioSeconds": { "type": "number", "minimum": 0 },
+          "chunkTimings": { "type": "array" },
+          "wallClockMs": { "type": "integer", "minimum": 0 },
+          "graded": { "type": "boolean" }
+        }
+      }
+    },
+
+    "totals": {
+      "type": "object",
+      "description": "The run in one row. On a merged manifest these are RECOMPUTED from the merged clips and never averaged across shards: averaging weights a shard that drew three short summaries the same as one that drew nine long ones. Sum the seconds first, divide once - that is the only figure that means 'this model, this corpus'.",
+      "required": ["clipCount", "audioSeconds", "wallSeconds", "realTimeFactor"],
+      "properties": {
+        "clipCount": { "type": "integer", "minimum": 0 },
+        "words": { "type": "integer", "minimum": 0 },
+        "audioSeconds": { "type": "number", "minimum": 0 },
+        "wallSeconds": { "type": "number", "minimum": 0 },
+        "bytes": { "type": "integer", "minimum": 0 },
+        "realTimeFactor": { "type": ["number", "null"], "minimum": 0 },
+        "wordsAMinute": { "type": ["number", "null"], "minimum": 0 }
+      }
+    },
+
+    "metrics": {
+      "type": "object",
+      "description": "The free metrics - arithmetic on what voicing already produced. `notMeasuredHere` is part of the contract and not a courtesy: a dashboard that silently omits intelligibility and naturalness reads as though the model passed them.",
+      "required": ["realTimeFactor", "speakingRate", "notMeasuredHere"],
+      "properties": {
+        "totalCharacters": { "type": "integer" },
+        "totalWords": { "type": "integer" },
+        "audioSeconds": { "type": "number" },
+        "processingSeconds": { "type": "number" },
+        "charactersASecond": { "type": "number" },
+        "medianCharactersASecond": { "type": "number" },
+        "speakingRate": { "type": "number" },
+        "realTimeFactor": { "type": "number", "minimum": 0 },
+        "speedMultiplier": { "type": "number" },
+        "rateStability": {
+          "type": "object",
+          "description": "How steady the pace is. The coefficient of variation is the statistic that travels: a standard deviation in words a minute means nothing without the mean it varies around.",
+          "properties": {
+            "mean": { "type": "number" },
+            "median": { "type": "number" },
+            "min": { "type": "number" },
+            "max": { "type": "number" },
+            "spread": { "type": "number" },
+            "standardDeviation": { "type": "number" },
+            "coefficientOfVariation": { "type": "number" }
+          }
+        },
+        "drift": {
+          "type": ["object", "null"],
+          "description": "Null when no clip had three chunks to compare. Null is 'not measurable here' and is never rendered as 0%, which would read as a model that held its pace perfectly.",
+          "properties": {
+            "clipsMeasured": { "type": "integer" },
+            "medianDriftPercent": { "type": "number" },
+            "worstDriftPercent": { "type": "number" }
+          }
+        },
+        "notMeasuredHere": { "type": "array", "items": { "type": "string" }, "minItems": 1 }
+      }
+    }
+  }
+}

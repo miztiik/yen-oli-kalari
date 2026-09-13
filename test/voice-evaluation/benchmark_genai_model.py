@@ -27,6 +27,8 @@ from __future__ import annotations
 import json
 import os
 import resource
+import shutil
+import subprocess
 import sys
 import time
 import wave
@@ -36,12 +38,50 @@ HERE = Path(__file__).resolve().parent
 CONFIG_PATH = HERE / "voices.config.json"
 CORPUS_PATH = HERE.parent / "onnx-runtime-comparison" / "real-summaries" / "summaries.json"
 SUITE_PATH = HERE.parent / "onnx-runtime-comparison" / "verbalization-suite.json"
+RESOLVER_PATH = HERE / "run-config.mjs"
 
 MODEL_ID_ENV = os.environ.get("MODEL", "")
-MAX_WORDS_A_CHUNK = int(os.environ.get("MAX_WORDS_A_CHUNK", "40"))
-MAX_ITEMS = int(os.environ.get("MAX_ITEMS", "0"))  # 0 = the whole corpus
+
+
+def resolve_run() -> dict:
+    """Get this run's configuration from the one thing allowed to decide it.
+
+    `run-config.mjs` is the single resolver and the single place a config slug
+    is derived. This arm is Python and that resolver is JavaScript, so rather
+    than keeping a second copy of the rules - which would agree right up until
+    the day somebody changed one of them - the planner's already-resolved block
+    is read from `RUN_JSON`, and off CI the resolver is simply run.
+
+    A second implementation here is the one thing that must not happen: the
+    reason this contract exists is that the knobs used to be read in four places
+    and recorded in none.
+    """
+    handed = os.environ.get("RUN_JSON", "").strip()
+    if handed:
+        return json.loads(handed)
+
+    node = shutil.which("node")
+    if not node:
+        raise SystemExit(
+            "RUN_JSON is unset and node is not on PATH, so this run's configuration "
+            "cannot be resolved. run-config.mjs is the only thing that may derive it; "
+            "this arm must not guess."
+        )
+    finished = subprocess.run(
+        [node, str(RESOLVER_PATH)], cwd=HERE, capture_output=True, text=True
+    )
+    if finished.returncode != 0:
+        raise SystemExit(finished.stderr.strip())
+    return json.loads(finished.stdout)
+
+
+RUN = resolve_run()
+MAX_WORDS_A_CHUNK = int(RUN["config"]["maxWordsAChunk"])
+MAX_ITEMS = int(RUN["config"]["maxItems"])  # 0 = the whole corpus
+SHARD_TOTAL = max(1, int(RUN["config"]["shards"]))
+THREADS = int(RUN["config"]["threads"])
+REPEATS = max(1, int(RUN["config"]["repeats"]))
 SHARD_INDEX = int(os.environ.get("SHARD_INDEX", "0"))
-SHARD_TOTAL = max(1, int(os.environ.get("SHARD_TOTAL", "1")))
 
 
 def peak_memory_mb() -> int:
@@ -137,7 +177,11 @@ def build_chatterbox(spec: dict):
         return path
 
     options = onnxruntime.SessionOptions()
-    options.intra_op_num_threads = int(os.environ.get("ORT_THREADS", "4"))
+    # From the run contract, not from an ad-hoc environment read. 0 means the
+    # runtime chooses, which is a different configuration from an explicit 4 and
+    # is recorded as `tauto` in the slug so the two readings never merge.
+    if THREADS:
+        options.intra_op_num_threads = THREADS
     options.graph_optimization_level = onnxruntime.GraphOptimizationLevel.ORT_ENABLE_ALL
 
     speech_encoder = onnxruntime.InferenceSession(fetch("speech_encoder"), options)
@@ -260,6 +304,16 @@ def main() -> int:
     corpus = json.loads(CORPUS_PATH.read_text(encoding="utf-8"))
     summaries = corpus["summaries"]
     whole_corpus_size = len(summaries)
+
+    # The item ceiling is applied BEFORE sharding, so every shard slices the
+    # same bounded corpus and the shards add up to the ceiling. Capping after
+    # the split was the previous order and it was wrong: with a ceiling of 6
+    # across 4 shards it took 6 items PER SHARD and quietly measured 24.
+    if MAX_ITEMS:
+        summaries = summaries[:MAX_ITEMS]
+        print(f"item ceiling: {len(summaries)}/{whole_corpus_size} summaries", flush=True)
+    capped_corpus_size = len(summaries)
+
     if SHARD_TOTAL > 1:
         # Round-robin rather than contiguous blocks: summaries vary in length
         # by more than 10x, so a contiguous slice would hand one shard every
@@ -267,17 +321,30 @@ def main() -> int:
         summaries = [s for i, s in enumerate(summaries) if i % SHARD_TOTAL == SHARD_INDEX]
         print(
             f"shard {SHARD_INDEX + 1}/{SHARD_TOTAL}: "
-            f"{len(summaries)}/{whole_corpus_size} summaries",
+            f"{len(summaries)}/{capped_corpus_size} summaries",
             flush=True,
         )
-    summaries = summaries[: MAX_ITEMS or None]
 
     clips = []
     for sample in summaries:
         chunks = split_into_chunks(sample["text"], MAX_WORDS_A_CHUNK)
-        began = time.time()
-        pieces = [speak(chunk)[0] for chunk in chunks]
-        wall_ms = int((time.time() - began) * 1000)
+
+        # `repeats` is a knob in the closed run config and it is in the slug, so
+        # a manifest stamped `r3` must have voiced each clip three times. This
+        # loop is why: the arm previously recorded the knob and ignored it, so a
+        # sweep at repeats=3 produced six medians-of-three from the Node arm and
+        # one unrepeated reading here, all labelled identically and all shown in
+        # the same table. The MEDIAN is reported, matching benchmark-model.mjs,
+        # because the point of repeating is to survive one unlucky moment on a
+        # shared runner rather than to average one in.
+        wall_clocks = []
+        pieces = []
+        for _ in range(REPEATS):
+            began = time.time()
+            pieces = [speak(chunk)[0] for chunk in chunks]
+            wall_clocks.append(int((time.time() - began) * 1000))
+
+        wall_ms = sorted(wall_clocks)[len(wall_clocks) // 2]
 
         import numpy as np
 
@@ -297,6 +364,9 @@ def main() -> int:
                 "chunks": len(chunks),
                 "audioSeconds": round(audio_seconds, 2),
                 "wallClockMs": wall_ms,
+                # Every repeat, not just the median that was reported. The
+                # spread is the evidence that the median was worth taking.
+                "wallClockRepeatsMs": wall_clocks,
                 "realTimeFactor": round(wall_ms / 1000 / audio_seconds, 3),
                 "wordsAMinute": round(sample["words"] / audio_seconds * 60, 1),
                 "bytes": byte_count,
@@ -349,6 +419,10 @@ def main() -> int:
 
     manifest = {
         "schemaVersion": "2026-09-13",
+        "generatedAt": time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime()),
+        # What this run was and whether its numbers may be believed. Resolved
+        # before any audio was made and carried unchanged through the merge.
+        "run": RUN,
         "metrics": metrics,
         "model": MODEL_ID_ENV,
         "modelId": spec["modelId"],
@@ -360,6 +434,14 @@ def main() -> int:
         "params": spec.get("params"),
         "architecture": spec.get("architecture"),
         "sizeGb": spec.get("sizeGb"),
+        "maxWordsAChunk": MAX_WORDS_A_CHUNK,
+        "shard": {
+            "index": SHARD_INDEX,
+            "total": SHARD_TOTAL,
+            "repeats": RUN["config"]["repeats"],
+            "summariesVoiced": len(clips),
+            "summariesInCorpus": whole_corpus_size,
+        },
         "modelLoadMs": int(load_seconds * 1000),
         "peakMemoryMb": peak_memory_mb(),
         "host": {

@@ -1,11 +1,20 @@
 /**
- * Split the configured models into the two runtimes that need different
- * toolchains on the runner, and write both lists as job outputs.
+ * Split the publishable models into the two runtimes that need different
+ * toolchains on the runner.
  *
- * A file rather than an inline `run:` block, because the same logic embedded in
- * YAML had to survive three levels of quoting and lost an environment variable
- * doing it. A matrix that silently comes back empty is worse than one that
- * fails, because the run goes green having measured nothing.
+ * PUBLISHING IS NOT BENCHMARKING, and this is the file where that distinction
+ * lives. The benchmark measures one model at one configuration with nothing
+ * else voicing, because a wall clock taken beside twenty-seven other jobs is
+ * not a property of a model. Publishing has the opposite requirement: it wants
+ * audio on a page, the audio is deterministic, and six models one after another
+ * would cost two hours for a result identical to the parallel one.
+ *
+ * So this planner still fans out over a model LIST, and every manifest it
+ * produces is stamped `run.isolated: false`. Nothing downstream will price the
+ * design on those figures: the collator refuses to draw the job-cap table for
+ * an unisolated reading, and the page labels it.
+ *
+ * The benchmark's planner is `plan-run.mjs`, and it takes exactly one model.
  */
 
 import { readFileSync, appendFileSync } from "node:fs";
@@ -29,31 +38,25 @@ const python = enabled.filter((m) => PYTHON_RUNTIMES.has(m.runtime)).map((m) => 
 
 if (node.length === 0 && python.length === 0) {
   console.error(`no enabled model matched "${wanted}"`);
-  console.error(`configured and enabled: ${config.models.filter((m) => m.enabled).map((m) => m.id).join(", ")}`);
+  console.error(
+    `configured and enabled: ${config.models.filter((m) => m.enabled).map((m) => m.id).join(", ")}`,
+  );
   process.exit(1);
 }
 
 appendFileSync(process.env.GITHUB_OUTPUT, `node=${JSON.stringify(node)}\n`);
 appendFileSync(process.env.GITHUB_OUTPUT, `python=${JSON.stringify(python)}\n`);
 
-/* A shard is a whole runner with its own 4 vCPU, not a slice of one machine's
-   cores. Fanning a model across four of them cuts elapsed time roughly fourfold
-   while every real-time factor stays a reading from the same hardware, because
-   each shard voices its slice alone. */
-const shardTotal = Math.max(1, Number(process.env.SHARDS ?? 1));
-const shards = Array.from({ length: shardTotal }, (_, i) => i);
-appendFileSync(process.env.GITHUB_OUTPUT, `shards=${JSON.stringify(shards)}\n`);
-appendFileSync(process.env.GITHUB_OUTPUT, `shardTotal=${shardTotal}\n`);
-
 console.log(`node arms   (${node.length}): ${node.join(", ") || "-"}`);
 console.log(`python arms (${python.length}): ${python.join(", ") || "-"}`);
 console.log(
-  `shards per model: ${shardTotal}` +
-    (shardTotal > 1 ? ` -> ${(node.length + python.length) * shardTotal} jobs` : ""),
+  `\nThese voice in parallel, so their wall clocks carry each other's contention.\n` +
+    `Every manifest is stamped isolated:false. A comparable figure comes from\n` +
+    `benchmark-voice.yml, which measures one model at one config, alone.`,
 );
 
 const blocked = config.models.filter((m) => !m.enabled);
 if (blocked.length) {
-  console.log(`\nnot run, and why:`);
+  console.log(`\nnot published, and why:`);
   for (const m of blocked) console.log(`  ${m.id.padEnd(24)} ${m.blocked ?? "disabled"}`);
 }

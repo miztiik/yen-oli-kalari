@@ -179,3 +179,199 @@ def test_a_dead_shard_does_not_fail_the_merge():
     # And the reading is honestly partial rather than quietly short.
     assert merged["totals"]["clipCount"] < whole["totals"]["clipCount"]
     shutil.rmtree(ROOT, ignore_errors=True)
+
+
+def test_shards_of_two_different_runs_are_refused():
+    """The merge recomputes one real-time factor across every clip, so it means
+    nothing unless every clip was voiced the same way.
+
+    The dangerous part is that a mixed merge does not look broken. It produces a
+    plausible number describing a configuration that was never run. A stale
+    artifact landing in the results tree is the realistic way that happens, so
+    the merger checks identity rather than trusting the directory layout.
+    """
+    if not (SOURCE / "manifest.json").exists():
+        pytest.skip("no source manifest")
+    node = shutil.which("node")
+    if not node:
+        pytest.skip("node is not on PATH")
+
+    whole = json.loads((SOURCE / "manifest.json").read_text(encoding="utf-8"))
+    if ROOT.exists():
+        shutil.rmtree(ROOT)
+    _build_shards(whole)
+
+    # Every shard from one run, except one that was voiced at a different
+    # chunk size - a different configuration and therefore a different run.
+    for index in range(SHARDS):
+        path = ROOT / f"shard-{index}" / "manifest.json"
+        manifest = json.loads(path.read_text(encoding="utf-8"))
+        slug = "c40-r1-t4-iall-s4" if index != 2 else "c30-r1-t4-iall-s4"
+        manifest["run"] = {
+            "runId": f"{MODEL}__{slug}",
+            "model": MODEL,
+            "configSlug": slug,
+            "isolated": True,
+            "config": {
+                "maxWordsAChunk": 40 if index != 2 else 30,
+                "repeats": 1, "threads": 4, "maxItems": 0, "shards": SHARDS,
+            },
+        }
+        path.write_text(json.dumps(manifest, indent=2), encoding="utf-8")
+
+    run = subprocess.run(
+        [node, "merge-shards.mjs"],
+        cwd=HERE,
+        env={**os.environ, "MODEL": MODEL},
+        capture_output=True,
+        text=True,
+    )
+    assert run.returncode != 0, "a merge across two configurations must fail"
+    assert "different runs" in run.stderr
+    shutil.rmtree(ROOT, ignore_errors=True)
+
+
+def test_shards_of_one_run_still_merge():
+    """The guard must refuse a mismatch without refusing the normal case."""
+    if not (SOURCE / "manifest.json").exists():
+        pytest.skip("no source manifest")
+    node = shutil.which("node")
+    if not node:
+        pytest.skip("node is not on PATH")
+
+    whole = json.loads((SOURCE / "manifest.json").read_text(encoding="utf-8"))
+    if ROOT.exists():
+        shutil.rmtree(ROOT)
+    _build_shards(whole)
+
+    slug = "c40-r1-t4-iall-s4"
+    for index in range(SHARDS):
+        path = ROOT / f"shard-{index}" / "manifest.json"
+        manifest = json.loads(path.read_text(encoding="utf-8"))
+        manifest["run"] = {
+            "runId": f"{MODEL}__{slug}",
+            "model": MODEL,
+            "configSlug": slug,
+            "isolated": True,
+            "config": {
+                "maxWordsAChunk": 40, "repeats": 1, "threads": 4,
+                "maxItems": 0, "shards": SHARDS,
+            },
+        }
+        path.write_text(json.dumps(manifest, indent=2), encoding="utf-8")
+
+    run = subprocess.run(
+        [node, "merge-shards.mjs"],
+        cwd=HERE,
+        env={**os.environ, "MODEL": MODEL},
+        capture_output=True,
+        text=True,
+    )
+    assert run.returncode == 0, run.stderr
+    merged = json.loads((ROOT / "manifest.json").read_text(encoding="utf-8"))
+    # The identity survives the merge, so the merged reading still says what
+    # configuration produced it.
+    assert merged["run"]["runId"] == f"{MODEL}__{slug}"
+    assert merged["run"]["config"]["maxWordsAChunk"] == 40
+    assert merged["run"]["isolated"] is True
+    assert merged["shard"]["complete"] is True
+    shutil.rmtree(ROOT, ignore_errors=True)
+
+
+def _shards_with_run(whole, *, isolated_by_index=None, shards=SHARDS):
+    """Build shards carrying a run block, optionally differing in isolation."""
+    _build_shards(whole)
+    slug = f"c40-r1-t4-iall-s{shards}"
+    for index in range(SHARDS):
+        path = ROOT / f"shard-{index}" / "manifest.json"
+        if not path.exists():
+            continue
+        manifest = json.loads(path.read_text(encoding="utf-8"))
+        isolated = True if isolated_by_index is None else isolated_by_index(index)
+        run = {
+            "runId": f"{MODEL}__{slug}",
+            "model": MODEL,
+            "configSlug": slug,
+            "isolated": isolated,
+            "config": {
+                "maxWordsAChunk": 40, "repeats": 1, "threads": 4,
+                "maxItems": 0, "shards": shards,
+            },
+        }
+        if not isolated:
+            run["notIsolatedBecause"] = "dispatched without the isolation assertion"
+        manifest["run"] = run
+        path.write_text(json.dumps(manifest, indent=2), encoding="utf-8")
+
+
+def _merge():
+    return subprocess.run(
+        [shutil.which("node"), "merge-shards.mjs"],
+        cwd=HERE,
+        env={**os.environ, "MODEL": MODEL},
+        capture_output=True,
+        text=True,
+    )
+
+
+def test_one_contended_shard_makes_the_whole_reading_unisolated():
+    """Isolation is not part of the run id, so the identity guard cannot catch
+    this: a shard dispatched without the assertion has the same id as one
+    dispatched with it. Inheriting shard 0's `isolated: true` would let a
+    contended shard hide inside a reading the collator then prices against the
+    6 h job cap.
+    """
+    if not (SOURCE / "manifest.json").exists():
+        pytest.skip("no source manifest")
+    if not shutil.which("node"):
+        pytest.skip("node is not on PATH")
+
+    whole = json.loads((SOURCE / "manifest.json").read_text(encoding="utf-8"))
+    if ROOT.exists():
+        shutil.rmtree(ROOT)
+    # Shard 0 is isolated, so a merge that copies shard 0 wholesale passes.
+    _shards_with_run(whole, isolated_by_index=lambda i: i != 2)
+
+    run = _merge()
+    assert run.returncode == 0, run.stderr
+    merged = json.loads((ROOT / "manifest.json").read_text(encoding="utf-8"))
+
+    assert merged["run"]["isolated"] is False
+    assert "1 of 4 shards" in merged["run"]["notIsolatedBecause"]
+    shutil.rmtree(ROOT, ignore_errors=True)
+
+
+def test_a_shard_that_uploaded_nothing_is_still_counted_as_missing():
+    """The quietest way this file could produce a wrong number.
+
+    A shard that dies before writing its first clip uploads no artifact at all -
+    the workflow's upload step is `if-no-files-found: warn` - so no `shard-N`
+    directory reaches the merge. Counting the tree would then report 3 of 3 for
+    a four-shard run and recompute the totals over three quarters of the corpus
+    with nothing saying so. The expected count must come from the run config.
+    """
+    if not (SOURCE / "manifest.json").exists():
+        pytest.skip("no source manifest")
+    if not shutil.which("node"):
+        pytest.skip("node is not on PATH")
+
+    whole = json.loads((SOURCE / "manifest.json").read_text(encoding="utf-8"))
+    if ROOT.exists():
+        shutil.rmtree(ROOT)
+    _shards_with_run(whole)
+    # The whole directory, as though the artifact never existed.
+    shutil.rmtree(ROOT / "shard-2")
+
+    run = _merge()
+    assert run.returncode == 0, run.stderr
+    merged = json.loads((ROOT / "manifest.json").read_text(encoding="utf-8"))
+
+    assert merged["shard"]["shardsExpected"] == SHARDS, (
+        "the expected count must come from run.config.shards, not from counting "
+        "the directories that happened to arrive"
+    )
+    assert merged["shard"]["shardsMerged"] == 3
+    assert merged["shard"]["complete"] is False
+    assert "incompleteBecause" in merged["shard"]
+    assert merged["totals"]["clipCount"] < whole["totals"]["clipCount"]
+    shutil.rmtree(ROOT, ignore_errors=True)

@@ -23,20 +23,27 @@
 import { readFileSync, writeFileSync, mkdirSync } from "node:fs";
 import { fileURLToPath } from "node:url";
 import { cpus, totalmem, platform, arch } from "node:os";
-import { adapterFor, enabledModels } from "./adapters.mjs";
+import { adapterFor, enabledModels, CONFIG } from "./adapters.mjs";
 import { summariseRun } from "./metrics.mjs";
+import { runForThisProcess, resolveShard } from "./run-config.mjs";
 import { splitIntoChunks } from "../../backend/utilities/measurement-recorder.mjs";
 
 const MODEL = process.env.MODEL;
-const MAX_WORDS_A_CHUNK = Number(process.env.MAX_WORDS_A_CHUNK ?? 40);
-const REPEATS = Number(process.env.REPEATS ?? 1);
-const SHARD_INDEX = Number(process.env.SHARD_INDEX ?? 0);
-const SHARD_TOTAL = Math.max(1, Number(process.env.SHARD_TOTAL ?? 1));
 
 if (!MODEL) {
   console.error(`MODEL must be one of: ${enabledModels().join(", ")}`);
   process.exit(1);
 }
+
+/* The knobs are resolved in ONE place, for every caller, and the result is
+   written into the manifest. Before this, `MAX_WORDS_A_CHUNK` was read here,
+   `ORT_THREADS` was hardcoded in the workflow and `MAX_ITEMS` existed only on
+   the other arm - so no manifest could say what produced its figures and no two
+   readings could be compared. See run-manifest.schema.json. */
+const run = runForThisProcess(process.env, CONFIG.models.find((m) => m.id === MODEL) ?? {});
+const { maxWordsAChunk: MAX_WORDS_A_CHUNK, repeats: REPEATS, maxItems: MAX_ITEMS } = run.config;
+const SHARD_TOTAL = run.config.shards;
+const SHARD_INDEX = resolveShard(process.env, SHARD_TOTAL);
 
 const CORPUS_PATH = new URL("../onnx-runtime-comparison/real-summaries/summaries.json", import.meta.url);
 const SUITE_PATH = new URL("../onnx-runtime-comparison/verbalization-suite.json", import.meta.url);
@@ -113,17 +120,28 @@ function peakMemoryMb() {
 const corpus = JSON.parse(readFileSync(CORPUS_PATH, "utf8"));
 const suite = JSON.parse(readFileSync(SUITE_PATH, "utf8"));
 
+const wholeCorpusSize = corpus.summaries.length;
+const wholeSuiteSize = suite.cases.length;
+
+/* The item ceiling is applied BEFORE sharding, so every shard slices the same
+   bounded corpus and the shards still add up to the ceiling. Capping after the
+   split would give each of four shards its own six items and quietly measure
+   twenty-four. */
+if (MAX_ITEMS) {
+  corpus.summaries = corpus.summaries.slice(0, MAX_ITEMS);
+  console.log(`item ceiling: ${corpus.summaries.length}/${wholeCorpusSize} summaries`);
+}
+const cappedCorpusSize = corpus.summaries.length;
+
 /* Round-robin rather than contiguous blocks. Summaries vary in length by more
    than 10x, so a contiguous slice would hand one shard every long one and the
    fan-out would finish no sooner than a single job. */
-const wholeCorpusSize = corpus.summaries.length;
-const wholeSuiteSize = suite.cases.length;
 if (SHARD_TOTAL > 1) {
   corpus.summaries = corpus.summaries.filter((_, i) => i % SHARD_TOTAL === SHARD_INDEX);
   suite.cases = suite.cases.filter((_, i) => i % SHARD_TOTAL === SHARD_INDEX);
   console.log(
     `shard ${SHARD_INDEX + 1}/${SHARD_TOTAL}: ` +
-      `${corpus.summaries.length}/${wholeCorpusSize} summaries, ` +
+      `${corpus.summaries.length}/${cappedCorpusSize} summaries, ` +
       `${suite.cases.length}/${wholeSuiteSize} verbalization cases`
   );
 }
@@ -254,6 +272,9 @@ for (const testCase of suite.cases) {
 const manifest = {
   schemaVersion: "2026-09-13",
   generatedAt: new Date().toISOString(),
+  /* What this run was and whether its numbers may be believed. Resolved before
+     any audio was made and carried unchanged through sharding and merging. */
+  run,
   model: MODEL,
   name: adapter.name,
   modelId: adapter.modelId,
@@ -270,7 +291,15 @@ const manifest = {
   voice: adapter.voice,
   sampleRate: clips[0]?.sampleRate ?? 24000,
   maxWordsAChunk: MAX_WORDS_A_CHUNK,
-  corpus: { name: "real", sampledFrom: corpus.sampledFrom ?? null },
+  corpus: {
+    name: "real",
+    sampledFrom: corpus.sampledFrom ?? null,
+    /* How many days the corpus spans and how big the pool was. A one-day
+       corpus makes a figure a property of that day's news, so the widening to
+       five days is provenance a reader needs rather than trivia. */
+    days: corpus.days ?? null,
+    poolSize: corpus.poolSize ?? null,
+  },
   shard: {
       index: SHARD_INDEX,
       total: SHARD_TOTAL,
@@ -311,10 +340,15 @@ manifest.metrics = summariseRun(manifest);
 writeFileSync(`${RESULT_DIR}manifest.json`, `${JSON.stringify(manifest, null, 2)}\n`, "utf8");
 
 const m = manifest.metrics;
-console.log(`\n--- ${MODEL} ---`);
+console.log(`\n--- ${run.runId} ---`);
 console.log(`  real-time factor   ${m.realTimeFactor.toFixed(4)}  (${m.speedMultiplier.toFixed(2)}x real time)`);
 console.log(`  speaking rate      ${m.speakingRate.toFixed(1)} wpm, +/-${(m.rateStability.coefficientOfVariation * 100).toFixed(1)}%`);
 console.log(`  median speed       ${m.medianCharactersASecond.toFixed(1)} char/s`);
 console.log(`  long-form drift    ${m.drift ? m.drift.medianDriftPercent.toFixed(1) + "%" : "n/a"}`);
 console.log(`  peak memory        ${peakMb} MB`);
 console.log(`  model load         ${(modelLoadMs / 1000).toFixed(1)}s`);
+console.log(
+  run.isolated
+    ? `  isolated           yes - comparable against the 6 h job cap`
+    : `  isolated           NO - ${run.notIsolatedBecause}`,
+);

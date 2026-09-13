@@ -65,6 +65,15 @@ for (const directoryName of directories(RESULTS_DIR)) {
      demand - which is the whole point of the split. */
   runs.push({
     runId: modelSlug,
+    /* The benchmark's identity for this reading: `<model>__<configSlug>`, and
+       whether it may be priced against the job cap. A page that showed two
+       readings of one model without saying what differed between them would be
+       inviting a false comparison. */
+    benchmarkRunId: manifest.run?.runId ?? null,
+    configSlug: manifest.run?.configSlug ?? null,
+    config: manifest.run?.config ?? null,
+    isolated: manifest.run?.isolated ?? false,
+    notIsolatedBecause: manifest.run?.notIsolatedBecause ?? null,
     name: manifest.name ?? catalogue[modelSlug]?.name ?? modelSlug,
     modelId: manifest.modelId,
     quantisation: manifest.quantisation,

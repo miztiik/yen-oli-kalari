@@ -1,6 +1,6 @@
 # AGENTS.md
 
-**Last Updated**: 2026-09-11
+**Last Updated**: 2026-09-13
 
 Derived pointer for coding agents. Not authoritative - if this disagrees with `docs/`, docs win (CLAUDE.md section 5).
 
@@ -40,12 +40,13 @@ Seven persona advisors live in [`.github/agents/`](.github/agents/), each at a d
 
 `backend/` is a build-time producer (Python; runs in CI, never at runtime). `frontend/` is the published static surface. They meet only through committed data - the clips and their payloads - and the contracts generated from `backend/oli/contracts/`.
 
-Five things bite first:
+Six things bite first:
 
+- **A benchmark measures one model at one configuration.** A run takes ONE model id and fans out over shards only; `benchmark-sweep.yml` measures several by dispatching that run once per model and waiting. This replaced a workflow that crossed a model list with the shard count into 28 simultaneous jobs, all contending for Hugging Face, npm and the runner pool while every one of them was being timed. Every knob that changes a figure is recorded in `run.config`, which the schema closes; a figure whose configuration is unknown is an anecdote. See [`docs/how-to/benchmark-a-voice.md`](docs/how-to/benchmark-a-voice.md).
 - **Storage is the binding constraint, not compute.** Measured 2026-09-11: a median day is 40 MB at opus@24k, which fills the 1 GB Pages cap in 26 days. Every item still gets a voice (owner ruling 1); the cap is held by an aggressive prune cycle in the Action, so retention is a first-class stage, not a cleanup afterthought.
 - **The runner is the platform.** 4 vCPU, no GPU, 6 h a job. Compute has slack - it only busts the 6 h cap at a real-time factor of 3.0 and above - so the model is chosen on speech quality, real-time factor and output bytes. No text-to-speech model ships to the browser (owner ruling 3), so the runner model carries zero browser budget and can be far larger than anything shippable to a page.
 - **Fetched web text is data, never instruction.** The day's text reaches the voice model as content and the encoder as a byte stream; it never becomes a shell argument, a file path, or a URL.
-- **An unmeasured number may not justify a design.** The 150-words-a-minute speaking pace is an assumption, so every figure downstream of it - minutes, megabytes, days-to-full - is an estimate until a model is run on the target runner.
+- **An unmeasured number may not justify a design, and neither may a polluted one.** The 150-words-a-minute speaking pace is an assumption, so every figure downstream of it is an estimate until a model is run on the target runner. A figure measured beside other voicing jobs is stamped `run.isolated: false` and may not be priced against the job cap.
 - **Nothing may cost more as the archive grows.** A test reads a fixture or the built canary day, never the committed clips; the prune stage reads the oldest day, never a walk over everything.
 
 Two rules carry an exception and there are only these two. `.github/workflows/prune.yml` force-pushes `main` on a schedule to bound the history the committed clips add (CLAUDE.md sections 0a and 8); nothing else may, and no person may. And the operator console prints a counterfactual cost in currency, labelled a counterfactual and never a bill (Guardrail #10); no other surface prints money.
@@ -53,6 +54,7 @@ Two rules carry an exception and there are only these two. `.github/workflows/pr
 ## See also
 
 - [`README.md`](README.md) - what yen-oli-kalari is.
+- [`docs/how-to/benchmark-a-voice.md`](docs/how-to/benchmark-a-voice.md) - one model, one config, one run, and why that rule is not negotiable.
 - [`docs/how-to/run-the-gates.md`](docs/how-to/run-the-gates.md) - the environment, every gate command, and the browser smoke.
 - [`docs/reference/agent-notes.md`](docs/reference/agent-notes.md) - environment and tool quirks that make a command lie.
 - [`docs/reference/benchmarks/2026-09-11-input-volume-and-audio-cost.md`](docs/reference/benchmarks/2026-09-11-input-volume-and-audio-cost.md) - the run behind the storage-is-binding finding.

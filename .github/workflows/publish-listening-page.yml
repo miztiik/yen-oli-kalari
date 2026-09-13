@@ -5,9 +5,14 @@
 # audio is deterministic from a committed corpus, so a clone regenerates it
 # rather than carrying it forever.
 #
-# That makes the publish a measurement. The figures on the published page came
-# off the production runner, which is the only hardware whose wall clock may be
-# compared against the job cap.
+# THE FIGURES THIS PRODUCES ARE NOT BENCHMARK READINGS, and the manifests it
+# writes say so. Every model voices in PARALLEL here, because the job of this
+# workflow is to get audio onto a page quickly and six models one after another
+# would take two hours. That parallelism is the right trade for publishing and
+# the wrong one for measuring: six arms contending for the same runner pool all
+# report a wall clock that includes the contention. So each manifest carries
+# `run.isolated: false` with the reason, the collator refuses to draw the job-cap
+# table for it, and a comparable figure comes only from `benchmark-voice.yml`.
 name: publish the listening page
 
 on:
@@ -31,11 +36,23 @@ permissions:
   pages: write
   id-token: write
 
-# One publish at a time, and a newer one wins. Two deploys racing would leave
-# whichever finished last on the site regardless of which was newer.
+# PUBLISHING AND BENCHMARKING SHARE ONE LOCK, because they both voice on the
+# same runner pool. A publish that started while a benchmark was being timed
+# would put six more arms on the pool and quietly inflate the very wall clock
+# the benchmark exists to read. Every voicing workflow holds this group.
+#
+# `cancel-in-progress: false` rather than the usual `pages` behaviour of letting
+# a newer publish supersede an older one: cancelling mid-publish would abandon
+# twenty minutes of voicing, and a benchmark queued behind a cancelled publish
+# would start while that publish's runners were still winding down.
+#
+# It does NOT create a queue. GitHub keeps at most one pending run per group and
+# a newly queued run cancels whichever was already pending, so a publish waiting
+# behind a benchmark can itself be cancelled by a later dispatch. The deploy job
+# keeps the `pages` group so two deployments still cannot race.
 concurrency:
-  group: pages
-  cancel-in-progress: true
+  group: voice-measurement
+  cancel-in-progress: false
 
 jobs:
   plan:
@@ -49,7 +66,7 @@ jobs:
         with:
           fetch-depth: 1
       - id: fanout
-        run: node .github/scripts/plan-benchmark.mjs
+        run: node .github/scripts/plan-publish.mjs
         env:
           WANTED: ${{ inputs.models }}
 
@@ -62,6 +79,17 @@ jobs:
       fail-fast: false
       matrix:
         model: ${{ fromJSON(needs.plan.outputs.node) }}
+    env:
+      MODEL: ${{ matrix.model }}
+      # Six models voice at once here, so every wall clock carries the other
+      # five. The manifest records that rather than hiding it, and the collator
+      # will not price the job cap against a reading stamped this way. The
+      # figure is still a real cost for that clip on that machine; it is simply
+      # not a property of the model.
+      NOT_ISOLATED_BECAUSE: >-
+        published by publish-listening-page.yml, which voices every model in
+        parallel so the page is built in twenty minutes rather than two hours;
+        the wall clock therefore carries contention from the other arms
     defaults:
       run:
         working-directory: test/voice-evaluation
@@ -88,13 +116,15 @@ jobs:
 
       # Voicing a model costs about twenty minutes and the audio is
       # deterministic, so a re-publish that changes only the page does not pay
-      # for it again. The key carries everything that changes the audio.
+      # for it again. The key carries everything that changes the audio -
+      # including the run resolver, because a change to the default chunk size
+      # changes the clips and a stale cache would serve the old ones.
       - name: Cache the voiced audio
         id: voiced
         uses: actions/cache@v6
         with:
           path: test/voice-evaluation/results/${{ matrix.model }}
-          key: voiced-${{ matrix.model }}-${{ hashFiles('test/voice-evaluation/benchmark-model.mjs', 'test/voice-evaluation/voices.config.json', 'test/onnx-runtime-comparison/real-summaries/summaries.json', 'test/onnx-runtime-comparison/verbalization-suite.json') }}
+          key: voiced-${{ matrix.model }}-${{ hashFiles('test/voice-evaluation/benchmark-model.mjs', 'test/voice-evaluation/run-config.mjs', 'test/voice-evaluation/voices.config.json', 'test/onnx-runtime-comparison/real-summaries/summaries.json', 'test/onnx-runtime-comparison/verbalization-suite.json') }}
 
       - run: npm ci --no-audit --no-fund
 
@@ -105,14 +135,10 @@ jobs:
 
       - name: Voice the corpus
         if: steps.voiced.outputs.cache-hit != 'true'
-        env:
-          MODEL: ${{ matrix.model }}
         run: node benchmark-model.mjs
 
       - name: Grade the verbalization suite
         if: ${{ inputs.grade && steps.voiced.outputs.cache-hit != 'true' }}
-        env:
-          MODEL: ${{ matrix.model }}
         run: |
           python -m pip install --quiet -r requirements.txt
           python grade_verbalization.py
@@ -201,6 +227,12 @@ jobs:
     needs: build
     runs-on: ubuntu-latest
     timeout-minutes: 10
+    # The deploy keeps the conventional `pages` group so two deployments can
+    # never race, while the workflow as a whole holds `voice-measurement` so it
+    # cannot voice beside a benchmark.
+    concurrency:
+      group: pages
+      cancel-in-progress: false
     environment:
       name: github-pages
       url: ${{ steps.deployment.outputs.page_url }}

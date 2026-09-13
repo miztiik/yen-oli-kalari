@@ -1,0 +1,196 @@
+# Measure several voices, ONE AT A TIME.
+#
+# This is the only supported way to benchmark more than one model, and it is
+# deliberately slow. The previous design measured seven models at once by
+# crossing a model list with a shard count into 28 simultaneous jobs; they
+# contended for Hugging Face, npm and the Actions pool while each one was being
+# timed, and one arm died of ETIMEDOUT in a native postinstall. A benchmark that
+# perturbs what it measures is not a benchmark.
+#
+# So the sweep costs the SUM of its runs rather than the slowest of them. For
+# six voices at four shards that is roughly six times twenty minutes, against
+# twenty for the parallel version - about two hours more for figures that can
+# actually be compared. Each model still fans out over its own shards, which is
+# the parallelism that does not change the reading.
+#
+# `needs:` is what serialises it. Each job waits for the previous one, so at
+# most one benchmark is ever voicing. The called workflow's `voice-measurement`
+# concurrency group is the backstop for anything dispatched by hand meanwhile.
+#
+# WHY JOBS RATHER THAN A LOOP: a reusable workflow is called with `uses:`, which
+# is a job-level key. There is no way to call one in a loop, and a matrix would
+# run its legs in parallel, which is the one thing this file exists to prevent.
+# Six named jobs in a chain is verbose and correct.
+name: sweep the voices
+
+on:
+  workflow_dispatch:
+    inputs:
+      shards:
+        description: Runners per model. Each is a whole 4-vCPU machine voicing a slice.
+        default: "4"
+        type: choice
+        options: ["1", "2", "4", "8"]
+      maxWordsAChunk:
+        description: Where a summary is split for inference. Held constant across the sweep.
+        default: "40"
+        type: string
+      repeats:
+        description: Times each clip is voiced. The median is reported.
+        default: "1"
+        type: string
+      threads:
+        description: Inference threads. 0 lets the runtime choose.
+        default: "4"
+        type: string
+      grade:
+        description: Transcribe the verbalization suite and grade it
+        default: true
+        type: boolean
+      notes:
+        description: What this sweep is tweaking. Recorded in every manifest it produces.
+        default: ""
+        type: string
+
+permissions:
+  contents: read
+
+# The sweep holds its own group rather than `voice-measurement`: it would
+# otherwise queue behind the very runs it dispatches and deadlock.
+concurrency:
+  group: voice-sweep
+  cancel-in-progress: false
+
+jobs:
+  # One job a model, chained. Every knob except the model is held constant, so
+  # the six readings differ by the model and nothing else - which is the only
+  # condition under which comparing them means anything.
+  kokoro-fp32-uk:
+    uses: ./.github/workflows/benchmark-voice.yml
+    with:
+      model: kokoro-fp32-uk
+      shards: ${{ inputs.shards }}
+      maxWordsAChunk: ${{ inputs.maxWordsAChunk }}
+      repeats: ${{ inputs.repeats }}
+      threads: ${{ inputs.threads }}
+      grade: ${{ inputs.grade }}
+      notes: ${{ inputs.notes }}
+
+  kokoro-fp32-uk-female:
+    needs: kokoro-fp32-uk
+    if: always()
+    uses: ./.github/workflows/benchmark-voice.yml
+    with:
+      model: kokoro-fp32-uk-female
+      shards: ${{ inputs.shards }}
+      maxWordsAChunk: ${{ inputs.maxWordsAChunk }}
+      repeats: ${{ inputs.repeats }}
+      threads: ${{ inputs.threads }}
+      grade: ${{ inputs.grade }}
+      notes: ${{ inputs.notes }}
+
+  kokoro-q8-uk:
+    needs: kokoro-fp32-uk-female
+    if: always()
+    uses: ./.github/workflows/benchmark-voice.yml
+    with:
+      model: kokoro-q8-uk
+      shards: ${{ inputs.shards }}
+      maxWordsAChunk: ${{ inputs.maxWordsAChunk }}
+      repeats: ${{ inputs.repeats }}
+      threads: ${{ inputs.threads }}
+      grade: ${{ inputs.grade }}
+      notes: ${{ inputs.notes }}
+
+  supertonic-m1:
+    needs: kokoro-q8-uk
+    if: always()
+    uses: ./.github/workflows/benchmark-voice.yml
+    with:
+      model: supertonic-m1
+      shards: ${{ inputs.shards }}
+      maxWordsAChunk: ${{ inputs.maxWordsAChunk }}
+      repeats: ${{ inputs.repeats }}
+      threads: ${{ inputs.threads }}
+      grade: ${{ inputs.grade }}
+      notes: ${{ inputs.notes }}
+
+  supertonic-f1:
+    needs: supertonic-m1
+    if: always()
+    uses: ./.github/workflows/benchmark-voice.yml
+    with:
+      model: supertonic-f1
+      shards: ${{ inputs.shards }}
+      maxWordsAChunk: ${{ inputs.maxWordsAChunk }}
+      repeats: ${{ inputs.repeats }}
+      threads: ${{ inputs.threads }}
+      grade: ${{ inputs.grade }}
+      notes: ${{ inputs.notes }}
+
+  mms-eng:
+    needs: supertonic-f1
+    if: always()
+    uses: ./.github/workflows/benchmark-voice.yml
+    with:
+      model: mms-eng
+      shards: ${{ inputs.shards }}
+      maxWordsAChunk: ${{ inputs.maxWordsAChunk }}
+      repeats: ${{ inputs.repeats }}
+      threads: ${{ inputs.threads }}
+      grade: ${{ inputs.grade }}
+      notes: ${{ inputs.notes }}
+
+  # Autoregressive on a CPU, so it is capped rather than allowed to die at the
+  # job cap having measured nothing. A capped reading records its ceiling in the
+  # manifest and is never silently compared with an uncapped one.
+  chatterbox-multilingual:
+    needs: mms-eng
+    if: always()
+    uses: ./.github/workflows/benchmark-voice.yml
+    with:
+      model: chatterbox-multilingual
+      shards: ${{ inputs.shards }}
+      maxWordsAChunk: ${{ inputs.maxWordsAChunk }}
+      repeats: ${{ inputs.repeats }}
+      threads: ${{ inputs.threads }}
+      maxItems: "6"
+      grade: ${{ inputs.grade }}
+      notes: ${{ inputs.notes }}
+
+  done:
+    needs:
+      - kokoro-fp32-uk
+      - kokoro-fp32-uk-female
+      - kokoro-q8-uk
+      - supertonic-m1
+      - supertonic-f1
+      - mms-eng
+      - chatterbox-multilingual
+    if: always()
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      # Every model that ran, and every model that did not. A sweep that quietly
+      # dropped an arm would read as though only the survivors were ever tried,
+      # and "this model does not run on a 4 vCPU runner" is itself a finding.
+      - name: Say what the sweep measured
+        env:
+          RESULTS: ${{ toJSON(needs) }}
+        run: |
+          {
+            echo "# Sweep complete"
+            echo ""
+            echo "Each model was measured alone, in its own run, at the same configuration."
+            echo "Download each run's artifact as \`run-<model>__<configSlug>\`."
+            echo ""
+            echo "| Model | Result |"
+            echo "| --- | --- |"
+            echo "$RESULTS" | node -e '
+              const needs = JSON.parse(require("fs").readFileSync(0, "utf8"));
+              for (const [model, job] of Object.entries(needs)) {
+                if (model === "done") continue;
+                console.log(`| \`${model}\` | ${job.result} |`);
+              }
+            '
+          } >> "$GITHUB_STEP_SUMMARY"

@@ -61,6 +61,11 @@ finished.sort((a, b) => a.metrics.realTimeFactor - b.metrics.realTimeFactor);
 
 const hosts = new Set(finished.map((a) => a.host.cpuModel));
 const onRunner = finished.every((a) => a.host.isCi);
+/* The cap table is arithmetic against a 6 h job, and it is only meaningful for
+   a reading taken with nothing else voicing. A run that shared its runner pool
+   with twenty-seven others produced a real wall clock for that moment, but not
+   one a design may be priced on. */
+const isolated = finished.every((a) => a.run?.isolated === true);
 
 console.log("# Voice benchmark");
 console.log("");
@@ -71,6 +76,47 @@ console.log(
 );
 console.log("");
 
+/* What was measured, and at what settings. A figure without its configuration
+   cannot be compared with another figure, which is the entire reason a run
+   carries one. */
+const configured = finished.filter((a) => a.run);
+if (configured.length) {
+  console.log("## What was measured");
+  console.log("");
+  console.log("| Run | Words a chunk | Repeats | Threads | Items | Shards | Isolated |");
+  console.log("| --- | --- | --- | --- | --- | --- | --- |");
+  for (const arm of configured) {
+    const c = arm.run.config;
+    const shardCell =
+      arm.shard?.merged && arm.shard.complete === false
+        ? `**${arm.shard.shardsMerged}/${arm.shard.shardsExpected}**`
+        : String(c.shards);
+    console.log(
+      `| \`${arm.run.runId}\` | ${c.maxWordsAChunk} | ${c.repeats} | ` +
+        `${c.threads || "auto"} | ${c.maxItems || "all"} | ${shardCell} | ` +
+        `${arm.run.isolated ? "yes" : "**no**"} |`,
+    );
+  }
+  console.log("");
+  for (const arm of configured.filter((a) => a.run.notes)) {
+    console.log(`- \`${arm.run.model}\` tweaks: ${arm.run.notes}`);
+  }
+  if (configured.some((a) => a.run.notes)) console.log("");
+}
+
+/* A run that lost a shard measured a shorter corpus than it asked for. The
+   real-time factor survives because it is a ratio, but the totals do not, and
+   nothing else on this page would say so. */
+const incomplete = finished.filter((a) => a.shard?.merged && a.shard.complete === false);
+if (incomplete.length) {
+  console.log("> **Some runs are missing shards.** Their totals cover fewer clips than the");
+  console.log("> corpus holds, so clip counts, byte totals and audio durations are short.");
+  console.log("> The real-time factor is still a ratio and still means something.");
+  console.log(">");
+  for (const arm of incomplete) console.log(`> - \`${arm.model}\`: ${arm.shard.incompleteBecause}`);
+  console.log("");
+}
+
 if (!onRunner) {
   console.log("> **Not every arm ran on the production runner.** Wall clock is a property of");
   console.log("> the host, so the real-time factors below are not comparable to a job cap.");
@@ -78,6 +124,19 @@ if (!onRunner) {
 } else if (hosts.size > 1) {
   console.log(`> **Arms ran on ${hosts.size} different runner models**, so small differences`);
   console.log("> in real-time factor may be the hardware rather than the model.");
+  console.log("");
+}
+
+if (!isolated) {
+  const reasons = new Set(
+    configured.filter((a) => !a.run.isolated).map((a) => a.run.notIsolatedBecause).filter(Boolean),
+  );
+  console.log("> **Not every reading is isolated, so none of them may be priced against the");
+  console.log("> job cap.** An unisolated run measured a model while something else was");
+  console.log("> voicing on the same pool, so its wall clock carries contention that is not");
+  console.log("> a property of the model.");
+  console.log(">");
+  for (const reason of reasons) console.log(`> - ${reason}`);
   console.log("");
 }
 
@@ -99,8 +158,10 @@ for (const arm of finished) {
 console.log("");
 
 /* What each arm's factor means against the cap, which is the only question the
-   pipeline actually needs answered. */
-if (onRunner) {
+   pipeline actually needs answered. Drawn only for an isolated reading taken on
+   the runner: the cap is 6 h of one job's wall clock, and a figure that carries
+   another run's contention would price the design on the wrong number. */
+if (onRunner && isolated) {
   console.log("## Against the 6 h job cap");
   console.log("");
   console.log("The busiest observed day is 731 items. A shard is a whole runner.");
@@ -112,6 +173,14 @@ if (onRunner) {
     const cells = [1, 2, 4, 8].map((n) => (rtf <= BUDGETS[n] ? "fits" : "busts"));
     console.log(`| \`${arm.model}\` | ${cells.join(" | ")} |`);
   }
+  console.log("");
+} else if (onRunner) {
+  console.log("## Against the 6 h job cap");
+  console.log("");
+  console.log("**Not drawn.** The cap is one job's wall clock, and these readings are not");
+  console.log("isolated, so the arithmetic would price the design on contention rather than");
+  console.log("on the model. Re-run through `benchmark-voice.yml`, which measures one model");
+  console.log("at one configuration with nothing else voicing.");
   console.log("");
 }
 
@@ -149,9 +218,11 @@ writeFileSync(
       schemaVersion: "2026-09-13",
       generatedAt: new Date().toISOString(),
       onRunner,
+      isolated,
       failed: failed.map((f) => f.model),
       arms: finished.map((a) => ({
         model: a.model,
+        run: a.run ?? null,
         runtime: a.runtime,
         modelId: a.modelId,
         host: a.host,
