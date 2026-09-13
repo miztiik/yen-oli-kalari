@@ -24,79 +24,21 @@ Usage:
 
 from __future__ import annotations
 
-import json
 import os
-import resource
-import sys
 import time
-import wave
 from pathlib import Path
 
+from benchmark_common import (
+    load_spec,
+    peak_memory_mb,
+    result_dir_for,
+    voice_the_corpus,
+    write_manifest,
+)
+
 HERE = Path(__file__).resolve().parent
-CONFIG_PATH = HERE / "voices.config.json"
-CORPUS_PATH = HERE.parent / "onnx-runtime-comparison" / "real-summaries" / "summaries.json"
-SUITE_PATH = HERE.parent / "onnx-runtime-comparison" / "verbalization-suite.json"
 
 MODEL_ID_ENV = os.environ.get("MODEL", "")
-MAX_WORDS_A_CHUNK = int(os.environ.get("MAX_WORDS_A_CHUNK", "40"))
-MAX_ITEMS = int(os.environ.get("MAX_ITEMS", "0"))  # 0 = the whole corpus
-SHARD_INDEX = int(os.environ.get("SHARD_INDEX", "0"))
-SHARD_TOTAL = max(1, int(os.environ.get("SHARD_TOTAL", "1")))
-
-
-def peak_memory_mb() -> int:
-    """Peak resident set for this process, which is what decides deployability."""
-    peak = resource.getrusage(resource.RUSAGE_SELF).ru_maxrss
-    return int(peak / 1024)  # ru_maxrss is KiB on Linux
-
-
-def split_into_chunks(text: str, max_words: int) -> list[str]:
-    """Split at sentence boundaries into chunks of at most `max_words`.
-
-    The same rule the Node harness uses, and for the same reason: a model that
-    truncates at its context limit reports nothing about what it dropped. The
-    first measurement this project ever took was invalid because 54, 80, 134 and
-    242-word summaries all produced the same 27 seconds of audio.
-    """
-    sentences = [s.strip() for s in text.replace("\n", " ").split(". ") if s.strip()]
-    chunks: list[str] = []
-    current: list[str] = []
-    count = 0
-    for index, sentence in enumerate(sentences):
-        piece = sentence if sentence.endswith(".") or index == len(sentences) - 1 else sentence + "."
-        words = len(piece.split())
-        if current and count + words > max_words:
-            chunks.append(" ".join(current))
-            current, count = [piece], words
-        else:
-            current.append(piece)
-            count += words
-    if current:
-        chunks.append(" ".join(current))
-    return chunks or [text]
-
-
-def write_wav(path: Path, samples, sample_rate: int) -> int:
-    """Write mono 16-bit PCM. Returns the byte count."""
-    import numpy as np
-
-    clipped = np.clip(samples, -1.0, 1.0)
-    pcm = (clipped * 32767).astype(np.int16)
-    with wave.open(str(path), "wb") as handle:
-        handle.setnchannels(1)
-        handle.setsampwidth(2)
-        handle.setframerate(sample_rate)
-        handle.writeframes(pcm.tobytes())
-    return path.stat().st_size
-
-
-def load_spec(model_key: str) -> dict:
-    config = json.loads(CONFIG_PATH.read_text(encoding="utf-8"))
-    for model in config["models"]:
-        if model["id"] == model_key:
-            return model
-    ids = ", ".join(m["id"] for m in config["models"])
-    raise SystemExit(f"unknown MODEL '{model_key}'. Configured: {ids}")
 
 
 def build_chatterbox(spec: dict):
@@ -248,138 +190,21 @@ def main() -> int:
     load_seconds = time.time() - started
     print(f"  loaded in {load_seconds:.1f}s, peak {peak_memory_mb()} MB", flush=True)
 
-    # Set by a sharded run so each shard writes somewhere of its own.
-    result_dir = (
-        Path(os.environ["RESULT_DIR"])
-        if os.environ.get("RESULT_DIR")
-        else HERE / "results" / MODEL_ID_ENV
+    result_dir = result_dir_for(MODEL_ID_ENV)
+    clips = voice_the_corpus(speak, sample_rate, result_dir)
+
+    manifest = write_manifest(
+        result_dir,
+        MODEL_ID_ENV,
+        spec,
+        runtime="onnxruntime-python",
+        clips=clips,
+        load_seconds=load_seconds,
     )
-    (result_dir / "summaries").mkdir(parents=True, exist_ok=True)
-    (result_dir / "verbalization").mkdir(parents=True, exist_ok=True)
-
-    corpus = json.loads(CORPUS_PATH.read_text(encoding="utf-8"))
-    summaries = corpus["summaries"]
-    whole_corpus_size = len(summaries)
-    if SHARD_TOTAL > 1:
-        # Round-robin rather than contiguous blocks: summaries vary in length
-        # by more than 10x, so a contiguous slice would hand one shard every
-        # long one and the fan-out would finish no sooner than a single job.
-        summaries = [s for i, s in enumerate(summaries) if i % SHARD_TOTAL == SHARD_INDEX]
-        print(
-            f"shard {SHARD_INDEX + 1}/{SHARD_TOTAL}: "
-            f"{len(summaries)}/{whole_corpus_size} summaries",
-            flush=True,
-        )
-    summaries = summaries[: MAX_ITEMS or None]
-
-    clips = []
-    for sample in summaries:
-        chunks = split_into_chunks(sample["text"], MAX_WORDS_A_CHUNK)
-        began = time.time()
-        pieces = [speak(chunk)[0] for chunk in chunks]
-        wall_ms = int((time.time() - began) * 1000)
-
-        import numpy as np
-
-        samples = np.concatenate(pieces)
-        audio_seconds = len(samples) / sample_rate
-        name = f"{sample['id']}.wav"
-        byte_count = write_wav(result_dir / "summaries" / name, samples, sample_rate)
-
-        clips.append(
-            {
-                "id": sample["id"],
-                "text": sample["text"],
-                "words": sample["words"],
-                "hazards": sample.get("hazards", []),
-                "sourceName": sample.get("sourceName"),
-                "clip": name,
-                "chunks": len(chunks),
-                "audioSeconds": round(audio_seconds, 2),
-                "wallClockMs": wall_ms,
-                "realTimeFactor": round(wall_ms / 1000 / audio_seconds, 3),
-                "wordsAMinute": round(sample["words"] / audio_seconds * 60, 1),
-                "bytes": byte_count,
-            }
-        )
-        print(f"  {sample['id']}  {sample['words']:4d}w  {audio_seconds:.1f}s", flush=True)
-
-    # The same free metrics the Node arm computes, so a Python arm is not a
-    # second-class row in the comparison table. Long-form drift needs chunk
-    # timings this runner does not yet record, so it is absent rather than zero.
-    audio_total = sum(c["audioSeconds"] for c in clips)
-    words_total = sum(c["words"] for c in clips)
-    wall_total = sum(c["wallClockMs"] for c in clips) / 1000
-    characters = sum(len(c["text"]) for c in clips)
-    rates = sorted(c["wordsAMinute"] for c in clips)
-    mean_rate = sum(rates) / len(rates) if rates else 0.0
-    variance = sum((r - mean_rate) ** 2 for r in rates) / (len(rates) - 1) if len(rates) > 1 else 0.0
-    deviation = variance ** 0.5
-
-    metrics = {
-        "totalCharacters": characters,
-        "totalWords": words_total,
-        "audioSeconds": round(audio_total, 2),
-        "processingSeconds": round(wall_total, 1),
-        "charactersASecond": round(characters / audio_total, 2) if audio_total else 0,
-        "medianCharactersASecond": round(
-            sorted(len(c["text"]) / c["audioSeconds"] for c in clips)[len(clips) // 2], 2
-        )
-        if clips
-        else 0,
-        "speakingRate": round(words_total / audio_total * 60, 1) if audio_total else 0,
-        "realTimeFactor": round(wall_total / audio_total, 4) if audio_total else 0,
-        "speedMultiplier": round(audio_total / wall_total, 2) if wall_total else 0,
-        "rateStability": {
-            "mean": round(mean_rate, 1),
-            "median": rates[len(rates) // 2] if rates else 0,
-            "min": rates[0] if rates else 0,
-            "max": rates[-1] if rates else 0,
-            "standardDeviation": round(deviation, 2),
-            "coefficientOfVariation": round(deviation / mean_rate, 4) if mean_rate else 0,
-        },
-        "drift": None,
-        "notMeasuredHere": [
-            "long-form drift (needs per-chunk timings from this runner)",
-            "intelligibility",
-            "naturalness",
-            "audio defects",
-        ],
-    }
-
-    manifest = {
-        "schemaVersion": "2026-09-13",
-        "metrics": metrics,
-        "model": MODEL_ID_ENV,
-        "modelId": spec["modelId"],
-        "runtime": "onnxruntime-python",
-        "voice": spec.get("voice"),
-        "accent": spec.get("accent"),
-        "licence": spec.get("licence"),
-        "commercialUse": spec.get("commercialUse"),
-        "params": spec.get("params"),
-        "architecture": spec.get("architecture"),
-        "sizeGb": spec.get("sizeGb"),
-        "modelLoadMs": int(load_seconds * 1000),
-        "peakMemoryMb": peak_memory_mb(),
-        "host": {
-            "isCi": bool(os.environ.get("CI")),
-            "cpuCount": os.cpu_count(),
-            "python": sys.version.split()[0],
-        },
-        "clips": clips,
-        "totals": {
-            "clipCount": len(clips),
-            "words": words_total,
-            "audioSeconds": round(audio_total, 2),
-            "wallSeconds": round(wall_total, 1),
-            "realTimeFactor": metrics["realTimeFactor"],
-            "wordsAMinute": metrics["speakingRate"],
-            "bytes": sum(c["bytes"] for c in clips),
-        },
-    }
-    (result_dir / "manifest.json").write_text(json.dumps(manifest, indent=2) + "\n", encoding="utf-8")
-    print(f"\nwrote {len(clips)} clips, peak {peak_memory_mb()} MB")
+    print(
+        f"\nwrote {len(clips)} clips, rtf {manifest['metrics']['realTimeFactor']}, "
+        f"peak {peak_memory_mb()} MB"
+    )
     return 0
 
 

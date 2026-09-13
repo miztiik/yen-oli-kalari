@@ -288,24 +288,48 @@ jobs:
       - name: Install eSpeak
         run: sudo apt-get update -qq && sudo apt-get install -y -qq espeak-ng libsndfile1
 
-      # TORCH MUST COME FROM THE CPU INDEX. The default PyPI wheel drags CUDA
-      # with it - about 2 GB of driver payload this runner has no card for, and
-      # which would take longer to download than the benchmark takes to run.
-      # SNAC needs torch; nothing else here does.
+      # TORCH AND TORCHAUDIO MUST BOTH COME FROM THE CPU INDEX, AND BEFORE
+      # ANYTHING THAT DEPENDS ON THEM. Measured 2026-09-14: installing only
+      # `torch` from the CPU index was not enough, because `neucodec` requires
+      # torchaudio and pip then resolved it from PyPI - the CUDA build - which
+      # fails at import with `OSError: libcudart.so.13`. There is no card on this
+      # runner and never will be. Pre-installing both satisfies the requirement
+      # so the later resolve leaves them alone.
+      #
+      # llama-cpp-python is COMPILED. Its own wheel index serves musl-linked
+      # binaries that will not load on a glibc runner, and PyPI carries no
+      # manylinux wheel, so there is no prebuilt path here. ccache makes the
+      # second run of an unchanged pin cheap.
+      - name: Install the build toolchain
+        run: sudo apt-get update -qq && sudo apt-get install -y -qq ninja-build ccache
+
+      - name: Cache the llama.cpp build
+        uses: actions/cache@v6
+        with:
+          path: ~/.cache/ccache
+          key: ccache-llama-${{ hashFiles('test/voice-evaluation/requirements-gguf.txt') }}
+          restore-keys: ccache-llama-
+
       - name: Install the runtime
+        env:
+          CMAKE_ARGS: "-DGGML_NATIVE=ON -DLLAVA_BUILD=OFF"
+          CMAKE_BUILD_PARALLEL_LEVEL: "4"
+          FORCE_CMAKE: "1"
         run: |
           set -euo pipefail
           python -m pip install --quiet --upgrade pip
-          python -m pip install --quiet --index-url https://download.pytorch.org/whl/cpu torch
+          python -m pip install --quiet --index-url https://download.pytorch.org/whl/cpu torch torchaudio
           for attempt in 1 2 3; do
-            python -m pip install --quiet \
-              --extra-index-url https://abetlen.github.io/llama-cpp-python/whl/cpu \
-              -r requirements-gguf.txt && break
+            python -m pip install -r requirements-gguf.txt && break
             echo "pip failed (attempt ${attempt}/3), retrying in $((attempt * 15))s"
             sleep $((attempt * 15))
           done
           python -m pip install --quiet "neutts @ git+https://github.com/neuphonic/neutts-air.git" \
             || echo "neutts library unavailable - only the neutts arm needs it"
+          python - <<'PY'
+          import torch
+          print("torch", torch.__version__, "cuda build:", torch.version.cuda)
+          PY
 
       - name: Record the runner
         run: |

@@ -5,11 +5,21 @@
 # PINNED, because a benchmark whose runtime moves between two runs makes the two
 # figures incomparable - which is the whole point of the exercise.
 
-# llama.cpp bindings. 0.3.19 is the LAST version with a prebuilt cp312
-# linux_x86_64 CPU wheel on the project's own index (verified 2026-09-14);
-# PyPI is further ahead but only as an sdist, and compiling ggml on a 4 vCPU
-# runner costs more minutes than the measurement it would enable.
-llama-cpp-python==0.3.19
+# llama.cpp bindings, COMPILED FROM THE SDIST RATHER THAN A WHEEL.
+#
+# MEASURED 2026-09-14, and it cost a run to learn: the project's own wheel index
+# at abetlen.github.io/llama-cpp-python/whl/cpu publishes files named
+# `...-linux_x86_64.whl`, but the shared library inside them is MUSL-linked. On a
+# glibc runner - which every `ubuntu-latest` is - importing it dies with
+#
+#     OSError: libc.musl-x86_64.so.1: cannot open shared object file
+#
+# PyPI publishes no manylinux wheel at all for this package, only the sdist. So
+# there is no prebuilt path to a glibc runner and the choice is to compile. The
+# build costs several minutes of a 4 vCPU runner once per cache miss, against a
+# benchmark that runs for an hour; forcing musl into a glibc process to save it
+# would be two libcs in one address space, which is not a saving.
+llama-cpp-python==0.3.35
 
 # Orpheus emits SNAC codes. The decoder is ~20M parameters and torch-only, so
 # this arm pays for CPU torch - the beneficiary feature is "audio at all", since
