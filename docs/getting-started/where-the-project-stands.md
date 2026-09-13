@@ -12,8 +12,23 @@ To find a page rather than a verdict, use
 
 ## In one sentence
 
-The incumbent voice model is good enough on speed, has been running in its
-slowest configuration, and nobody has listened to it yet.
+The incumbent has been beaten on speed and accuracy at once by a model whose
+licence forbids shipping it, and no voice measured reads news copy correctly
+more than half the time.
+
+## The measured field, 2026-09-13
+
+| Model | Licence | RTF | Verbalization | Verdict |
+| --- | --- | --- | --- | --- |
+| Supertonic M1 | OpenRAIL-M | **0.0965** | **44.4%** | best measured, **cannot ship** |
+| Kokoro fp32 `bm_george` | Apache-2.0 | 0.3591 | 29.6% | **the shippable option** |
+| Kokoro q8 | Apache-2.0 | 0.9993 | 29.6% | superseded - 2.78x slower for identical audio |
+| MMS-TTS | CC-BY-NC | 0.2100 | 7.4% | control only |
+| Chatterbox multilingual | MIT | ran, unscored | - | AR on CPU is feasible: 6 clips, 5.8 GB peak |
+
+Full record: [2026-09-13 - Six voices graded](../reference/benchmarks/2026-09-13-six-voices-graded.md).
+
+
 
 ## Settled
 
@@ -30,20 +45,22 @@ slowest configuration, and nobody has listened to it yet.
 
 | Question | Why it is still open |
 | --- | --- |
-| **Is the audio good enough to publish?** | 24 real clips exist, hazard-tagged. **Nobody has listened to one.** This is the only question left that can still kill the design. |
-| Does `fp32` hold up on the runner? | The 2.16x ratio was measured on a laptop. The ratio transfers; the absolute figure does not. |
-| Does sharding work in practice? | The four-runner figure is arithmetic. `measure-voice.yml` exists and has never been dispatched. |
-| Is a 15M model as good? | KittenTTS nano 0.8 is the same architecture family at a fifth the size, Apache-2.0, and won a blind listening test. Unbenchmarked here. |
+| **Is the audio good enough to publish?** | Six voices are now measured and graded. **Nobody has listened to one.** No figure here says whether any of it is pleasant to hear. |
+| Can the project use the best model it measured? | Supertonic wins on speed and accuracy and is OpenRAIL-M with an archived upstream. Kokoro is Apache-2.0 and maintained. This is an owner ruling, not a measurement. |
+| How fast is Chatterbox? | It ran on the runner - 6 clips, 5.8 GB peak - so an autoregressive model is feasible here. Its arm recorded no per-clip timings, so the real-time factor is unknown. |
+| Can any voice read news copy correctly? | The best measured gets 44.4 percent. Nobody clears half, and the failures are specific: currency units, clocks, initialisms, fiscal quarters. |
 
 ## Next action
 
-**Switch to `fp32` and dispatch
-[`.github/workflows/measure-voice.yml`](../../.github/workflows/measure-voice.yml).**
-One config change. It confirms the quantisation finding on real hardware and
-probably removes the only compute constraint the design has.
+**Listen.** The published page is at
+[miztiik.github.io/yen-oli-kalari](https://miztiik.github.io/yen-oli-kalari/) -
+six voices, the same 24 summaries, an A/B tab that plays two of them against
+each other blind. Every instrument this project owns is built and running, and
+none of them replaces a person with headphones on.
 
-Then run `npm run build-clips` in
-[`test/voice-evaluation/`](../../test/voice-evaluation/README.md) and listen.
+The second thing is an owner ruling rather than a measurement: **Supertonic wins
+and cannot ship.** Either the licence is acceptable for this use, or the field
+narrows to Kokoro and whatever the blocked runtimes turn out to be worth.
 
 ## What is built, and what is not
 

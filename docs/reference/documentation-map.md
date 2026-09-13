@@ -48,6 +48,7 @@ record stays where it is.
 
 | Record | What it measured |
 | --- | --- |
+| [2026-09-13 - Six voices graded, and the incumbent is beaten](benchmarks/2026-09-13-six-voices-graded.md) | Speed AND verbalization accuracy for six voices on the runner |
 | [2026-09-12 - The quantisation was costing, not saving](benchmarks/2026-09-12-quantisation-was-costing-not-saving.md) | `fp32` against `q8` against `q4` on one machine |
 | [2026-09-12 - Real text and the shard arithmetic](benchmarks/2026-09-12-real-text-and-shard-arithmetic.md) | The speaking pace on real published summaries, and the budget by shard count |
 | [2026-09-12 - Kokoro on a CI runner](benchmarks/2026-09-12-kokoro-on-a-ci-runner.md) | The first voice model run on the production runner |
