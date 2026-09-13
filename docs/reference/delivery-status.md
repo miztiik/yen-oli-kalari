@@ -67,6 +67,9 @@ Full detail in [`evaluation-coverage.md`](evaluation-coverage.md).
 | Request | State | Detail |
 | --- | --- | --- |
 | Runner-only execution | **Done** | Every benchmark on GitHub Actions. Local is syntax checks only - a wall clock read on a laptop may not be compared against a job cap. |
+| One model, one config, one run | **Done** | [`benchmark-voice.yml`](../../.github/workflows/benchmark-voice.yml) takes ONE model and fans out over shards only. It replaced a workflow that crossed a model list with the shard count into 28 simultaneous jobs, which contended for Hugging Face, npm and the runner pool while every arm was being timed. [`benchmark-sweep.yml`](../../.github/workflows/benchmark-sweep.yml) measures several, serially. |
+| A run records what produced it | **Done** | [`run-manifest.schema.json`](../../test/voice-evaluation/run-manifest.schema.json) is the contract; `run.config` is **closed**, so a knob that is not recorded fails the gate. Thread count and item ceiling were previously recorded in no reading at all. |
+| A polluted figure is labelled | **Done** | `run.isolated`, asserted by the dispatcher and never inferred. The publish workflow stamps `false` with its reason; the collator refuses to draw the job-cap table for such a reading. |
 | Stream weights, never commit them | **Done** | Hugging Face cache on the runner, memory-mapped, gone with the runner. **The repository carries zero weights**, so what bounds the number of comparable models is runner RAM rather than repository size. The ceiling is stated: 16 GB and 4 vCPU, so roughly 9-10 GB. |
 | Config-driven, one input set | **Done** | [`voices.config.json`](../../test/voice-evaluation/voices.config.json) - a model is a row carrying its runtime, licence, real size and, where it cannot run, the verified reason. |
 | British voices | **Done** | `bm_george` and `bf_emma`. Supertonic publishes F1-F5 and M1-M5 with **no accent labels**, so those rows carry `accentKnown: false` rather than a guess. |
@@ -82,9 +85,15 @@ Full detail in [`evaluation-coverage.md`](evaluation-coverage.md).
    that cost.
 4. **Qwen3-TTS.** The most plausible unwired candidate at 1.5 GB, and the loop it
    needs is the one Chatterbox proved.
+5. **Re-measure the six graded voices.** Every figure in this document was taken
+   before the run contract, under the 28-job fan-out or beside five parallel
+   publish arms, so none of them records its thread count or item ceiling and
+   none is isolated. They are the best numbers there are, and they are not
+   comparable with anything taken since.
 
 ## See also
 
+- [`../how-to/benchmark-a-voice.md`](../how-to/benchmark-a-voice.md) - how a comparable figure is taken.
 - [`benchmarks/2026-09-13-six-voices-graded.md`](benchmarks/2026-09-13-six-voices-graded.md) - the run behind every figure here.
 - [`evaluation-coverage.md`](evaluation-coverage.md) - the twelve metrics in detail.
 - [`voice-model-survey.md`](voice-model-survey.md) - every model considered.

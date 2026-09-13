@@ -60,6 +60,7 @@ record stays where it is.
 | Page | The task |
 | --- | --- |
 | [run-the-gates.md](../how-to/run-the-gates.md) | What to run before claiming a change is done |
+| [benchmark-a-voice.md](../how-to/benchmark-a-voice.md) | How to get a figure you are allowed to compare: one model, one config, one run |
 | [ship-a-pr.md](../how-to/ship-a-pr.md) | Branch, transfer, PR, cleanup |
 | [ship-to-github-pages.md](../how-to/ship-to-github-pages.md) | Getting a surface onto the published site |
 | [author-a-plan.md](../how-to/author-a-plan.md) | Writing a plan document |

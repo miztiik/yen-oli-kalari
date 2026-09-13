@@ -6,6 +6,14 @@
 # under measurement makes the comparison say nothing.
 name: compare kokoro-js
 
+# This workflow voices models on the runner, so it takes the same lock every
+# other voicing workflow takes. A benchmark asserts `run.isolated: true` on the
+# strength of this group, and that assertion is only true if EVERY workflow that
+# can put an inference job on the pool holds it.
+concurrency:
+  group: voice-measurement
+  cancel-in-progress: false
+
 on:
   workflow_dispatch:
     inputs:

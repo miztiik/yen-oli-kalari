@@ -1,18 +1,19 @@
 # Run the Gates
 
-**Last Updated**: 2026-09-12
+**Last Updated**: 2026-09-13
 
 What to run locally and what to leave to CI, before a merge. This page owns the
 project's actual gate commands; the neutral PR lifecycle that calls for them is
 [ship-a-pr.md](ship-a-pr.md).
 
-**Read this first: almost nothing is built yet.** yen-oli-kalari is a skeleton.
-There is no test suite, no linter or type-checker config, no CI workflow, and
-this checkout is not even a git repository
-([../reference/agent-notes.md](../reference/agent-notes.md)). So the honest gate
-list today is short: two utility scripts run, and everything else is named below
-as "not built yet" with what will build it. Do not run a command this page does
-not list - an invented gate that fails wastes the time this page exists to save.
+**Read this first: much of the application is still unbuilt, but the gate list
+is no longer empty.** There is a test suite (four files), five CI workflows, and
+a real contract for the benchmark manifest. There is still no linter or
+type-checker config, and `frontend/` and the pipeline itself do not exist. So
+the honest gate list is: the two utility scripts, `pytest`, and `actionlint` if
+you have it - with everything else named below as "not built yet" and what will
+build it. Do not run a command this page does not list; an invented gate that
+fails wastes the time this page exists to save.
 
 ## What you can run today
 
@@ -71,8 +72,27 @@ python -m mypy backend/
 python -m pytest
 ```
 
-- **Validation today:** `5 passed`. The suite is [`tests/test_documentation_map.py`](../../tests/test_documentation_map.py), which checks that every page under `docs/` is reachable from [`docs/reference/documentation-map.md`](../reference/documentation-map.md), that every link in the map resolves, that every page carries a `**Last Updated**` stamp, and that no retired name survives as a live reference.
-- **Failure mode:** `pages are not listed in the documentation map` means a new page was added without putting it on the map - add the row rather than deleting the check. `references 'x' without naming 'y'` means a rename missed a reference.
+- **Validation today:** `47 passed, 6 skipped`. Four suites:
+  - [`tests/test_documentation_map.py`](../../tests/test_documentation_map.py) checks that every page under `docs/` is reachable from [`docs/reference/documentation-map.md`](../reference/documentation-map.md), that every link resolves, that every page carries a `**Last Updated**` stamp, and that no retired name survives as a live reference.
+  - [`tests/test_run_contract.py`](../../tests/test_run_contract.py) holds every producer to [`test/voice-evaluation/run-manifest.schema.json`](../../test/voice-evaluation/run-manifest.schema.json): the config slug is derived rather than authored, changing any knob changes it, a run refuses more than one model, isolation is asserted rather than inferred, and the resolver and the schema name the same set of knobs.
+  - [`tests/test_shard_merge.py`](../../tests/test_shard_merge.py) splits a real manifest four ways, merges it back, and checks nothing moved - including that shards of two different configurations are REFUSED.
+  - [`tests/test_verbalization_grader.py`](../../tests/test_verbalization_grader.py) covers the ASR grading pass.
+- **Skips are expected** when `test/voice-evaluation/results/` is empty or holds pre-contract manifests. They name the reason; a skip that says "predates the run contract" means re-measuring that model, not a broken test.
+- **Failure mode:** `pages are not listed in the documentation map` means a new page was added without putting it on the map - add the row rather than deleting the check. `run-config.mjs and run-manifest.schema.json disagree` means a knob was added to one and not the other.
+
+### 6. Lint the workflows
+
+`actionlint` is not on PATH by default. It is a single binary from the project's
+release page and catches the class of error that otherwise only shows up after a
+dispatch - an undefined `needs` output, a bad matrix reference, a shell quoting
+bug.
+
+```powershell
+actionlint
+```
+
+- **Validation:** exits 0 with no output.
+- **Caveat:** pass `-no-color`, not `-color never`; the flag takes no argument and the value is read as a file path.
 
 ## Gates not built yet
 
@@ -83,12 +103,11 @@ you can type now.
 | Gate | Built by | Why it cannot run yet |
 | --- | --- | --- |
 | Backend lint + types | a `pyproject.toml` configuring ruff and mypy | no config exists, so there is no project rule to enforce |
-| Backend tests | a `pytest` suite over the pipeline code | the pipeline does not exist yet; the documentation-map suite runs today |
-| Contract drift | the exporter that writes `schemas/` from the contracts package, then `git diff --exit-code` | the contracts package and `schemas/` are both empty, so there is nothing to export yet; git itself works, so the diff step will run once an exporter exists |
+| Backend tests | a `pytest` suite over the pipeline code | the pipeline does not exist yet; four suites run today |
+| Contract drift | the exporter that writes `schemas/` from the contracts package, then `git diff --exit-code` | the contracts package and `schemas/` are both empty. The run manifest is the exception: it has a real contract at [`test/voice-evaluation/run-manifest.schema.json`](../../test/voice-evaluation/run-manifest.schema.json), enforced by `tests/test_run_contract.py` |
 | Frontend build | `frontend/package.json` and the Svelte site | `frontend/` is empty; there is no `package.json`, so `npm run build` has nothing to build |
 | Browser suite | a Playwright suite over Listen and Console | the frontend does not exist yet; per [../../CLAUDE.md](../../CLAUDE.md) section 12 a published-site change is verified in a real browser once there is a page |
 | Site-weight cap | a check that the published site plus its audio stays under the 1 GB Pages cap | there is no published tree to weigh; the cap is held by the prune cycle in the Action ([../reference/measurements.md](../reference/measurements.md)) |
-| CI workflow | `.github/workflows/*.yml` | `.github/workflows/` is empty; there is no job to dispatch |
 
 ## What is deliberately left to CI
 
@@ -113,6 +132,12 @@ python backend/utilities/calculate_audio_budget.py
 
 # the input census, one argument: a yen-idhazh checkout
 python backend/utilities/measure_input.py <path-to-yen-idhazh-checkout>
+
+# the four test suites, including the run contract and the shard merger
+python -m pytest
+
+# the workflows, if actionlint is installed
+actionlint
 ```
 
 Everything else a mature gate page would bind here - the changed-test selector,
@@ -123,6 +148,7 @@ this section when the first one lands.
 ## See also
 
 - [ship-a-pr.md](ship-a-pr.md) - the neutral PR lifecycle that calls these gates.
+- [benchmark-a-voice.md](benchmark-a-voice.md) - how to take a figure these gates guard the shape of.
 - [ship-to-github-pages.md](ship-to-github-pages.md) - the deploy these gates guard.
 - [../reference/agent-notes.md](../reference/agent-notes.md) - the shell and tool traps that make a check lie about its result.
 - [../reference/measurements.md](../reference/measurements.md) - the caps the site-weight and compute gates will enforce.

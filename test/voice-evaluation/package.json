@@ -4,8 +4,10 @@
   "type": "module",
   "description": "Generates audio clips from the sample corpus so a person can listen and judge them.",
   "scripts": {
-    "build-clips": "node build-evaluation-clips.mjs && node build-page-data.mjs",
-    "build-page": "node build-page-data.mjs",
+    "build-clips": "node build-evaluation-clips.mjs && node build-page-index.mjs",
+    "build-page": "node build-page-index.mjs",
+    "benchmark": "node benchmark-model.mjs",
+    "run-config": "node run-config.mjs",
     "serve": "node serve.mjs"
   },
   "dependencies": {

@@ -20,6 +20,15 @@
 # and buy nothing, because the model already uses the cores it is given.
 name: measure voice on the runner
 
+# This workflow voices models on the runner, so it takes the same lock every
+# other voicing workflow takes. A benchmark asserts `run.isolated: true` on the
+# strength of this group, and that assertion is only true if EVERY workflow that
+# can put an inference job on the pool holds it - this one fans out over as many
+# as eight runners, so it is the loudest neighbour of the lot.
+concurrency:
+  group: voice-measurement
+  cancel-in-progress: false
+
 on:
   workflow_dispatch:
     inputs:
