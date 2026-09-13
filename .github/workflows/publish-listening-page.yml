@@ -179,15 +179,19 @@ jobs:
           CLIP_EXTENSION: .ogg
         run: |
           set -euo pipefail
-          node build-page-data.mjs
+          # The page is a shell: this writes an index naming the runs and where
+          # each manifest lives, and the browser fetches the rest. Inlining the
+          # clips instead would put every run's text in every visitor's first
+          # request to read one.
+          node build-page-index.mjs
           mkdir -p _site
-          cp page/index.html page/styles.css page/app.js page/store.js page/data.js _site/
+          cp page/index.html page/styles.css page/app.js page/store.js page/index.json _site/
           # The encoded audio and the manifests only. Each manifest is the
           # measurement its own audio produced, published beside it so a figure
           # on the page can be checked against its source.
           rsync -a --include='*/' --include='*.ogg' --include='manifest.json' \
             --include='verbalization-grades.json' --exclude='*' results/ _site/results/
-          du -sh _site
+          echo "index $(du -h _site/index.json | cut -f1), site $(du -sh _site | cut -f1)"
 
       - uses: actions/upload-pages-artifact@v4
         with:

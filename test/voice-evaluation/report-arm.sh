@@ -3,12 +3,13 @@
 # A separate file because the same block inline in YAML had to survive three
 # levels of quoting and lost an environment variable doing it.
 set -euo pipefail
-M="results/${MODEL}/manifest.json"
+DIR="${RESULT_DIR:-results/${MODEL}}"
+M="${DIR}/manifest.json"
 if [ ! -f "$M" ]; then
   echo "### ${MODEL} produced no manifest"
   exit 0
 fi
-MANIFEST="$M" GRADES="results/${MODEL}/verbalization-grades.json" node -e '
+MANIFEST="$M" GRADES="${DIR}/verbalization-grades.json" node -e '
 const fs = require("fs");
 const m = JSON.parse(fs.readFileSync(process.env.MANIFEST, "utf8"));
 const x = m.metrics;

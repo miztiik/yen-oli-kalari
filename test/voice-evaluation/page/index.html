@@ -186,6 +186,7 @@
 					<button id="prev" type="button" aria-label="Previous clip" disabled>&#9664;&#9664;</button>
 					<button id="toggle" type="button" aria-label="Play or pause" disabled>&#9654;</button>
 					<button id="next" type="button" aria-label="Next clip" disabled>&#9654;&#9654;</button>
+					<button id="stop" class="dock__stop" type="button" aria-label="Stop and clear the player" disabled>&#9632;</button>
 					<span class="dock__title" id="dock-title" data-idle="true">Nothing playing</span>
 					<span class="dock__slow" id="dock-slow" hidden>Fetching audio&hellip;</span>
 					<label class="dock__advance"><input type="checkbox" id="auto-advance" checked /> Auto-advance</label>
@@ -205,7 +206,6 @@
 		<audio id="audio-b" preload="none"></audio>
 
 		<script src="store.js"></script>
-		<script src="data.js"></script>
 		<script src="app.js"></script>
 	</body>
 </html>

@@ -40,6 +40,8 @@ SUITE_PATH = HERE.parent / "onnx-runtime-comparison" / "verbalization-suite.json
 MODEL_ID_ENV = os.environ.get("MODEL", "")
 MAX_WORDS_A_CHUNK = int(os.environ.get("MAX_WORDS_A_CHUNK", "40"))
 MAX_ITEMS = int(os.environ.get("MAX_ITEMS", "0"))  # 0 = the whole corpus
+SHARD_INDEX = int(os.environ.get("SHARD_INDEX", "0"))
+SHARD_TOTAL = max(1, int(os.environ.get("SHARD_TOTAL", "1")))
 
 
 def peak_memory_mb() -> int:
@@ -246,12 +248,29 @@ def main() -> int:
     load_seconds = time.time() - started
     print(f"  loaded in {load_seconds:.1f}s, peak {peak_memory_mb()} MB", flush=True)
 
-    result_dir = HERE / "results" / MODEL_ID_ENV
+    # Set by a sharded run so each shard writes somewhere of its own.
+    result_dir = (
+        Path(os.environ["RESULT_DIR"])
+        if os.environ.get("RESULT_DIR")
+        else HERE / "results" / MODEL_ID_ENV
+    )
     (result_dir / "summaries").mkdir(parents=True, exist_ok=True)
     (result_dir / "verbalization").mkdir(parents=True, exist_ok=True)
 
     corpus = json.loads(CORPUS_PATH.read_text(encoding="utf-8"))
-    summaries = corpus["summaries"][: MAX_ITEMS or None]
+    summaries = corpus["summaries"]
+    whole_corpus_size = len(summaries)
+    if SHARD_TOTAL > 1:
+        # Round-robin rather than contiguous blocks: summaries vary in length
+        # by more than 10x, so a contiguous slice would hand one shard every
+        # long one and the fan-out would finish no sooner than a single job.
+        summaries = [s for i, s in enumerate(summaries) if i % SHARD_TOTAL == SHARD_INDEX]
+        print(
+            f"shard {SHARD_INDEX + 1}/{SHARD_TOTAL}: "
+            f"{len(summaries)}/{whole_corpus_size} summaries",
+            flush=True,
+        )
+    summaries = summaries[: MAX_ITEMS or None]
 
     clips = []
     for sample in summaries:

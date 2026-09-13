@@ -1173,19 +1173,39 @@ body {
 	border-radius: var(--radius-sm);
 }
 
-.chunk[data-spoken='true'] {
+/* Per WORD, and deliberately not by scaling it. Scale is noise when the job is
+   spotting a mispronunciation, and text that jumps about is harder to read -
+   Spotify and Apple Music lyrics use colour and position instead, and
+   read-along tools use a quiet pill. The underline sweeps within the word so
+   the eye has somewhere to go without the line reflowing. */
+.word {
+	position: relative;
+	border-radius: var(--radius-sm);
+	transition:
+		color var(--dur-fast) var(--ease-standard),
+		background var(--dur-fast) var(--ease-standard),
+		box-shadow var(--dur-fast) var(--ease-standard);
+}
+
+.word[data-spoken='true'] {
 	color: var(--color-text-tertiary);
 }
 
-.chunk[data-live='true'] {
+.word[data-current='true'] {
 	color: var(--color-text);
-	background: linear-gradient(
-		90deg,
-		var(--tint-accent) 0,
-		var(--tint-accent) var(--through, 0%),
-		transparent var(--through, 0%)
-	);
-	box-shadow: inset 0 -2px 0 0 var(--color-accent);
+	background: var(--tint-accent);
+	box-shadow: 0 0 0 0.16em var(--tint-accent);
+}
+
+.word[data-current='true']::after {
+	content: '';
+	position: absolute;
+	inset-inline-start: 0;
+	bottom: -0.14em;
+	width: var(--word-through, 0%);
+	height: 2px;
+	border-radius: var(--radius-full);
+	background: var(--audio-elapsed);
 }
 
 /* --- A/B -------------------------------------------------------------- */
@@ -1361,4 +1381,210 @@ body {
 
 .waveform[hidden] {
 	display: none;
+}
+/* --- Susan's theming ruling, 2026-09-13 --------------------------------- */
+
+/* The page used its screen and was flat: figure and ground barely separated,
+   the tab bar read as browser chrome, and the dock was glued to the bottom
+   edge. No new colour token is minted - this is elevation, spacing and type
+   scale within the inherited set. */
+
+body {
+	background:
+		radial-gradient(circle at 18% -12rem, var(--tint-accent), transparent 34rem),
+		var(--color-bg);
+}
+
+.masthead {
+	padding-block: var(--space-6) var(--space-4);
+	background: linear-gradient(180deg, var(--color-surface-sunken) 0%, var(--color-bg) 100%);
+}
+
+.panel {
+	padding-block: var(--space-4);
+}
+
+.layout {
+	gap: var(--space-5);
+}
+
+@media (min-width: 1000px) {
+	.layout {
+		grid-template-columns: 19rem minmax(0, 1fr);
+	}
+	.panel-models {
+		top: var(--space-4);
+	}
+}
+
+/* A segmented control rather than a row of underlines: it says these are
+   alternatives, where a bottom border says "this is a document". */
+.tabs {
+	display: inline-flex;
+	width: auto;
+	max-width: 100%;
+	gap: var(--space-1);
+	padding: var(--space-1);
+	margin-top: var(--space-4);
+	border: 1px solid var(--color-rule);
+	border-radius: var(--radius-full);
+	background: var(--color-surface-sunken);
+}
+
+.tab {
+	border: 0;
+	margin: 0;
+	border-radius: var(--radius-full);
+	padding: var(--space-2) var(--space-4);
+}
+
+.tab[aria-selected='true'] {
+	background: var(--color-surface-raised);
+	color: var(--color-text);
+	box-shadow: var(--shadow-panel);
+	border-bottom-color: transparent;
+}
+
+.panel-models {
+	padding: var(--space-4);
+	background: var(--gradient-panel);
+	border-radius: var(--radius-lg);
+	box-shadow: var(--shadow-panel);
+}
+
+#model-list {
+	gap: var(--space-3);
+}
+
+.model-card {
+	background: var(--color-surface-sunken);
+	border-radius: var(--radius-lg);
+	padding: var(--space-3) var(--space-4);
+}
+
+/* The selected run is marked by a bar on its leading edge rather than by a
+   border colour, which survives both themes and reads at a glance. */
+.model-card[aria-pressed='true'] {
+	background: var(--tint-accent);
+	box-shadow: inset 4px 0 0 var(--color-accent), var(--shadow-panel);
+}
+
+.model-card__name {
+	font-size: var(--text-base);
+	line-height: var(--leading-sm);
+}
+
+/* The readouts and the verdict tally sit side by side on a wide screen, so the
+   first clip starts near the top of the fold instead of below two full-width
+   bands of cards. */
+#panel-listen {
+	display: grid;
+	gap: var(--space-4);
+}
+
+#panel-listen .host-note,
+#panel-listen .readouts,
+#panel-listen .metrics {
+	margin: 0;
+}
+
+@media (min-width: 1200px) {
+	#panel-listen {
+		grid-template-columns: minmax(0, 1.35fr) minmax(22rem, 0.65fr);
+		align-items: start;
+	}
+	#panel-listen .host-note {
+		grid-column: 1 / -1;
+		max-width: none;
+	}
+	#panel-listen .readouts {
+		grid-column: 1;
+	}
+	#panel-listen #verdict-metrics {
+		grid-column: 2;
+	}
+	#panel-listen .clip-list,
+	#panel-listen .export-bar {
+		grid-column: 1 / -1;
+	}
+}
+
+.readouts {
+	padding: var(--space-3);
+	gap: var(--space-2);
+}
+
+.readout {
+	padding: var(--space-2) var(--space-3);
+	border: 1px solid var(--color-rule);
+	border-radius: var(--radius-md);
+	background: var(--color-surface-sunken);
+}
+
+.readout__value {
+	font-size: var(--text-xl);
+	line-height: var(--leading-xl);
+}
+
+.metrics {
+	gap: var(--space-3);
+}
+
+.metric {
+	padding: var(--space-3);
+	border: 1px solid var(--color-rule);
+	border-top: 3px solid var(--color-rule-strong);
+}
+
+.metric__value {
+	font-size: var(--text-xl);
+	line-height: var(--leading-xl);
+}
+
+/* One thing for the eye to land on first. */
+#verdict-metrics .metric:first-child .metric__value {
+	font-size: var(--text-2xl);
+	line-height: var(--leading-2xl);
+}
+
+.clip-list {
+	gap: var(--space-4);
+}
+
+.clip {
+	background: var(--gradient-panel);
+	border: 1px solid var(--color-rule);
+	padding: var(--space-5);
+}
+
+.clip[data-playing='true'] {
+	box-shadow: var(--shadow-lg);
+}
+
+/* The dock floats on a fade rather than sitting behind a hard rule, so the list
+   passes under it instead of stopping at it. */
+.dock {
+	background: linear-gradient(180deg, transparent 0%, var(--color-bg) 45%);
+	border-top: 0;
+	box-shadow: none;
+	padding-block: var(--space-2) var(--space-3);
+}
+
+.dock__inner {
+	padding: var(--space-3) var(--space-4);
+	background: var(--color-surface-raised);
+	border: 1px solid var(--color-rule);
+	border-radius: var(--radius-lg);
+	box-shadow: var(--shadow-lg);
+}
+
+.waveform {
+	height: 52px;
+	margin-bottom: var(--space-1);
+}
+
+/* Stop is not pause. Pause keeps a position a listener may not want kept, and
+   with auto-advance on there was no way to leave the dock silent at all. */
+.dock__stop {
+	font-size: var(--text-xs);
 }

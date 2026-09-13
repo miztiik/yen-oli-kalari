@@ -36,8 +36,21 @@ if (node.length === 0 && python.length === 0) {
 appendFileSync(process.env.GITHUB_OUTPUT, `node=${JSON.stringify(node)}\n`);
 appendFileSync(process.env.GITHUB_OUTPUT, `python=${JSON.stringify(python)}\n`);
 
+/* A shard is a whole runner with its own 4 vCPU, not a slice of one machine's
+   cores. Fanning a model across four of them cuts elapsed time roughly fourfold
+   while every real-time factor stays a reading from the same hardware, because
+   each shard voices its slice alone. */
+const shardTotal = Math.max(1, Number(process.env.SHARDS ?? 1));
+const shards = Array.from({ length: shardTotal }, (_, i) => i);
+appendFileSync(process.env.GITHUB_OUTPUT, `shards=${JSON.stringify(shards)}\n`);
+appendFileSync(process.env.GITHUB_OUTPUT, `shardTotal=${shardTotal}\n`);
+
 console.log(`node arms   (${node.length}): ${node.join(", ") || "-"}`);
 console.log(`python arms (${python.length}): ${python.join(", ") || "-"}`);
+console.log(
+  `shards per model: ${shardTotal}` +
+    (shardTotal > 1 ? ` -> ${(node.length + python.length) * shardTotal} jobs` : ""),
+);
 
 const blocked = config.models.filter((m) => !m.enabled);
 if (blocked.length) {

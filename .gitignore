@@ -81,5 +81,8 @@ tests/fixtures/reference/parts/
 # IS the reading, so that one is committed.
 test/voice-evaluation/clips/
 test/voice-evaluation/results/
-test/voice-evaluation/page/data.js
+# The page is a shell and this index is built from whatever results the
+# publishing run downloaded. Committing it would pin the site to one run's
+# results and the shell would then disagree with the manifests it fetches.
+test/voice-evaluation/page/index.json
 test/voice-evaluation/_site/

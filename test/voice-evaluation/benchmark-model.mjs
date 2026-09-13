@@ -30,6 +30,8 @@ import { splitIntoChunks } from "../../backend/utilities/measurement-recorder.mj
 const MODEL = process.env.MODEL;
 const MAX_WORDS_A_CHUNK = Number(process.env.MAX_WORDS_A_CHUNK ?? 40);
 const REPEATS = Number(process.env.REPEATS ?? 1);
+const SHARD_INDEX = Number(process.env.SHARD_INDEX ?? 0);
+const SHARD_TOTAL = Math.max(1, Number(process.env.SHARD_TOTAL ?? 1));
 
 if (!MODEL) {
   console.error(`MODEL must be one of: ${enabledModels().join(", ")}`);
@@ -38,7 +40,11 @@ if (!MODEL) {
 
 const CORPUS_PATH = new URL("../onnx-runtime-comparison/real-summaries/summaries.json", import.meta.url);
 const SUITE_PATH = new URL("../onnx-runtime-comparison/verbalization-suite.json", import.meta.url);
-const RESULT_DIR = fileURLToPath(new URL(`./results/${MODEL}/`, import.meta.url));
+/* Overridable so a sharded run gives every shard its own directory instead of
+   four jobs racing to write one manifest. */
+const RESULT_DIR = process.env.RESULT_DIR
+  ? `${process.env.RESULT_DIR.replace(/\/?$/, "/")}`
+  : fileURLToPath(new URL(`./results/${MODEL}/`, import.meta.url));
 
 function encodeWav(samples, sampleRate) {
   const bytesASample = 2;
@@ -106,6 +112,21 @@ function peakMemoryMb() {
 
 const corpus = JSON.parse(readFileSync(CORPUS_PATH, "utf8"));
 const suite = JSON.parse(readFileSync(SUITE_PATH, "utf8"));
+
+/* Round-robin rather than contiguous blocks. Summaries vary in length by more
+   than 10x, so a contiguous slice would hand one shard every long one and the
+   fan-out would finish no sooner than a single job. */
+const wholeCorpusSize = corpus.summaries.length;
+const wholeSuiteSize = suite.cases.length;
+if (SHARD_TOTAL > 1) {
+  corpus.summaries = corpus.summaries.filter((_, i) => i % SHARD_TOTAL === SHARD_INDEX);
+  suite.cases = suite.cases.filter((_, i) => i % SHARD_TOTAL === SHARD_INDEX);
+  console.log(
+    `shard ${SHARD_INDEX + 1}/${SHARD_TOTAL}: ` +
+      `${corpus.summaries.length}/${wholeCorpusSize} summaries, ` +
+      `${suite.cases.length}/${wholeSuiteSize} verbalization cases`
+  );
+}
 
 mkdirSync(`${RESULT_DIR}summaries/`, { recursive: true });
 mkdirSync(`${RESULT_DIR}verbalization/`, { recursive: true });
@@ -250,7 +271,13 @@ const manifest = {
   sampleRate: clips[0]?.sampleRate ?? 24000,
   maxWordsAChunk: MAX_WORDS_A_CHUNK,
   corpus: { name: "real", sampledFrom: corpus.sampledFrom ?? null },
-  shard: { index: 0, total: 1, repeats: REPEATS },
+  shard: {
+      index: SHARD_INDEX,
+      total: SHARD_TOTAL,
+      repeats: REPEATS,
+      summariesVoiced: corpus.summaries.length,
+      summariesInCorpus: wholeCorpusSize
+    },
   modelLoadMs,
   peakMemoryMb: peakMb,
   host: {

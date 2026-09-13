@@ -13,7 +13,13 @@
 (function () {
 	'use strict';
 
-	var DATA = window.EVALUATION_DATA;
+	/* The page is a SHELL. It fetches an index naming the runs, then fetches one
+	   manifest at a time as a voice is selected - rather than being prerendered
+	   with every clip of every model inlined, which reached half a megabyte at
+	   six voices and would have grown linearly with each one added.
+	   A reader pays for the voice they open and nothing else. */
+	var DATA = { runs: [], catalogue: {}, generatedAt: new Date().toISOString() };
+	var manifestCache = {};
 	var STORE_KEY = 'yen-oli-kalari:voice-evaluation:v2';
 
 	/* Past this the dock says it is fetching. A spinner spins at the same rate on
@@ -40,7 +46,9 @@
 	// ---------------------------------------------------------------- state
 
 	var state = { runs: {}, pairs: [] };
-	var activeRunId = DATA.runs[0].runId;
+	/* Set by boot() once the index has been fetched. Nothing may read a run
+	   before then, which is why the shell renders only after the fetch. */
+	var activeRunId = null;
 	var current = -1;
 	var abIndex = 0;
 	var abBlind = true;
@@ -74,7 +82,39 @@
 	}
 
 	function activeRun() {
-		return runById(activeRunId);
+		var run = runById(activeRunId);
+		/* Until its manifest lands a run has no clips. Every caller already
+		   handles an empty list, because a run with nothing voiced is a state
+		   the page has to draw anyway. */
+		return Object.assign({ clips: [] }, run, manifestCache[run.runId] || {});
+	}
+
+	/** Fetch one run's manifest, once, then redraw. */
+	function loadRun(runId) {
+		var run = runById(runId);
+		if (manifestCache[runId]) return Promise.resolve(manifestCache[runId]);
+		return fetch(run.manifestUrl)
+			.then(function (response) {
+				if (!response.ok) throw new Error('HTTP ' + response.status);
+				return response.json();
+			})
+			.then(function (manifest) {
+				if (run.clipExtension) {
+					manifest.clips.forEach(function (clip) {
+						clip.clip = clip.clip.replace(/\.wav$/, run.clipExtension);
+					});
+				}
+				manifest.clipBase = run.clipBase;
+				manifestCache[runId] = manifest;
+				return manifest;
+			})
+			.catch(function (error) {
+				/* A run whose manifest will not load is reported where the clips
+				   would have been, rather than leaving an empty list that reads
+				   as a model with nothing to say. */
+				manifestCache[runId] = { clips: [], loadError: String(error.message) };
+				return manifestCache[runId];
+			});
 	}
 
 	/* What a run says about itself wins over the catalogue.
@@ -83,7 +123,7 @@
 	   a lookup that goes stale the moment a config row is renamed. It stays as a
 	   fallback for anything the manifest does not carry. */
 	function known(run) {
-		var catalogued = DATA.catalogue[run.modelSlug] || DATA.catalogue[run.runId] || {};
+		var catalogued = (DATA.catalogue && (DATA.catalogue[run.modelSlug] || DATA.catalogue[run.runId])) || {};
 		return {
 			name: run.name || catalogued.name,
 			params: run.params || catalogued.params,
@@ -92,8 +132,8 @@
 			commercialUse: run.commercialUse !== undefined ? run.commercialUse : catalogued.commercialUse,
 			accent: run.accent || catalogued.accent,
 			accentKnown: run.accentKnown !== undefined ? run.accentKnown : catalogued.accentKnown,
-			arenaElo: catalogued.arenaElo,
-			incumbent: catalogued.incumbent
+			arenaElo: run.arenaElo !== undefined ? run.arenaElo : catalogued.arenaElo,
+			incumbent: run.incumbent !== undefined ? run.incumbent : catalogued.incumbent
 		};
 	}
 
@@ -165,9 +205,15 @@
 
 	// --------------------------------------------------------- model panel
 
+	/* An index row carries no clips until its manifest is fetched, so the tally
+	   counts against whatever is known: the cached manifest if there is one, the
+	   clip count from the index otherwise. A card must draw before its manifest
+	   lands or the panel is empty on first paint. */
 	function tallyFor(runId, run) {
 		var counts = { publishable: 0, borderline: 0, reject: 0, unjudged: 0, defects: 0, up: 0, down: 0 };
-		run.clips.forEach(function (c) {
+		var clips = (manifestCache[runId] && manifestCache[runId].clips) || run.clips || [];
+		counts.total = clips.length || run.clipCount || 0;
+		clips.forEach(function (c) {
 			var e = state.runs[runId] && state.runs[runId][c.id];
 			var v = e && e.verdict;
 			if (v === 'publishable') counts.publishable += 1;
@@ -198,7 +244,8 @@
 				'aria-pressed': run.runId === activeRunId ? 'true' : 'false'
 			}, [
 				el('span', { class: 'model-card__name', text: meta.name || run.modelSlug }),
-				el('span', { class: 'model-card__quant', text: run.quantisation }),
+				el('span', { class: 'model-card__quant', text:
+					run.quantisation + (run.voice ? ' \u00b7 ' + run.voice : '') }),
 				el('span', { class: 'model-card__facts', text:
 					(meta.params ? meta.params + ' \u00b7 ' : '') +
 					(meta.architecture || '') }),
@@ -213,7 +260,7 @@
 					(run.host.isCi ? 'runner' : 'laptop') }),
 				el('span', { class: 'model-card__judged', text:
 					(counts.up || counts.down ? counts.up + ' up / ' + counts.down + ' down \u00b7 ' : '') +
-					judged + ' of ' + run.clips.length + ' judged' +
+					judged + ' of ' + counts.total + ' judged' +
 					(counts.defects ? ' \u00b7 ' + counts.defects + ' defect' + (counts.defects === 1 ? '' : 's') : '') }),
 				meta.incumbent ? el('span', { class: 'model-card__tag', text: 'incumbent' }) : null,
 				meta.arenaElo ? el('span', { class: 'model-card__tag', text: 'Arena ' + meta.arenaElo }) : null
@@ -223,7 +270,10 @@
 				activeRunId = run.runId;
 				current = -1;
 				audio.pause();
-				renderAll();
+				renderModelPanel();
+				renderHostNote();
+				renderRunReadout();
+				loadRun(run.runId).then(renderAll);
 			});
 			mount.appendChild(card);
 		});
@@ -278,7 +328,7 @@
 		var mount = $('verdict-metrics');
 		mount.innerHTML = '';
 		[
-			metricCard('Publishable', String(counts.publishable), 'of ' + run.clips.length, 'high'),
+			metricCard('Publishable', String(counts.publishable), 'of ' + counts.total, 'high'),
 			metricCard('Borderline', String(counts.borderline), 'needs a second listen', 'medium'),
 			metricCard('Reject', String(counts.reject), 'would not ship', 'low'),
 			metricCard('Not yet judged', String(counts.unjudged), 'never counted as a pass'),
@@ -367,16 +417,60 @@
 	   see where a seam can be heard - and so the played chunk can be lit as the
 	   audio reaches it. Within a chunk the highlight is interpolated by character
 	   position, which the About tab states plainly. */
+	/* Roughly how long a token takes to say, relative to its neighbours.
+	   Chunk boundaries are EXACT - each chunk was its own inference call - so the
+	   only thing estimated is the distribution WITHIN a chunk. Length alone is a
+	   poor proxy: "NASDAQ" takes far longer than "through" despite being shorter,
+	   because it is spelled out. Vowel groups stand in for syllables, and caps
+	   and digits are weighted up. */
+	function wordTimingWeight(token) {
+		var core = token.replace(/^[^\w]+|[^\w]+$/g, '');
+		if (!core) return 0;
+		var syllables = core.toLowerCase().match(/[aeiouy]+/g);
+		var weight = Math.max(1, core.length * 0.55 + (syllables ? syllables.length : 1) * 1.25);
+		if (/^[A-Z]{2,}$/.test(core)) weight += core.length * 0.35;
+		if (/\d/.test(core)) weight += core.length * 0.45;
+		if (/[,;:]$/.test(token)) weight += 0.35;
+		if (/[.!?]$/.test(token)) weight += 0.65;
+		return weight;
+	}
+
+	function appendTimedWords(node, chunk) {
+		var tokens = chunk.text.match(/\s+|[^\s]+/g) || [];
+		var start = Number(chunk.startSeconds) || 0;
+		var end = Number(chunk.endSeconds) || start;
+		var duration = Math.max(0.01, end - start);
+		var total = tokens.reduce(function (sum, token) { return sum + wordTimingWeight(token); }, 0) || 1;
+
+		var cursor = 0;
+		tokens.forEach(function (token) {
+			var weight = wordTimingWeight(token);
+			if (!weight) { node.appendChild(document.createTextNode(token)); return; }
+			var wordStart = start + duration * (cursor / total);
+			cursor += weight;
+			var wordEnd = start + duration * (cursor / total);
+			node.appendChild(el('span', {
+				class: 'word',
+				'data-start': wordStart.toFixed(3),
+				'data-end': wordEnd.toFixed(3),
+				text: token
+			}));
+		});
+	}
+
 	function textWithChunks(clip) {
 		var node = el('p', { class: 'clip__text' });
 		(clip.chunkTimings || [{ text: clip.text, startSeconds: 0, endSeconds: clip.audioSeconds }])
 			.forEach(function (chunk, i) {
 				if (i > 0) node.appendChild(el('span', { class: 'seam', title: 'chunk boundary' }));
-				node.appendChild(el('span', {
+				var chunkNode = el('span', {
 					class: 'chunk',
 					'data-start': chunk.startSeconds,
 					'data-end': chunk.endSeconds
-				}, [document.createTextNode(chunk.text + ' ')]));
+				});
+				appendTimedWords(chunkNode, chunk);
+				node.appendChild(chunkNode);
+				node.appendChild(document.createTextNode(' '));
 			});
 		return node;
 	}
@@ -608,38 +702,48 @@
 		$('prev').disabled = index === 0;
 		$('next').disabled = index === run.clips.length - 1;
 		$('mark').disabled = false;
+		$('stop').disabled = false;
 		markPlaying(index);
 	}
 
 	/* Follow the text. The chunk containing the playhead is lit exactly, because
 	   each chunk was its own inference call; within it the leading edge is
 	   interpolated by character position, which the About tab states. */
+	/* Per-WORD, and deliberately NOT by scaling the word. Scale is noise when the
+	   job is spotting a mispronunciation, and text that jumps about is harder to
+	   read; Spotify and Apple Music lyrics use colour and position instead, and
+	   read-along tools use a quiet pill. The underline sweeps within the word so
+	   the eye has somewhere to go without the line reflowing. */
 	function paintFollow() {
+		Array.prototype.forEach.call(document.querySelectorAll('.word[data-current]'), function (span) {
+			span.removeAttribute('data-current');
+			span.style.removeProperty('--word-through');
+		});
 		if (current < 0) return;
+
 		var clip = activeRun().clips[current];
 		var row = $('clip-' + clip.id);
 		if (!row) return;
 		var t = audio.currentTime;
-		Array.prototype.forEach.call(row.querySelectorAll('.chunk'), function (span) {
+
+		Array.prototype.forEach.call(row.querySelectorAll('.word'), function (span) {
 			var start = Number(span.getAttribute('data-start'));
 			var end = Number(span.getAttribute('data-end'));
-			var live = t >= start && t < end;
-			span.setAttribute('data-spoken', t >= end ? 'true' : 'false');
-			span.setAttribute('data-live', live ? 'true' : 'false');
-			if (live) {
-				var through = Math.max(0, Math.min(1, (t - start) / (end - start || 1)));
-				span.style.setProperty('--through', (through * 100).toFixed(1) + '%');
-			} else {
-				span.style.removeProperty('--through');
+			if (t >= end) span.setAttribute('data-spoken', 'true');
+			else span.removeAttribute('data-spoken');
+			if (t >= start && t < end) {
+				span.setAttribute('data-current', 'true');
+				span.style.setProperty('--word-through',
+					(Math.max(0, Math.min(1, (t - start) / (end - start || 1))) * 100).toFixed(1) + '%');
 			}
 		});
 	}
 
-	/* The scrubber, drawn from peaks the build computed. Two colours and a
-	   playhead: bars behind the head are played, bars ahead are not. The peaks
-	   are in the payload rather than decoded here, because decoding client-side
-	   means downloading the whole clip before the first pixel and inflating it
-	   about sixtyfold in memory. */
+	/* A dense amplitude waveform with a real playhead, which is what SoundCloud
+	   and wavesurfer draw and what lets an eye find a position at a glance. The
+	   64 flat rectangles this replaced read as a barcode.
+	   Peaks come from the build; decoding client-side would mean downloading the
+	   whole clip before the first pixel and inflating it about sixtyfold. */
 	function paintWaveform() {
 		var canvas = $('waveform');
 		if (!canvas) return;
@@ -649,27 +753,104 @@
 		canvas.hidden = false;
 
 		var ratio = window.devicePixelRatio || 1;
-		var width = canvas.clientWidth || canvas.parentNode.clientWidth;
-		if (canvas.width !== Math.floor(width * ratio)) {
-			canvas.width = Math.floor(width * ratio);
-			canvas.height = Math.floor(48 * ratio);
+		var cssWidth = canvas.clientWidth || canvas.parentNode.clientWidth;
+		var cssHeight = canvas.clientHeight || 52;
+		if (canvas.width !== Math.floor(cssWidth * ratio) || canvas.height !== Math.floor(cssHeight * ratio)) {
+			canvas.width = Math.floor(cssWidth * ratio);
+			canvas.height = Math.floor(cssHeight * ratio);
 		}
+
 		var ctx = canvas.getContext('2d');
+		ctx.setTransform(ratio, 0, 0, ratio, 0, 0);
+		ctx.clearRect(0, 0, cssWidth, cssHeight);
+
 		var styles = getComputedStyle(document.documentElement);
 		var played = styles.getPropertyValue('--audio-elapsed').trim() || '#8b8bf5';
 		var unplayed = styles.getPropertyValue('--audio-track').trim() || '#333d4f';
+		var ink = styles.getPropertyValue('--color-text').trim() || '#e6edf5';
+		var ground = styles.getPropertyValue('--color-bg').trim() || '#0b0e14';
 
-		ctx.clearRect(0, 0, canvas.width, canvas.height);
 		var duration = durationOf(current) || clip.audioSeconds;
-		var through = duration ? audio.currentTime / duration : 0;
-		var barWidth = canvas.width / peaks.length;
-		var mid = canvas.height / 2;
+		var through = Math.max(0, Math.min(1, duration ? audio.currentTime / duration : 0));
 
-		for (var i = 0; i < peaks.length; i += 1) {
-			var height = Math.max(2 * ratio, peaks[i] * canvas.height * 0.92);
-			ctx.fillStyle = i / peaks.length < through ? played : unplayed;
-			ctx.fillRect(i * barWidth + barWidth * 0.18, mid - height / 2, barWidth * 0.64, height);
+		var count = Math.max(96, Math.min(240, Math.round(cssWidth / 6)));
+		var gap = 2;
+		var barWidth = (cssWidth - gap * (count - 1)) / count;
+		if (barWidth < 3) { gap = 1.5; barWidth = (cssWidth - gap * (count - 1)) / count; }
+
+		var mid = cssHeight / 2;
+		var maxHeight = cssHeight - 8;
+		var minHeight = 3;
+
+		/* The payload carries 64 peaks and the bar count is higher, so a bar
+		   between two peaks is interpolated rather than repeated - repeating
+		   produces visible stair-stepping. */
+		function sampledPeak(i) {
+			var start = i * peaks.length / count;
+			var end = (i + 1) * peaks.length / count;
+			if (end - start >= 1) {
+				var max = 0;
+				for (var j = Math.floor(start); j < Math.ceil(end) && j < peaks.length; j += 1) {
+					max = Math.max(max, peaks[j] || 0);
+				}
+				return max;
+			}
+			var lo = Math.floor(start);
+			var hi = Math.min(peaks.length - 1, lo + 1);
+			var f = start - lo;
+			return (peaks[lo] || 0) * (1 - f) + (peaks[hi] || 0) * f;
 		}
+
+		function roundedBar(x, y, w, h, r) {
+			r = Math.min(r, w / 2, h / 2);
+			ctx.beginPath();
+			ctx.moveTo(x + r, y);
+			ctx.lineTo(x + w - r, y);
+			ctx.quadraticCurveTo(x + w, y, x + w, y + r);
+			ctx.lineTo(x + w, y + h - r);
+			ctx.quadraticCurveTo(x + w, y + h, x + w - r, y + h);
+			ctx.lineTo(x + r, y + h);
+			ctx.quadraticCurveTo(x, y + h, x, y + h - r);
+			ctx.lineTo(x, y + r);
+			ctx.quadraticCurveTo(x, y, x + r, y);
+			ctx.closePath();
+			ctx.fill();
+		}
+
+		for (var i = 0; i < count; i += 1) {
+			/* A gamma below 1 lifts quiet passages so speech reads as speech
+			   rather than a flat line with occasional spikes. */
+			var height = Math.max(minHeight, Math.pow(Math.max(0, sampledPeak(i)), 0.72) * maxHeight);
+			var x = i * (barWidth + gap);
+			ctx.fillStyle = (i + 0.5) / count <= through ? played : unplayed;
+			roundedBar(x, mid - height / 2, barWidth, height, barWidth / 2);
+		}
+
+		/* A colour boundary alone is hard to locate on a dense waveform, so the
+		   playhead is drawn: a line haloed against the ground, and a knob. */
+		var playX = through * cssWidth;
+		ctx.save();
+		ctx.lineCap = 'round';
+		ctx.strokeStyle = ground;
+		ctx.lineWidth = 4;
+		ctx.beginPath();
+		ctx.moveTo(playX, 4);
+		ctx.lineTo(playX, cssHeight - 4);
+		ctx.stroke();
+		ctx.strokeStyle = ink;
+		ctx.lineWidth = 1.5;
+		ctx.beginPath();
+		ctx.moveTo(playX, 5);
+		ctx.lineTo(playX, cssHeight - 5);
+		ctx.stroke();
+		ctx.fillStyle = played;
+		ctx.strokeStyle = ground;
+		ctx.lineWidth = 2;
+		ctx.beginPath();
+		ctx.arc(playX, mid, 4, 0, Math.PI * 2);
+		ctx.fill();
+		ctx.stroke();
+		ctx.restore();
 	}
 
 	function paintBuffered() {
@@ -708,6 +889,34 @@
 		else if (audio.paused) audio.play();
 		else audio.pause();
 	});
+	/* Stop is not pause. Pause keeps a position a listener may not want kept,
+	   and with auto-advance on there was no way to leave the dock silent at all:
+	   pausing then pressing play resumed, and letting a clip end started the
+	   next one. This clears the player and the row marks. */
+	$('stop').addEventListener('click', function () {
+		audio.pause();
+		audio.removeAttribute('src');
+		audio.load();
+		current = -1;
+		$('dock-title').textContent = 'Nothing playing';
+		$('dock-title').setAttribute('data-idle', 'true');
+		$('time-now').textContent = '0:00';
+		$('time-total').textContent = '0:00';
+		$('track-elapsed').style.width = '0%';
+		$('track-buffered').style.width = '0%';
+		$('waveform').hidden = true;
+		$('stop').disabled = true;
+		$('mark').disabled = true;
+		$('prev').disabled = true;
+		$('next').disabled = true;
+		Array.prototype.forEach.call(document.querySelectorAll('.word[data-current], .word[data-spoken]'), function (span) {
+			span.removeAttribute('data-current');
+			span.removeAttribute('data-spoken');
+			span.style.removeProperty('--word-through');
+		});
+		markPlaying(-1);
+	});
+
 	$('prev').addEventListener('click', function () { play(current - 1, null); });
 	$('next').addEventListener('click', function () { play(current + 1, null); });
 	$('mark').addEventListener('click', function () {
@@ -752,8 +961,12 @@
 
 	// ------------------------------------------------------------------ A/B
 
+	/* A/B reads two runs that are usually both inactive, so it merges each index
+	   row with its cached manifest the same way activeRun does. */
 	function abRuns() {
-		return [runById($('ab-left').value), runById($('ab-right').value)];
+		return [$('ab-left').value, $('ab-right').value].map(function (runId) {
+			return Object.assign({ clips: [] }, runById(runId), manifestCache[runId] || {});
+		});
 	}
 
 	function renderAbChoosers() {
@@ -772,8 +985,20 @@
 	}
 
 	function renderAb() {
-		var pair = abRuns();
+		var chosen = [$('ab-left').value, $('ab-right').value];
 		var mount = $('ab-pair');
+
+		/* Both sides must be on disk before a comparison means anything, and
+		   neither is guaranteed to be the run the listener is playing. */
+		var missing = chosen.filter(function (runId) { return runId && !manifestCache[runId]; });
+		if (missing.length) {
+			mount.innerHTML = '';
+			mount.appendChild(el('p', { class: 'seam-note', text: 'Loading both runs\u2026' }));
+			Promise.all(missing.map(loadRun)).then(renderAb);
+			return;
+		}
+
+		var pair = abRuns();
 		mount.innerHTML = '';
 
 		if (pair[0].runId === pair[1].runId) {
@@ -950,35 +1175,54 @@
 
 	// ----------------------------------------------------------------- boot
 
-	$('built').textContent = DATA.generatedAt.slice(0, 10);
 	wireTabs();
 	wireTheme();
 	wireExport();
 
-	/* Render once immediately so the page is usable while storage opens, then
-	   again with whatever was remembered. A listener should never watch a
-	   spinner to see a list that is already in the payload. */
-	renderAll();
-
-	window.EvaluationStore.ready
-		.then(function (info) {
-			if (info.usingFallback) {
-				$('storage-status').textContent = 'Using local storage - IndexedDB is unavailable in this browser.';
-			}
-			return window.EvaluationStore.get('state');
-		})
-		.then(function (saved) {
-			if (saved && saved.runs) {
-				state = saved;
+	function boot(index) {
+		DATA = index;
+		activeRunId = DATA.runs[0] ? DATA.runs[0].runId : null;
+		$('built').textContent = DATA.generatedAt.slice(0, 10);
+		renderModelPanel();
+		renderHostNote();
+		renderRunReadout();
+		return window.EvaluationStore.ready
+			.then(function (info) {
+				if (info.usingFallback) {
+					$('storage-status').textContent = 'Using local storage - IndexedDB is unavailable here.';
+				}
+				return window.EvaluationStore.get('state');
+			})
+			.then(function (saved) {
+				if (saved && saved.runs) state = saved;
+				return activeRunId ? loadRun(activeRunId) : null;
+			})
+			.then(function () {
 				renderAll();
-			}
-			return window.EvaluationStore.estimate();
+				return window.EvaluationStore.estimate();
+			})
+			.then(function (estimate) {
+				if (estimate && estimate.quota) {
+					$('storage-status').textContent =
+						(estimate.usage / 1024 / 1024).toFixed(1) + ' MB of ' +
+						(estimate.quota / 1024 / 1024).toFixed(0) + ' MB used';
+				}
+			});
+	}
+
+	fetch('index.json')
+		.then(function (response) {
+			if (!response.ok) throw new Error('HTTP ' + response.status);
+			return response.json();
 		})
-		.then(function (estimate) {
-			if (estimate && estimate.quota) {
-				var usedMb = (estimate.usage / 1024 / 1024).toFixed(1);
-				var quotaMb = (estimate.quota / 1024 / 1024).toFixed(0);
-				$('storage-status').textContent = usedMb + ' MB of ' + quotaMb + ' MB used';
-			}
+		.then(boot)
+		.catch(function (error) {
+			document.getElementById('clip-list').innerHTML =
+				'<li class="clip"><div class="clip__body"><p class="clip__text">' +
+				'Could not load <code>index.json</code>: ' + error.message +
+				'. The page is a shell and reads its data at runtime - if you opened it ' +
+				'from a file path, serve the directory instead (<code>npm run serve</code>).' +
+				'</p></div></li>';
 		});
+
 })();

@@ -1,18 +1,63 @@
 {
-  "note": "Real published summaries, fetched from the live site rather than written for the test. Sampled across the day's length distribution. Each carries the pronunciation hazards it holds.",
-  "sampledFrom": "https://miztiik.github.io/yen-idhazh/digest/2026/09/11/digest.json",
-  "fetchedAt": "2026-09-12T08:03:58.285Z",
-  "dayItemsTotal": 372,
-  "dayItemsPlanned": 377,
-  "totalWords": 1935,
+  "note": "Real published summaries, fetched from the live site rather than written for the test, drawn from several days so the corpus does not inherit one day's editorial accident. Sampled across the length distribution. Each carries the pronunciation hazards it holds.",
+  "sampledFrom": [
+    "https://miztiik.github.io/yen-idhazh/digest/2026/09/11/digest.json",
+    "https://miztiik.github.io/yen-idhazh/digest/2026/09/10/digest.json",
+    "https://miztiik.github.io/yen-idhazh/digest/2026/09/09/digest.json",
+    "https://miztiik.github.io/yen-idhazh/digest/2026/09/08/digest.json",
+    "https://miztiik.github.io/yen-idhazh/digest/2026/09/07/digest.json"
+  ],
+  "days": [
+    {
+      "day": "2026/09/11",
+      "url": "https://miztiik.github.io/yen-idhazh/digest/2026/09/11/digest.json",
+      "published": 372,
+      "usable": 372
+    },
+    {
+      "day": "2026/09/10",
+      "url": "https://miztiik.github.io/yen-idhazh/digest/2026/09/10/digest.json",
+      "published": 365,
+      "usable": 365
+    },
+    {
+      "day": "2026/09/09",
+      "url": "https://miztiik.github.io/yen-idhazh/digest/2026/09/09/digest.json",
+      "published": 360,
+      "usable": 360
+    },
+    {
+      "day": "2026/09/08",
+      "url": "https://miztiik.github.io/yen-idhazh/digest/2026/09/08/digest.json",
+      "published": 282,
+      "usable": 282
+    },
+    {
+      "day": "2026/09/07",
+      "url": "https://miztiik.github.io/yen-idhazh/digest/2026/09/07/digest.json",
+      "published": 357,
+      "usable": 357
+    }
+  ],
+  "fetchedAt": "2026-09-13T10:18:44.413Z",
+  "dayItemsTotal": 1736,
+  "poolSize": 1736,
+  "totalWords": 3082,
   "hazardTally": {
-    "currency": 11,
-    "percent": 6,
-    "bigNumber": 8,
-    "acronym": 15,
+    "currency": 16,
+    "percent": 10,
+    "bigNumber": 12,
+    "acronym": 27,
     "date": 5,
-    "hyphenate": 15,
-    "quoted": 9
+    "hyphenate": 23,
+    "quoted": 18
+  },
+  "dayTally": {
+    "2026/09/11": 8,
+    "2026/09/10": 8,
+    "2026/09/08": 6,
+    "2026/09/09": 6,
+    "2026/09/07": 8
   },
   "summaries": [
     {
@@ -24,305 +69,503 @@
       ],
       "sourceItemId": "business-economy-3359850051",
       "sourceName": "Marginal Revolution",
-      "vertical": "business-economy"
+      "vertical": "business-economy",
+      "day": "2026/09/11"
     },
     {
       "id": "real-02",
-      "words": 37,
-      "text": "Prime Minister Narendra Modi will address the BRICS Business Advisory Forum Leaders Session on Friday evening in New Delhi, where over 1,000 foreign representatives and major global companies including Huawei, Alibaba, and Tata are expected to participate.",
+      "words": 35,
+      "text": "The provided text contains only an error message and does not include the article body required to summarize the event. Consequently, no facts about France, the EU, or the Iris² satellite constellation can be reported.",
       "hazards": [
-        "bigNumber",
         "acronym"
       ],
-      "sourceItemId": "business-economy-5870107384",
-      "sourceName": "Business Today",
-      "vertical": "business-economy"
+      "sourceItemId": "world-8577668498",
+      "sourceName": "Le Monde English",
+      "vertical": "world",
+      "day": "2026/09/11"
     },
     {
       "id": "real-03",
-      "words": 47,
-      "text": "Traders said the Reserve Bank of India partially cancelled a government security auction after accepting only 40% of planned bids worth ₹4506 crore. A trader with a state-run bank noted the move could soothe market sentiment as fresh Middle East escalation and U.S. data pushed yields higher.",
+      "words": 43,
+      "text": "The Hub hosts a discussion on BRICS entering a new phase of cooperation after its 20th anniversary. Experts Wang Guan, Marta Regina Fernandez, Evandro Carvalho, and Liang Yan explore the bloc's priorities and opportunities for the wider Global South as global dynamics shift.",
       "hazards": [
-        "currency",
-        "percent",
-        "hyphenate"
+        "acronym",
+        "quoted"
       ],
-      "sourceItemId": "india-3816728770",
-      "sourceName": "The Hindu BusinessLine",
-      "vertical": "india"
+      "sourceItemId": "world-8221060468",
+      "sourceName": "China Global Television Network",
+      "vertical": "world",
+      "day": "2026/09/10"
     },
     {
       "id": "real-04",
-      "words": 52,
-      "text": "Oracle and OpenAI are seeking two gigawatts of new renewable energy in New Mexico to offset emissions from fuel cells powering the $165-billion Stargate data center. The companies plan to publish an environmental dashboard and spend $1 million on carbon capture research while navigating local opposition and federal support for the project.",
+      "words": 49,
+      "text": "China's pure battery electric vehicle sales rose 0.8% in August, marking the only growth among powertrain categories as all engine-powered vehicles declined. Tesla China sales fell 12.4% for a third consecutive month, yet the brand's Shanghai factory exports rose 38.7% while overall Chinese NEV exports surged 154.7% in August.",
       "hazards": [
-        "currency"
+        "percent",
+        "bigNumber",
+        "acronym",
+        "hyphenate",
+        "quoted"
       ],
-      "sourceItemId": "energy-2028150508",
-      "sourceName": "Latitude Media",
-      "vertical": "energy"
+      "sourceItemId": "energy-2587749064",
+      "sourceName": "Electrek",
+      "vertical": "energy",
+      "day": "2026/09/08"
     },
     {
       "id": "real-05",
-      "words": 58,
-      "text": "Israel announced it blew up two kilometers of tunnels operated by Hezbollah during an offensive that continues despite a months-old ceasefire. Israeli authorities have refused to withdraw from southern Lebanon, citing Hezbollah's refusal to give up arms as part of the US-brokered truce. The conflict has resulted in nearly 9,000 deaths and displaced hundreds of thousands since 2023.",
+      "words": 53,
+      "text": "The National Medical Commission announced the approval of 13,186 new MBBS seats for the 2026-27 academic year. This decision increases the total approved undergraduate medical intake to 1,40,214 seats across 836 medical colleges, excluding Institutes of National Importance. The largest allocations among the states mentioned went to Tamil Nadu, Uttar Pradesh, and Maharashtra.",
       "hazards": [
         "bigNumber",
-        "acronym",
-        "hyphenate",
-        "quoted"
+        "acronym"
       ],
-      "sourceItemId": "business-economy-2042865410",
-      "sourceName": "Semafor",
-      "vertical": "business-economy"
+      "sourceItemId": "india-9962238687",
+      "sourceName": "Times of India - India",
+      "vertical": "india",
+      "day": "2026/09/11"
     },
     {
       "id": "real-06",
-      "words": 61,
-      "text": "The Centers for Disease Control and Prevention reported a 17 percent rise in US rabies cases this summer, attributing the surge to high-profile outbreaks involving bats, beavers, and raccoons. While the agency noted increased human-wildlife encounters due to urban expansion and drought, it highlighted that proper vaccine administration is critical to ensuring patient protection while avoiding unnecessary costs and supply strain.",
+      "words": 56,
+      "text": "OpenAI published a claimed solution to the Navier-Stokes existence and smoothness problem, one of seven Millennium Prize Problems carrying a $1 million award each. The lab stated the proof was produced by an internal AI model utilizing roughly 10,000 agents rather than human mathematicians. However, rivals contested OpenAI's account of events before the proof was published.",
       "hazards": [
         "currency",
-        "percent",
+        "bigNumber",
         "acronym",
-        "hyphenate"
+        "hyphenate",
+        "quoted"
       ],
-      "sourceItemId": "world-6333791162",
-      "sourceName": "The Independent - World",
-      "vertical": "world"
+      "sourceItemId": "business-economy-2201754727",
+      "sourceName": "Quartz",
+      "vertical": "business-economy",
+      "day": "2026/09/08"
     },
     {
       "id": "real-07",
-      "words": 64,
-      "text": "Lawrence Wright's Pulitzer Prize-winning book, The Looming Tower, presents a painstaking record of bureaucratic failure leading to the September 11 attacks. The author notes that the CIA knew two Al-Qaeda operatives were in the US for over a year before informing the FBI. Wright primarily tells the narrative through the lives of four key individuals, including Osama bin Laden and FBI agent John O'Neill.",
+      "words": 60,
+      "text": "Political editor Anand Mishra contrasts the non-controversial success of the biopic Hanuman Ansh with recent films that sparked legal and social disputes. The article notes that older religious movies like Jai Santoshi Maa achieved commercial success without creating communal divides, unlike recent productions. Mishra questions whether modern filmmakers are prioritizing political agendas and hate-mongering over art to generate box-office revenue.",
       "hazards": [
-        "acronym",
-        "date",
-        "hyphenate",
-        "quoted"
+        "hyphenate"
       ],
-      "sourceItemId": "business-economy-7510729244",
-      "sourceName": "Semafor",
-      "vertical": "business-economy"
+      "sourceItemId": "india-0140009840",
+      "sourceName": "Frontline",
+      "vertical": "india",
+      "day": "2026/09/11"
     },
     {
       "id": "real-08",
-      "words": 67,
-      "text": "Vice Principal Mohammadi Tarannum of Surendranath Law College in Kolkata resigned after a 23-hour student protest regarding a 70% attendance requirement. While Tarannum alleged she was targeted and forced to resign, she later told media she did not resign voluntarily. Akhil Bharatiya Vidyarthi Parishad leader Ananta Barui described the event as a victory for students, and Higher Education minister Kaustav Bagchi questioned the college's attendance tracking system.",
+      "words": 62,
+      "text": "Anthropic researcher Jacob Coxon resigned and called on other staff to rethink their work, stating that Anthropic and OpenAI are acting irresponsibly in their pursuit of AI. Coxon, who worked at both companies over the past three years, warned on X that the firms are racing toward self-improving superintelligence that could become too powerful for humans to control and pose existential risks.",
       "hazards": [
-        "percent",
-        "quoted"
+        "currency",
+        "hyphenate"
       ],
-      "sourceItemId": "india-1793333497",
-      "sourceName": "The Hindu - National",
-      "vertical": "india"
+      "sourceItemId": "world-8992558848",
+      "sourceName": "The Japan Times",
+      "vertical": "world",
+      "day": "2026/09/10"
     },
     {
       "id": "real-09",
-      "words": 70,
-      "text": "The Enforcement Directorate searched nine locations in Bihar, Haryana, and Delhi on Friday regarding an alleged Rs 132 crore bank fraud involving Ramnandi Hotels and Resorts Ltd. Officials stated the searches were conducted under Section 17 of the PMLA, noting properties were sold at undervalued prices with cash receipts. Some buyers are suspected to be proxies of Akhouri Gopal. Vijaya Srivastava, a journalist covering human-centred developments, reported on the case.",
+      "words": 64,
+      "text": "Google Trends data indicates a significant surge in Indian curiosity regarding matcha, with searches rising up to 2,500% compared to coffee. The article reports that while interest in health benefits and home preparation methods has grown, these figures reflect online curiosity rather than proven consumption habits. Seasonal flavor combinations and lifestyle products also saw breakout searches, suggesting a broader cultural engagement with the drink.",
       "hazards": [
-        "currency",
-        "acronym",
-        "hyphenate"
+        "percent",
+        "bigNumber"
       ],
-      "sourceItemId": "india-7344233886",
-      "sourceName": "Times of India - India",
-      "vertical": "india"
+      "sourceItemId": "india-9603323062",
+      "sourceName": "Mint",
+      "vertical": "india",
+      "day": "2026/09/10"
     },
     {
       "id": "real-10",
-      "words": 72,
-      "text": "Global bond yields spiked and share markets slumped on September 11 as rising oil prices intensified inflation risks. Analysts at RBC Capital Markets tipped Brent crude could hit US$121.99 a barrel in the fourth quarter due to escalating violence in the Red Sea. The benchmark 10-year Treasury yield approached 5 per cent while Asian markets fell steeply. Analysts at JPMorgan expect eight of nine major central banks to hike rates before year-end.",
+      "words": 66,
+      "text": "The National Weather Service issued heat advisories across California's Central Valley and coastal areas as extreme temperatures are forecast to reach 105F in Los Angeles and 100F in Sacramento. The California Independent System Operator forecasts peak power demand will hit 47,379 megawatts Wednesday, driving wholesale power prices in Southern California to $87.69 per megawatt-hour. Bloomberg reports temperatures could remain high through Thursday before sliding by mid-month.",
       "hazards": [
         "currency",
-        "percent",
         "bigNumber",
-        "acronym",
-        "date",
-        "hyphenate"
+        "hyphenate",
+        "quoted"
       ],
-      "sourceItemId": "ai-9000686939",
-      "sourceName": "The Straits Times",
-      "vertical": "ai"
+      "sourceItemId": "energy-5269968452",
+      "sourceName": "OilPrice.com",
+      "vertical": "energy",
+      "day": "2026/09/09"
     },
     {
       "id": "real-11",
-      "words": 75,
-      "text": "Anthropic published a 154-page threat intelligence report on Thursday detailing how criminals, state-sponsored groups, and scientists attempted to misuse its AI models to design weapons and create pathogens. The company stated it banned the accounts involved in these activities, including five case studies of researchers circumventing safeguards for biological research. Anthropic emphasized that biological misuse is a serious risk and called for the AI industry to work with governments to create defenses against such harms.",
+      "words": 68,
+      "text": "Delhi will host the 18th BRICS Summit at Bharat Mandapam from September 11 to 13, prompting significant travel disruptions. The Airports Authority of India notified temporary airspace restrictions for non-scheduled flights within a 300-km radius of New Delhi, people familiar with the matter said according to HT reports. Meanwhile, Northern Railway announced cancellations, diversions, and rescheduling of several train services due to operational requirements linked to the summit.",
+      "hazards": [
+        "acronym",
+        "date",
+        "hyphenate"
+      ],
+      "sourceItemId": "india-1266931311",
+      "sourceName": "DNA India",
+      "vertical": "india",
+      "day": "2026/09/10"
+    },
+    {
+      "id": "real-12",
+      "words": 69,
+      "text": "An Archaeological Survey of India officer inspected a 20-foot deep structure found beneath a demolished mosque in Saharanpur. ASI Assistant Archaeological Officer Manoj Kumar Yadav noted the construction resembles a medieval well but emphasized that its age and origin require evidence. He cautioned against linking the site to the Shahjahan era or specific religious functions without archaeological proof such as coins or seals. Further excavation decisions await government approval.",
+      "hazards": [
+        "acronym"
+      ],
+      "sourceItemId": "india-6282470903",
+      "sourceName": "India Today",
+      "vertical": "india",
+      "day": "2026/09/07"
+    },
+    {
+      "id": "real-13",
+      "words": 71,
+      "text": "P. Vasudevan, Executive Director of the Reserve Bank of India, stated that the central bank is exploring gold tokenisation to overcome challenges in current modes. Vasudevan noted that tokenisation could fulfill these needs while maintaining interoperability in the payments ecosystem. The RBI has already experimented with tokenised financial-market instruments through the Unified Markets Interface and piloted tokenised certificates of deposit, with plans to add more asset classes to expand the ecosystem.",
       "hazards": [
         "acronym",
         "hyphenate"
       ],
-      "sourceItemId": "ai-2785775610",
-      "sourceName": "The Guardian - AI",
-      "vertical": "ai"
+      "sourceItemId": "india-2734300328",
+      "sourceName": "The Economic Times",
+      "vertical": "india",
+      "day": "2026/09/09"
     },
     {
-      "id": "real-12",
-      "words": 78,
-      "text": "Universal Music Group announced a partnership with voice AI firm ElevenLabs to launch a platform allowing users to create remixes and new takes from participating artists' catalogs. The company noted that its roster of artists must choose to opt in. Industry executives view these licensing agreements as a strategy to shift AI music companies from lawsuit targets to paying customers, hoping that allowing fans to play with the technology may demystify it and increase openness to AI-assisted music.",
+      "id": "real-14",
+      "words": 73,
+      "text": "Anthropic announced Thursday that it disrupted several state-sponsored surveillance operations using its artificial intelligence models between January and July. The company stated these campaigns originated in China, Iran, and West Africa, targeting groups including Hong Kong pro-democracy activists. Additionally, Anthropic alleged that Chinese developers Moonshot and Deepseek secretly used its Claude model to generate user responses and train their own systems. The report noted that some of this data potentially violated privacy agreements.",
       "hazards": [
-        "currency",
+        "hyphenate"
+      ],
+      "sourceItemId": "world-6460134534",
+      "sourceName": "France 24",
+      "vertical": "world",
+      "day": "2026/09/11"
+    },
+    {
+      "id": "real-15",
+      "words": 74,
+      "text": "Inox Wind Limited clarified to the BSE and NSE on September 7, 2026, that a 100 MW turnkey order was received from Terra Clean Limited, a wholly-owned subsidiary of Indian Oil Corporation Limited, rather than directly from IOCL. The company stated the previous announcement incorrectly identified IOCL as the direct customer due to an inadvertent error in the press release framing. Deepak Banga, Company Secretary, digitally signed the correction issued to the stock exchanges.",
+      "hazards": [
+        "acronym",
+        "date",
+        "hyphenate"
+      ],
+      "sourceItemId": "energy-8894119097",
+      "sourceName": "SolarQuarter",
+      "vertical": "energy",
+      "day": "2026/09/08"
+    },
+    {
+      "id": "real-16",
+      "words": 76,
+      "text": "The NSE Nifty 50 and BSE Sensex declined on Wednesday, with the Nifty 50 closing at 23,431.50 and the Sensex at 74,764.23. The Nifty IT index led sector losses, dropping more than 3%, while the Nifty Metal index gained around 2%. Ponmudi R, CEO of Enrich Money, stated that the 23,400 zone serves as immediate support, though momentum indicators indicate significant market weakness. Kumar Gaurav, the article's author, clarified he is not a SEBI-registered Research Analyst.",
+      "hazards": [
+        "percent",
+        "bigNumber",
         "acronym",
         "hyphenate",
         "quoted"
       ],
-      "sourceItemId": "business-economy-4585408251",
-      "sourceName": "Semafor",
-      "vertical": "business-economy"
+      "sourceItemId": "india-3517548263",
+      "sourceName": "The Economic Times",
+      "vertical": "india",
+      "day": "2026/09/09"
     },
     {
-      "id": "real-13",
-      "words": 82,
-      "text": "Russian President Vladimir Putin met with South African President Cyril Ramaphosa, Egyptian President Abdel Fattah el-Sisi and Malaysian Prime Minister Anwar Ibrahim on the sidelines of the BRICS summit in New Delhi, according to the Kremlin. The discussions focused on strengthening bilateral ties, expanding trade volumes and advancing joint projects in energy and technology. Putin noted that trade with Egypt has surpassed $10 billion and with Malaysia rose 12.9% last year. Leaders also agreed to cooperate on regional stability and upcoming summits.",
+      "id": "real-17",
+      "words": 78,
+      "text": "President Donald Trump escalated his trade dispute with Canada by issuing executive orders to ban alcohol imports and impose a 50% tariff on specific goods. Canadian Prime Minister Mark Carney acknowledged the economic cost of loosening ties but insisted the benefits would outweigh the pain. Canada has already implemented retaliatory tariffs on US imports, while Trump threatened to bar Canadian companies from US government contracts. The two nations have not resumed negotiations since talks broke down in August.",
+      "hazards": [
+        "percent",
+        "acronym"
+      ],
+      "sourceItemId": "world-5744906745",
+      "sourceName": "Euronews",
+      "vertical": "world",
+      "day": "2026/09/09"
+    },
+    {
+      "id": "real-18",
+      "words": 80,
+      "text": "President Donald Trump suggested renaming New Mexico to New America, a proposal quickly rejected by Governor Michelle Lujan Grisham. AFP reported that this suggestion follows a pattern of Trump's second-term naming moves, including the formal renaming of Lake Ontario to Lake America. While some media reports suggest the New Mexico proposal may have originated as an internet hoax, the Lake Ontario change remains an official executive order. The state's governor noted the name has existed since before the United States.",
+      "hazards": [
+        "acronym",
+        "hyphenate",
+        "quoted"
+      ],
+      "sourceItemId": "india-7267761267",
+      "sourceName": "Mint",
+      "vertical": "india",
+      "day": "2026/09/07"
+    },
+    {
+      "id": "real-19",
+      "words": 83,
+      "text": "The Institute for Energy Economics and Financial Analysis (IEEFA) released a briefing note stating that solar sharer tariffs, which provide free daytime electricity, could save Australian households thousands of dollars annually when paired with consumption shifts. IEEFA modelling indicates savings of up to $2,257 per year for households with two electric vehicles, while also highlighting barriers such as limited appliance flexibility and regulatory hurdles for renters. The organisation recommends policy measures to extend free electricity windows and improve feed-in tariffs to maximise benefits.",
+      "hazards": [
+        "currency",
+        "bigNumber",
+        "acronym",
+        "hyphenate"
+      ],
+      "sourceItemId": "energy-5292626791",
+      "sourceName": "SolarQuarter",
+      "vertical": "energy",
+      "day": "2026/09/09"
+    },
+    {
+      "id": "real-20",
+      "words": 86,
+      "text": "US inflation remained unchanged at 3. 4% in August, with gasoline prices rising 3. 9% and pushing the overall rate above the Federal Reserve's 2% target, the Bureau of Labor Statistics reported. Diesel prices hit a new high above $6 per gallon, fueled by global oil price spikes linked to US-Iran conflict escalations. Consequently, 85% of traders now expect the Federal Reserve to raise interest rates by a quarter percentage point next week to slow price increases, despite Chair Kevin Warsh remaining tight-lipped on specific decisions.",
+      "hazards": [
+        "currency",
+        "percent",
+        "acronym",
+        "hyphenate",
+        "quoted"
+      ],
+      "sourceItemId": "business-economy-5327667727",
+      "sourceName": "BBC - Business",
+      "vertical": "business-economy",
+      "day": "2026/09/11"
+    },
+    {
+      "id": "real-21",
+      "words": 88,
+      "text": "Vietnam is preparing to transition its power system toward virtual power plants by aggregating distributed rooftop solar, battery storage, and electric vehicles. According to a publication by the Ministry of Industry and Trade, authorities are exploring aggregation platforms to link these resources into flexible grid assets. The ministry noted that while the country has overbuilt solar, creating grid bottlenecks, VPP aggregation could offer benefits. However, the ministry stated that a suitable roadmap and mechanism are needed so dispersed resources can participate in the electricity market effectively and transparently.",
+      "hazards": [
+        "acronym"
+      ],
+      "sourceItemId": "energy-2211663932",
+      "sourceName": "pv magazine",
+      "vertical": "energy",
+      "day": "2026/09/07"
+    },
+    {
+      "id": "real-22",
+      "words": 91,
+      "text": "The White House is considering using the Defense Production Act to expand U. S. refining capacity, according to Reuters. American refineries are currently operating at 98% capacity, prompting discussions during a meeting between President Donald Trump and refiners. Executives indicated that federal funds would accelerate expansion of existing plants compared to building new facilities. The Defense Production Act allows the president to provide financial assistance for materials and capacity deemed necessary for national defense. This follows a presidential determination in April declaring domestic petroleum production essential to national defense. U. S.",
+      "hazards": [
+        "currency",
+        "percent"
+      ],
+      "sourceItemId": "energy-1281524079",
+      "sourceName": "OilPrice.com",
+      "vertical": "energy",
+      "day": "2026/09/11"
+    },
+    {
+      "id": "real-23",
+      "words": 93,
+      "text": "The Kerala government has shortlisted three revenue land sites in Ernakulam for the proposed J.C. Daniel International Film City, announced under the Revised State Budget for 2026-27. Culture Minister P. Vishnunadh stated that work is expected to commence within six months to address the lack of adequate studio infrastructure in Malayalam cinema. The project, planned under a public-private partnership model, will include sprawling studio floors, an entertainment zone, and an exhibition centre. Industry representatives, including B. Rakesh of the Kerala Film Producers' Association, noted that subsidized rates for facilities could reduce movie budgets.",
+      "hazards": [
+        "currency",
+        "hyphenate",
+        "quoted"
+      ],
+      "sourceItemId": "india-2660801962",
+      "sourceName": "The Hindu - National",
+      "vertical": "india",
+      "day": "2026/09/07"
+    },
+    {
+      "id": "real-24",
+      "words": 97,
+      "text": "Anthropic announced Thursday that it blocked attempts by malicious actors to utilize its artificial intelligence for cyberattacks, surveillance, and biological weapon development. The company detailed findings from its third misuse report since March 2025, which included a blocked request for Claude to assist in a grant application for gain-of-function research on the chikungunya virus. Anthropic noted that while older models were less capable of aiding sophisticated biological research, newer models pose greater risks, prompting the implementation of stricter safeguards. The report follows concerns raised by a resigning researcher regarding the industry's rapid development of powerful AI systems.",
+      "hazards": [
+        "acronym",
+        "hyphenate",
+        "quoted"
+      ],
+      "sourceItemId": "india-9935833140",
+      "sourceName": "The Hindu BusinessLine",
+      "vertical": "india",
+      "day": "2026/09/11"
+    },
+    {
+      "id": "real-25",
+      "words": 99,
+      "text": "Germany requested the International Court of Justice to dismiss a legal challenge filed by Nicaragua regarding arms exports to Israel. Nicaragua accuses Berlin of aiding genocide in Gaza, whereas Germany argues the case lacks jurisdiction and proper procedural steps were not followed. The German government noted that its weapons export policies remain strictly regulated. While an initial bid for an emergency injunction failed in 2024, Germany suspended exports briefly in 2025 before resuming them following a truce. A decision on dismissing the case is tentatively expected later this year, potentially contingent on separate proceedings concerning Israel's actions in Gaza.",
+      "hazards": [
+        "quoted"
+      ],
+      "sourceItemId": "world-5635636313",
+      "sourceName": "Deutsche Welle",
+      "vertical": "world",
+      "day": "2026/09/07"
+    },
+    {
+      "id": "real-26",
+      "words": 103,
+      "text": "Amy Winecoff reports that New York's Stop Addictive Feeds Exploitation (SAFE) for Kids Act provides an early model for age assurance governance. The final rules, released on July 28, require ongoing evaluation of systems against criteria balancing efficacy, privacy, and availability. However, the article notes significant gaps, including a lack of accuracy standards for false rejections and insufficient public transparency regarding certification reports. Winecoff argues that future regulations should mandate multiple age assurance options and establish comprehensive end-to-end performance standards. Additionally, the author suggests that making certification data public would allow independent researchers to better evaluate system performance and inform future policy updates.",
+      "hazards": [
+        "acronym",
+        "date",
+        "hyphenate",
+        "quoted"
+      ],
+      "sourceItemId": "ai-1614210687",
+      "sourceName": "TechPolicy",
+      "vertical": "ai",
+      "day": "2026/09/09"
+    },
+    {
+      "id": "real-27",
+      "words": 106,
+      "text": "Apple CEO John Ternus unveiled the company's latest products, including the foldable iPhone Duo and the iPhone 18 series, at an event in Cupertino. The Duo, priced at $1,999, features a 7.6-inch display and will be available in October, marking Apple's entry into the foldable smartphone category. Meanwhile, the iPhone 18 Pro and Pro Max models will launch in September with enhanced battery life and camera capabilities. Analysts suggest that while the Duo is a significant design addition, foldable phones remain a niche market. Ternus emphasized Apple's focus on privacy and security in its new AI features, distinguishing the company from rivals like Samsung and Google.",
+      "hazards": [
+        "currency",
+        "bigNumber",
+        "acronym",
+        "quoted"
+      ],
+      "sourceItemId": "world-5725828611",
+      "sourceName": "Euronews",
+      "vertical": "world",
+      "day": "2026/09/10"
+    },
+    {
+      "id": "real-28",
+      "words": 109,
+      "text": "IBM and Lockheed Martin, together with ETH Zurich, have launched a new quantum innovation hub in Switzerland. This initiative will be anchored by the country's first IBM Quantum System Two, which is expected to be operational at the Swiss National Supercomputing Centre in Lugano by the end of 2026. ETH Zurich will coordinate access and provide expertise, while IBM will operate the system. The hub aims to expand quantum computing access for Swiss academia, startups, and industry to advance research in areas such as chemistry and materials science. Additionally, the project extends the strategic collaboration between IBM and Lockheed Martin, combining their respective innovations in quantum computing and sensing.",
+      "hazards": [
+        "acronym",
+        "quoted"
+      ],
+      "sourceItemId": "ai-3805298898",
+      "sourceName": "IBM Research",
+      "vertical": "ai",
+      "day": "2026/09/10"
+    },
+    {
+      "id": "real-29",
+      "words": 112,
+      "text": "W Health Ventures, a Mumbai-based healthcare venture capital firm, announced the closure of its second fund at 700 crore, surpassing the initial target of 630 crore. The firm plans to utilize this capital to build eight to 10 healthcare companies from the pre-idea stage over the next four years. Managing partner Dr Pankaj Jethwani explained that the company creation model identifies gaps in healthcare delivery and recruits founding teams to address structural mismatches. Unlike conventional funds, W Health Ventures develops businesses from the idea stage, having already launched two companies under Fund II that have reached 25 million patients. The firm intends to expand this approach across India and the US-India corridor.",
+      "hazards": [
+        "currency",
+        "acronym",
+        "hyphenate"
+      ],
+      "sourceItemId": "india-8725693818",
+      "sourceName": "The Hindu BusinessLine",
+      "vertical": "india",
+      "day": "2026/09/07"
+    },
+    {
+      "id": "real-30",
+      "words": 116,
+      "text": "Samsung India has reportedly initiated layoffs affecting 80-100 executives within its television and home appliance divisions, according to the Economic Times. The company cites rising input costs, weaker sales, and margin pressure as primary drivers for these cuts, which include director-level officials and branch managers. While the electronics business faces challenges, the smartphone division remains spared as it constitutes the majority of revenue. Additionally, Samsung is consolidating its branch network by merging offices in cities like Ranchi with Patna and Delhi with Gurgaon. The Economic Times noted that termination letters are being issued in small batches without notice periods, with affected employees receiving severance equivalent to three months' salary plus additional pay for years of service.",
+      "hazards": [
+        "currency",
+        "hyphenate",
+        "quoted"
+      ],
+      "sourceItemId": "india-1537923041",
+      "sourceName": "Hindustan Times",
+      "vertical": "india",
+      "day": "2026/09/08"
+    },
+    {
+      "id": "real-31",
+      "words": 120,
+      "text": "The European Council on Foreign Relations (ECFR) published a survey of nearly 19,500 people across 15 European countries indicating that while public support for higher defense spending is growing, it remains conditional on economic stability. Jana Kobzova, co-director of ECFR's European Security Programme, told Anadolu that voters understand the changing security landscape but insist governments prioritize the economic squeeze. The poll found that only 39% of respondents supported reducing public spending to fund defense, while 45% opposed such trade-offs. Support for this approach varied sharply by country, ranging from 55% in Estonia to just 28% in Austria. The findings suggest that Europeans are more receptive to defense investment when it strengthens European industrial capacity rather than relying on external suppliers.",
       "hazards": [
         "currency",
         "percent",
         "bigNumber",
         "acronym",
-        "hyphenate"
+        "hyphenate",
+        "quoted"
       ],
-      "sourceItemId": "world-6755080790",
+      "sourceItemId": "world-8760861208",
       "sourceName": "Anadolu Agency",
-      "vertical": "world"
+      "vertical": "world",
+      "day": "2026/09/10"
     },
     {
-      "id": "real-14",
-      "words": 86,
-      "text": "Russian authorities are disqualifying parliamentary candidates using dubious claims as the September 18-20 State Duma election approaches. An investigation by independent media Verstka reports at least 36 candidates have been barred, including those who posted images of banned social media platforms or artwork by Banksy and Lemmy Kilmister. Experts describe these motives as absurd and intended to demonstrate that resistance is futile. The Kremlin is reportedly using these tactics to suppress anti-war sentiment and maintain control over the political landscape amidst the ongoing conflict in Ukraine.",
-      "hazards": [
-        "date",
-        "hyphenate"
-      ],
-      "sourceItemId": "world-0708279618",
-      "sourceName": "France 24",
-      "vertical": "world"
-    },
-    {
-      "id": "real-15",
-      "words": 89,
-      "text": "Pennsylvania Attorney General Dave Sunday announced a civil lawsuit against TikTok on August 11, 2026, accusing the social media platform of violating state consumer protection laws. The suit alleges TikTok made false statements about content maturity and knowingly created addictive features like infinite scrolling that harm youth. A TikTok spokesperson rejected the charges, calling the claims misleading and ignoring the company's voluntary safety measures. The article notes that while the lawsuit seeks liability, the issue of digital addiction does not fall neatly into binary distinctions of safe or dangerous.",
-      "hazards": [
-        "date",
-        "quoted"
-      ],
-      "sourceItemId": "ai-7294334167",
-      "sourceName": "Fast Company Technology",
-      "vertical": "ai"
-    },
-    {
-      "id": "real-16",
-      "words": 92,
-      "text": "A government survey released Friday indicates that the proportion of single Japanese men and women intending to marry has dropped below 80% for the first time. The National Institute of Population and Social Security Research noted that more individuals believe they will not feel lonely living alone and have never interacted with infants, contributing to this decline. Among unmarried people aged 18 to 34, 75. 1% of men and 77. 8% of women said they intend to marry eventually, both figures falling by more than 6 percentage points from the previous survey.",
-      "hazards": [
-        "percent"
-      ],
-      "sourceItemId": "world-7383399385",
-      "sourceName": "The Japan Times",
-      "vertical": "world"
-    },
-    {
-      "id": "real-17",
-      "words": 96,
-      "text": "Mozambique formally protected Mount Mabu, a biodiversity hotspot in the Lugela district, by establishing the 9,341-hectare Mount Mabu Community Conservation Area. The Ministry of Agriculture, Environment and Fisheries published the decree on Aug. 24, granting stewardship to local communities who have preserved the forest for generations. Julian Bayliss, an ecologist who led surveys over 20 years, noted the area's high endemism and recorded more than 200 butterfly taxa, with the real number potentially reaching 250. The decree dedicates the land to protection and sustainable use by locals, though specific restrictions await a finalized community management plan.",
+      "id": "real-32",
+      "words": 123,
+      "text": "The Sydney Philharmonia Choirs recently returned from a 12-day tour of the UK, where amateur singers performed at the Royal Albert Hall as part of the BBC Proms. According to choir members like Kate Clowes and Joel Wilkinson, the group largely consists of people with day jobs who self-fund their participation and travel. Artistic Director Brett Weymark noted that during the tour, these individuals temporarily become professional musicians dedicated solely to singing. The performance, which featured over 300 performers, was broadcast on ABC Classic. Weymark compares community music groups to local sports teams, emphasizing their vital role in grassroots music making. Members reported that the experience provided significant professional development and strengthened friendships, creating a unique sense of connection through shared musical joy.",
       "hazards": [
         "currency",
-        "bigNumber",
-        "date",
-        "quoted"
-      ],
-      "sourceItemId": "world-5378091030",
-      "sourceName": "Mongabay",
-      "vertical": "world"
-    },
-    {
-      "id": "real-18",
-      "words": 98,
-      "text": "Singapura Nanyang Coffee owner Fong Jun Jie intends to move his store after Marina Square shuts for renovations in March 2027. He recalled growing up at the mall and hopes to return once the site reopens in 2031. Singapore Land Group announced the project will include luxury homes, serviced apartments, offices, and a new hotel. Fong noted that relocating requires significant capital and that staying nearby is vital for retaining customers. While some shoppers like Poh Lijia feel sentimental about losing family-friendly spaces, others like analyst Tang visit only for events and are less affected by the closure.",
-      "hazards": [
-        "currency",
-        "hyphenate"
-      ],
-      "sourceItemId": "ai-5644214575",
-      "sourceName": "The Straits Times",
-      "vertical": "ai"
-    },
-    {
-      "id": "real-19",
-      "words": 101,
-      "text": "The Fremantle Dockers defeated Geelong by 14 points in an AFL match, preserving their best-ever chance of winning the premiership. After falling behind late in the third term, the Dockers recovered thanks to a dominant performance from their forward line, which included Luke Jackson, Caleb Serong, and Andrew Brayshaw. Fremantle coach Justin Longmuir stated that his team handled momentum shifts well after initially struggling in the third quarter. The victory marked the club's highest point total in September history, with 120 points scored against Geelong. The team now looks to advance to Sydney to face the Swans in their next match.",
-      "hazards": [
         "acronym",
-        "hyphenate",
-        "quoted"
+        "hyphenate"
       ],
-      "sourceItemId": "world-2056080756",
+      "sourceItemId": "world-7469911053",
       "sourceName": "ABC News Australia",
-      "vertical": "world"
+      "vertical": "world",
+      "day": "2026/09/07"
     },
     {
-      "id": "real-20",
-      "words": 105,
-      "text": "Andhra Pradesh Chief Minister N. Chandrababu Naidu directed District Collectors to implement welfare schemes by treating the family as the basic unit rather than encouraging households to split for more benefits. Reviewing the government's 'Super Six' welfare schemes during the eighth Collectors' Conference in Amaravati, Naidu emphasized that family mapping should be completed before issuing new pensions. He noted the government has spent around ₹1.50 lakh crore on welfare programmes so far, with ₹75,000 crore allocated to pensions. Naidu also instructed officials to use designated days each month for specific public-service programmes and asked SERP and MEPMA to expand the 'One Family, One Entrepreneur' programme.",
+      "id": "real-33",
+      "words": 127,
+      "text": "Apple Inc shares dropped 1.3% to $315 on September 8 ahead of an event where the company plans to unveil its first foldable iPhone. Analysts anticipate the device, expected to cost more than $2,500, could quickly become a category leader despite potential limitations in camera and processor technology. Nabila Popal of IDC stated that the phone would sell well due to Apple's ability to create an aura of exclusivity. The introduction also marks a debut for CEO John Ternus, who took the role on September 1. Apple aims to refresh its Pro models while delaying updates to other lines until spring 2027. This move represents a significant design shift in the iPhone's nearly 20-year history, following years of internal research initiated by then-CEO Tim Cook around 2020.",
       "hazards": [
         "currency",
+        "percent",
         "bigNumber",
+        "acronym",
+        "date",
+        "hyphenate",
+        "quoted"
+      ],
+      "sourceItemId": "india-0261499318",
+      "sourceName": "Mint - Markets",
+      "vertical": "india",
+      "day": "2026/09/08"
+    },
+    {
+      "id": "real-34",
+      "words": 134,
+      "text": "In September 2026, NVIDIA announced it is leaning into native GPU programming in Rust, aiming to mature CUDA Rust through 2027 and beyond. The company addresses the gap where GPU kernels previously required separate languages by enabling Rust code to compile natively to PTX. NVIDIA presents two tracks matching CUDA's existing models: SIMT for thread-level control and Tile for compiler-managed data tiles. The Tile track is recommended first for its architecture-agnostic design. Two projects demonstrate these capabilities: cuda-oxide, an early alpha codegen backend requiring a nightly toolchain, and cutile-rs, a published crate supporting stable Rust. Both projects enforce memory safety by preventing data races at compile time, though they differ in their approach to ownership and shared memory. NVIDIA notes that both projects are early-stage and not yet production-ready, inviting community feedback and collaboration.",
+      "hazards": [
+        "currency",
         "acronym",
         "hyphenate",
         "quoted"
       ],
-      "sourceItemId": "india-3014271353",
-      "sourceName": "The Hindu - National",
-      "vertical": "india"
+      "sourceItemId": "ai-4818952883",
+      "sourceName": "NVIDIA Technical Blog",
+      "vertical": "ai",
+      "day": "2026/09/08"
     },
     {
-      "id": "real-21",
-      "words": 110,
-      "text": "Sociologist Rahul Verma argues that young children in India lack the agency to claim their legal rights to safe school environments. Although older students successfully organized protests in Fatehpur, younger children cannot navigate complex bureaucratic systems alone. Verma notes that while institutions like the National Commission for Protection of Child Rights exist, they often rely on complaints from adults rather than proactively identifying violations. The author suggests reforms including proactive audits by the NCPCR and secret ballots in School Management Committees to protect vulnerable voices. Verma concludes that a public system must ensure rights are enforced for children before they can protest, ensuring their citizenship is recognized regardless of age.",
+      "id": "real-35",
+      "words": 141,
+      "text": "The European Central Bank raised interest rates to 2.5% on Thursday, citing heightened inflation risks linked to renewed conflict in the Middle East. The central bank increased rates from 2.25% and adjusted its economic growth forecast for the eurozone. ECB President Christine Lagarde stated that headline inflation is expected to return to target by the end of 2027, supported by higher interest rates. Simultaneously, energy prices jumped after US and Iranian attacks on ships in the Strait of Hormuz, causing Brent crude to pass $105 a barrel. These spikes drove government borrowing costs to historic highs in the UK, Germany, and France. Analysts at Schroders noted that while core inflation remains stable, higher energy prices will likely keep headline inflation elevated. Concerns persist over low EU gas storage levels ahead of winter, which could further strain inflation if supplies are disrupted.",
       "hazards": [
+        "currency",
+        "percent",
+        "bigNumber",
         "acronym"
       ],
-      "sourceItemId": "india-7765615346",
-      "sourceName": "Frontline",
-      "vertical": "india"
+      "sourceItemId": "business-economy-4225507083",
+      "sourceName": "The Guardian - Business",
+      "vertical": "business-economy",
+      "day": "2026/09/10"
     },
     {
-      "id": "real-22",
-      "words": 116,
-      "text": "Carbon Brief reports that over 1,000 NHS operations were cancelled across England and Wales during record heatwaves in May and June 2026. The investigation, based on freedom-of-information requests to 140 trusts, identified 1,110 cancellations, including at least 10 emergency procedures and 167 orthopaedic surgeries. Areas like Surrey and Sussex saw the most disruptions, with temperatures approaching 36C causing ventilation systems to fail. Experts explain that complex theatre environments cannot guarantee safety when cooling systems break down, risking infection and staff concentration. While most cancelled cases were elective, the data highlights a system struggling with extreme weather due to aging infrastructure and underinvestment. Health officials now call for urgent upgrades to ensure resilience against future climate-related pressures.",
-      "hazards": [
-        "bigNumber",
-        "acronym",
-        "hyphenate"
-      ],
-      "sourceItemId": "energy-9398927859",
-      "sourceName": "Carbon Brief",
-      "vertical": "energy"
-    },
-    {
-      "id": "real-23",
-      "words": 123,
-      "text": "The Asiatic Society in Kolkata is hosting an exhibition titled \"1857: The First War of Independence—A Visual Journey\" curated by Jyotirmoy Bhattacharya. The display features rare engravings, drawings, and photographs from sources like Charles Ball and Felice Beato to depict the Revolt of 1857. Curator Jyotirmoy Bhattacharya stated the exhibition serves as a homage to the heroes of 1857 who ignited nationalist aspirations leading to India's independence. The visual journey traces the conflict from the annexation of Awadh to the suppression of the mutiny in July 1858, while also highlighting the subsequent nationalist movement. The exhibition includes graphic depictions of violence and brutality, such as the killing of sepoys and the storming of Delhi, offering a detailed pictorial representation of the historical events.",
-      "hazards": [
-        "quoted"
-      ],
-      "sourceItemId": "india-4417362256",
-      "sourceName": "Frontline",
-      "vertical": "india"
-    },
-    {
-      "id": "real-24",
-      "words": 136,
-      "text": "Chirag Barjatya, an X user, explains that he upgrades his iPhone annually from the iPhone X to the iPhone 17 Pro by combining no-cost EMI with the exchange value of his previous device. Barjatya describes this arrangement as a lease model that allows him to spread payments over time while replacing his phone before its resale value falls too sharply. He notes that while keeping a phone for four to five years would be cheaper, he prefers the convenience of daily use for work and content creation. The post has attracted over 844 likes and sparked debate among users regarding the financial sense of frequent upgrades versus long-term retention. Meanwhile, Apple has launched the iPhone 18 Pro and iPhone 18 Pro Max, introducing new hardware features and starting prices of ₹1,64,900 and ₹1,79,900 respectively in India.",
+      "id": "real-36",
+      "words": 157,
+      "text": "Shares of Tata Motors Ltd traded largely flat on Monday as its voluntary tender offer for Iveco Group formally entered the acceptance phase. As of 11.19 am, the stock was quoted at ₹458.50. Tata Motors, through its subsidiary TML CV Holdings B.V., launched a recommended all-cash voluntary tender offer for all common shares of Iveco Group N.V. The acceptance period runs from September 7, 2026, through October 26, 2026. The offer price is €14.10 per common share, cum dividend, valuing Iveco Group at approximately €3.82 billion. The Iveco board has unanimously recommended the offer to its shareholders. Exor N.V., Iveco's largest shareholder with around 27.06 percent of common shares, has irrevocably committed to tender its stake. All required regulatory clearances have been obtained. The offer requires a minimum acceptance threshold of 95 percent of common shares, which reduces to 80 percent if shareholders approve the Back-End Resolution at the extraordinary general meeting scheduled for October 16, 2026.",
       "hazards": [
         "currency",
+        "percent",
         "bigNumber",
         "acronym",
-        "hyphenate"
+        "date",
+        "hyphenate",
+        "quoted"
       ],
-      "sourceItemId": "india-4910693989",
-      "sourceName": "Mint",
-      "vertical": "india"
+      "sourceItemId": "india-7800612352",
+      "sourceName": "The Hindu BusinessLine",
+      "vertical": "india",
+      "day": "2026/09/07"
     }
   ]
 }

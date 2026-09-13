@@ -178,7 +178,12 @@ def main() -> int:
     if not MODEL:
         raise SystemExit("MODEL must be set")
 
-    result_dir = HERE / "results" / MODEL
+    # Set by a sharded run so each shard grades only the audio it made.
+    result_dir = (
+        Path(os.environ["RESULT_DIR"])
+        if os.environ.get("RESULT_DIR")
+        else HERE / "results" / MODEL
+    )
     audio_dir = result_dir / "verbalization"
     if not audio_dir.is_dir():
         raise SystemExit(f"no verbalization audio at {audio_dir} - run the benchmark first")
