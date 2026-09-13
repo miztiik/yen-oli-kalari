@@ -1,6 +1,6 @@
 # Model formats and inference vocabulary
 
-**Last Updated**: 2026-09-12
+**Last Updated**: 2026-09-13
 
 The words a voice-model decision is argued in. Every one of these was used
 loosely somewhere in this project's research before it was defined here, and a
@@ -48,12 +48,19 @@ budget RTF = 360 minutes of job / 509.2 minutes of audio = 0.707
 to a question nobody should have been asking, because summaries are independent
 and the work fans out. With `N` runners each carrying `1/N` of the day:
 
-| Runners | Audio each carries | Budget RTF | Kokoro at 1.0112 |
+| Runners | Audio each carries | Budget RTF | Kokoro fp32 at 0.45 |
 | --- | --- | --- | --- |
-| 1 | 509.2 min | **0.707** | 8.58 h - busts |
-| 2 | 254.6 min | 1.41 | 4.29 h - fits |
-| 4 | 127.3 min | **2.83** | 2.15 h - fits comfortably |
-| 8 | 63.6 min | 5.66 | 1.07 h - fits easily |
+| 1 | 509.2 min | **0.707** | 3.8 h - fits |
+| 2 | 254.6 min | 1.41 | 1.9 h - fits |
+| 4 | 127.3 min | **2.83** | 0.95 h - fits comfortably |
+| 8 | 63.6 min | 5.66 | 0.48 h - fits easily |
+
+**Measured 2026-09-13, the incumbent clears the single-runner budget on its own.**
+Kokoro fp32 reads 0.359 to 0.453, against a budget of 0.707 - so one runner
+voices the busiest day in under four hours and the fan-out is headroom rather
+than a requirement. That was not true at q8, which reads about 1.0 and does not
+fit, and it is the reason the quantisation finding mattered more than any model
+choice.
 
 The budget scales linearly with the shard count because the work is
 embarrassingly parallel. **A shard is a whole runner, not a core**: each

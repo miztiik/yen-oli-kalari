@@ -1,6 +1,6 @@
 # Measurements
 
-**Last Updated**: 2026-09-12
+**Last Updated**: 2026-09-13
 
 The instrument log: the figure now in force for each quantity the audio design
 rests on, with the date it was taken, what took it, and a link to the record
@@ -23,14 +23,17 @@ Three rules govern this page:
   not: the same corpus read at 1.0112 on the runner and 2.576 on a laptop. A
   factor without a host attached may not be compared against the job cap.
 
-There are four records today:
+There are five records today:
 [2026-09-11 - Input volume and the price of audio](benchmarks/2026-09-11-input-volume-and-audio-cost.md)
 took the input census, and
 [2026-09-12 - Kokoro on a CI runner](benchmarks/2026-09-12-kokoro-on-a-ci-runner.md)
 took the pace and the first runner reading, and
 [2026-09-12 - Real text and the shard arithmetic](benchmarks/2026-09-12-real-text-and-shard-arithmetic.md)
 re-took the pace on text nobody chose for the test and corrected a budget that
-had been derived for a single runner. The measured counts were taken over 22 committed yen-idhazh
+had been derived for a single runner. [2026-09-13 - Six voices
+graded](benchmarks/2026-09-13-six-voices-graded.md) put six voices on the runner
+with speed and verbalization accuracy measured together, and unseated the
+incumbent on both. The measured counts were taken over 22 committed yen-idhazh
 digest days on a developer machine; a count of items, words or bytes travels and
 names no machine, so none is stated.
 
@@ -83,9 +86,25 @@ single readings, not a distribution.
 
 | Quantity | In force | Basis | Date |
 | --- | --- | --- | --- |
-| Real-time factor on the runner, **q8** | 1.0112 | Kokoro-82M q8 via `kokoro-js`, `ubuntu-latest`, AMD EPYC 7763, 4 cores | 2026-09-12 |
-| Quantisation penalty, q8 against fp32 | **2.16x slower**, identical audio length | same corpus and machine, 2 repeats ([record](benchmarks/2026-09-12-quantisation-was-costing-not-saving.md)) | 2026-09-12 |
-| Real-time factor on the runner, **fp32** | **~0.47 - estimate** | the measured ratio applied to the measured q8 figure; not yet run on the runner | 2026-09-12 |
+| Real-time factor, Kokoro **fp32** | **0.359 to 0.453** over four runs | `bm_george`, `ubuntu-latest`, AMD EPYC, 4 cores ([record](benchmarks/2026-09-13-six-voices-graded.md)) | 2026-09-13 |
+| Real-time factor, Kokoro **q8** | **0.996 to 1.011** over four runs | same corpus and hardware | 2026-09-13 |
+| Quantisation penalty, q8 against fp32 | **2.2x to 2.8x slower**, identical audio | the two rows above | 2026-09-13 |
+| Real-time factor, **Supertonic** | **0.084 to 0.100** | the fastest measured; OpenRAIL-M, so it cannot ship | 2026-09-13 |
+| Real-time factor, MMS-TTS | 0.210 to 0.255 | control arm only; CC-BY-NC | 2026-09-13 |
+| **Verbalization accuracy, Supertonic** | **40.7% to 48.2%** | 27 graded cases, ASR round-trip | 2026-09-13 |
+| **Verbalization accuracy, Kokoro** | **29.6%** (8 of 27) | stable across fp32 and q8 - quantisation changes speed, not words | 2026-09-13 |
+| Verbalization accuracy, MMS-TTS | 0% to 7.4% | unusable for news copy | 2026-09-13 |
+| Peak memory, Kokoro | 1222 to 1451 MB | per arm, resident set | 2026-09-13 |
+| Peak memory, Supertonic | 639 to 657 MB | 44% of the incumbent's | 2026-09-13 |
+| Peak memory, Chatterbox (0.5B, autoregressive) | **5792 MB** | of the runner's 16 GB - an AR model at this size is feasible | 2026-09-13 |
+
+**The runner's own spread is now visible and it is not small.** Kokoro fp32 read
+0.359, 0.433 and 0.453 on three runs of identical work - a 26 percent spread -
+while q8 held between 0.996 and 1.011, a spread of 1.5 percent. A single reading
+from a GitHub runner is one sample of a noisy process, and the faster the arm the
+larger the proportional noise, because a shorter job spends more of its life
+competing for a shared machine. **Two figures that differ by less than about a
+quarter are not distinguishable on one run each.**
 | Wall-clock, median day (370 items) | 4.44 h - 74% of the cap, fits | measured factor | 2026-09-12 |
 | Wall-clock, busiest day (731 items) | 8.77 h - 146% of the cap, **busts** | measured factor | 2026-09-12 |
 | Budget RTF, one runner | 0.692 | arithmetic on the two rows above | 2026-09-12 |
@@ -104,13 +123,14 @@ design decision.
 
 | Quantity | Current basis | What settles it |
 | --- | --- | --- |
-| Whether the audio is good enough to publish | unjudged | listen to the clips beside their source text and score them ([`../../test/voice-evaluation`](../../test/voice-evaluation/README.md)) |
-| Spread on the runner real-time factor | one repeat, no spread | run the same corpus several times on `ubuntu-latest` and read the distribution |
-| Whether a faster library changes the factor | one library measured | run `@huggingface/transformers` over the same weights, the comparison's other arm |
+| Whether the audio is good enough to publish | unjudged | listen at [miztiik.github.io/yen-oli-kalari](https://miztiik.github.io/yen-oli-kalari/) - six voices, published |
+| Spread on the runner real-time factor | **measured: 26% on fp32, 1.5% on q8** | more repeats would tighten it; four runs is enough to know a single reading cannot separate close arms |
+| Chatterbox real-time factor | it ran, its arm recorded no per-clip timings | add timing to the python arm and re-run |
 | Bytes per clip from a real encoder | modelled as bitrate times duration | encode real speech at opus@24k and measure the file |
 | Opus bitrate for acceptable speech quality | untested | encode and listen at 16k, 24k, 32k |
 | Steady-state site size under every-item plus prune | not built | run the prune cycle over several published days and weigh the tree |
-| Pace and factor of any production candidate | only the reference model has run | the pace is model-specific and must be re-measured, never carried across |
+| Naturalness, intelligibility, seams, defects | instruments built, unjudged | a person with headphones; no figure replaces it |
+| Qwen3-TTS and Higgs | runtimes unwired | the multi-graph loop Chatterbox proved, applied to their graphs |
 
 ## How to add a row here
 

@@ -1,6 +1,6 @@
 # Voice model survey
 
-**Last Updated**: 2026-09-12
+**Last Updated**: 2026-09-13
 
 Every text-to-speech model researched for this project, what was found, and what
 remains unknown. The vocabulary used here - RTF, autoregressive, GGUF - is
@@ -72,6 +72,31 @@ component, and the frame rate says how many steps a second of audio needs.
 effects and the possibility that a given runtime is simply inefficient. They are
 an order-of-magnitude check, not a reading. But they are anchored to a real
 measurement on the real hardware, which the withdrawn figures were not.
+
+## Measured, 2026-09-13 - and the estimates above were wrong in both directions
+
+Six voices ran on the production runner with speed and verbalization accuracy
+taken together. The record is
+[2026-09-13 - Six voices graded](benchmarks/2026-09-13-six-voices-graded.md).
+
+| Model | Licence | RTF | Verbalization | Peak MB |
+| --- | --- | --- | --- | --- |
+| **Supertonic M1** | OpenRAIL-M | **0.084-0.100** | **48.2%** | 639 |
+| Supertonic F1 | OpenRAIL-M | 0.100 | 40.7% | 657 |
+| MMS-TTS eng | CC-BY-NC | 0.210-0.255 | 0-7.4% | 721 |
+| **Kokoro fp32** | Apache-2.0 | 0.359-0.453 | 29.6% | 1451 |
+| Kokoro q8 | Apache-2.0 | 0.996-1.011 | 29.6% | 1222 |
+| Chatterbox multilingual | MIT | ran, untimed | ungraded | **5792** |
+
+**The bandwidth estimates above were too pessimistic, and the naturalness
+rankings were beside the point.** Supertonic is four times faster than the
+incumbent, not marginally so - and it wins on words as well. Meanwhile the
+figure nobody had estimated at all turned out to be the one that decides
+everything: **no model reads news copy correctly more than half the time.**
+
+**Chatterbox settles the autoregressive question.** A 0.5B AR model loads in 60
+seconds and voices on 4 vCPU at 5.8 GB peak. The architecture is not the
+blocker, which means Qwen3-TTS at 1.5 GB is worth wiring.
 
 ## What that means against the budget
 

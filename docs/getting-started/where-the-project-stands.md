@@ -34,11 +34,14 @@ Full record: [2026-09-13 - Six voices graded](../reference/benchmarks/2026-09-13
 
 | Question | Answer | Record |
 | --- | --- | --- |
-| How fast does the voice run on the production runner? | **RTF 1.0112** at `q8` | [Kokoro on a CI runner](../reference/benchmarks/2026-09-12-kokoro-on-a-ci-runner.md) |
+| How fast does the voice run on the production runner? | **0.359 to 0.453** for Kokoro fp32, over four runs | [Six voices graded](../reference/benchmarks/2026-09-13-six-voices-graded.md) |
 | How fast does it speak? | **126.7 words a minute**, on real published text | [Real text and shard arithmetic](../reference/benchmarks/2026-09-12-real-text-and-shard-arithmetic.md) |
-| Is `q8` the right quantisation? | **No. It is 2.16x slower than `fp32` on identical audio.** | [The quantisation was costing](../reference/benchmarks/2026-09-12-quantisation-was-costing-not-saving.md) |
+| Is `q8` the right quantisation? | **No. 2.2x to 2.8x slower for identical audio and identical words.** | [The quantisation was costing](../reference/benchmarks/2026-09-12-quantisation-was-costing-not-saving.md) |
 | Does the busiest day fit a 6 h job? | At `q8` on one runner, no. **On four runners, yes - 2.19 h.** At `fp32` it may fit on one. | [Real text and shard arithmetic](../reference/benchmarks/2026-09-12-real-text-and-shard-arithmetic.md) |
-| Is there a better open model? | **No.** Kokoro is the highest-rated open-licensed model on TTS Arena V2 (rank 30, Elo 1477). | [Voice model survey](../reference/voice-model-survey.md) |
+| Is there a better model? | **Yes - Supertonic, on both speed and accuracy. It cannot ship.** OpenRAIL-M, upstream archived. | [Six voices graded](../reference/benchmarks/2026-09-13-six-voices-graded.md) |
+| Can any voice read news copy correctly? | **No.** The best measured gets 48.2%. | [Six voices graded](../reference/benchmarks/2026-09-13-six-voices-graded.md) |
+| Is an autoregressive model feasible on 4 vCPU? | **Yes.** Chatterbox voiced 6 clips at 5.8 GB peak of 16. | [Six voices graded](../reference/benchmarks/2026-09-13-six-voices-graded.md) |
+| How noisy is a single runner reading? | **26% spread on fp32**, 1.5% on q8, over four runs of identical work. | [measurements.md](../reference/measurements.md) |
 | Is storage a problem? | **No.** The prune holds repository size; the cap sets a retention window, not a limit. | [Pipeline loop](../concepts/pipeline-loop.md) |
 
 ## Open
@@ -64,8 +67,11 @@ narrows to Kokoro and whatever the blocked runtimes turn out to be worth.
 
 ## What is built, and what is not
 
-**Built** - the measurement harness, the listening page, the corpus builders, the
-sharded workflow, the budget calculator, and the documentation-map test.
+**Built and running** - the benchmark harness over two runtimes, the
+verbalization suite and its ASR grader, the listening page published to Pages,
+the corpus builders, the sharded workflow, the budget calculator, and the
+documentation-map test. Full state in
+[`../reference/delivery-status.md`](../reference/delivery-status.md).
 
 **Not built** - the pipeline itself. No stage of the daily loop exists in code:
 no read, no synthesise, no publish, no prune. The Listen and Console surfaces are
