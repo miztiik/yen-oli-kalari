@@ -39,10 +39,17 @@ for (const name of readdirSync(RESULTS_DIR)) {
     arms.push({ model: name, failed: true });
     continue;
   }
-  arms.push(JSON.parse(readFileSync(manifestPath, "utf8")));
+  const manifest = JSON.parse(readFileSync(manifestPath, "utf8"));
+  const gradesPath = join(dir, "verbalization-grades.json");
+  if (existsSync(gradesPath)) manifest.verbalizationGrades = JSON.parse(readFileSync(gradesPath, "utf8"));
+  arms.push(manifest);
 }
 
-const finished = arms.filter((a) => !a.failed);
+/* An arm that produced a manifest but no metrics ran and could not be scored -
+   which is different from an arm that died, and different again from one that
+   was never attempted. All three are reported rather than dropped. */
+const finished = arms.filter((a) => !a.failed && a.metrics);
+const unscored = arms.filter((a) => !a.failed && !a.metrics);
 const failed = arms.filter((a) => a.failed);
 
 if (finished.length === 0) {
@@ -74,16 +81,19 @@ if (!onRunner) {
   console.log("");
 }
 
-console.log("| Model | Runtime | RTF | x real time | wpm | Rate spread | Drift | Peak MB | Load |");
+console.log("| Model | Runtime | RTF | x real time | Verbalization | wpm | Rate spread | Drift | Peak MB |");
 console.log("| --- | --- | --- | --- | --- | --- | --- | --- | --- |");
 for (const arm of finished) {
   const m = arm.metrics;
+  const grade = arm.verbalizationGrades
+    ? `**${(arm.verbalizationGrades.verbalizationAccuracy * 100).toFixed(1)}%**`
+    : "-";
   console.log(
     `| \`${arm.model}\` | ${arm.runtime} | **${m.realTimeFactor.toFixed(4)}** | ` +
-      `${m.speedMultiplier.toFixed(2)}x | ${m.speakingRate.toFixed(1)} | ` +
+      `${m.speedMultiplier.toFixed(2)}x | ${grade} | ${m.speakingRate.toFixed(1)} | ` +
       `+/-${(m.rateStability.coefficientOfVariation * 100).toFixed(1)}% | ` +
       `${m.drift ? m.drift.medianDriftPercent.toFixed(1) + "%" : "n/a"} | ` +
-      `${arm.peakMemoryMb} | ${(arm.modelLoadMs / 1000).toFixed(1)}s |`,
+      `${arm.peakMemoryMb} |`,
   );
 }
 console.log("");

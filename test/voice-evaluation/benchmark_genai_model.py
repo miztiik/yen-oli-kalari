@@ -285,8 +285,52 @@ def main() -> int:
         )
         print(f"  {sample['id']}  {sample['words']:4d}w  {audio_seconds:.1f}s", flush=True)
 
+    # The same free metrics the Node arm computes, so a Python arm is not a
+    # second-class row in the comparison table. Long-form drift needs chunk
+    # timings this runner does not yet record, so it is absent rather than zero.
+    audio_total = sum(c["audioSeconds"] for c in clips)
+    words_total = sum(c["words"] for c in clips)
+    wall_total = sum(c["wallClockMs"] for c in clips) / 1000
+    characters = sum(len(c["text"]) for c in clips)
+    rates = sorted(c["wordsAMinute"] for c in clips)
+    mean_rate = sum(rates) / len(rates) if rates else 0.0
+    variance = sum((r - mean_rate) ** 2 for r in rates) / (len(rates) - 1) if len(rates) > 1 else 0.0
+    deviation = variance ** 0.5
+
+    metrics = {
+        "totalCharacters": characters,
+        "totalWords": words_total,
+        "audioSeconds": round(audio_total, 2),
+        "processingSeconds": round(wall_total, 1),
+        "charactersASecond": round(characters / audio_total, 2) if audio_total else 0,
+        "medianCharactersASecond": round(
+            sorted(len(c["text"]) / c["audioSeconds"] for c in clips)[len(clips) // 2], 2
+        )
+        if clips
+        else 0,
+        "speakingRate": round(words_total / audio_total * 60, 1) if audio_total else 0,
+        "realTimeFactor": round(wall_total / audio_total, 4) if audio_total else 0,
+        "speedMultiplier": round(audio_total / wall_total, 2) if wall_total else 0,
+        "rateStability": {
+            "mean": round(mean_rate, 1),
+            "median": rates[len(rates) // 2] if rates else 0,
+            "min": rates[0] if rates else 0,
+            "max": rates[-1] if rates else 0,
+            "standardDeviation": round(deviation, 2),
+            "coefficientOfVariation": round(deviation / mean_rate, 4) if mean_rate else 0,
+        },
+        "drift": None,
+        "notMeasuredHere": [
+            "long-form drift (needs per-chunk timings from this runner)",
+            "intelligibility",
+            "naturalness",
+            "audio defects",
+        ],
+    }
+
     manifest = {
         "schemaVersion": "2026-09-13",
+        "metrics": metrics,
         "model": MODEL_ID_ENV,
         "modelId": spec["modelId"],
         "runtime": "onnxruntime-python",
@@ -305,6 +349,15 @@ def main() -> int:
             "python": sys.version.split()[0],
         },
         "clips": clips,
+        "totals": {
+            "clipCount": len(clips),
+            "words": words_total,
+            "audioSeconds": round(audio_total, 2),
+            "wallSeconds": round(wall_total, 1),
+            "realTimeFactor": metrics["realTimeFactor"],
+            "wordsAMinute": metrics["speakingRate"],
+            "bytes": sum(c["bytes"] for c in clips),
+        },
     }
     (result_dir / "manifest.json").write_text(json.dumps(manifest, indent=2) + "\n", encoding="utf-8")
     print(f"\nwrote {len(clips)} clips, peak {peak_memory_mb()} MB")
