@@ -4,13 +4,13 @@
   "title": "Voice evaluation",
   "description": "One listener's verdict on one voice over the sample corpus. NOT A MOS. ITU-T P.800.2 forbids comparing mean-opinion scores across experiments, P.808 removes outliers across raters at |z|>=3.29 which one rater cannot do, and TTS Arena requires 100 votes before publishing a rating at all. This instrument is a within-harness engineering signal: a regression tripwire and a go/no-go on one voice, valid only against another run of this same harness with the same rater, instructions and playback device. It is never reported as a MOS and never compared to a published MOS. The four axes answer questions the CI-runner benchmark left open; two of them (intelligibility, prosody) map onto recognised constructs, one (seams) is a named long-form-TTS artefact, and one (pronunciation) is really text-normalisation correctness with an objective ground truth, which is why an automated ASR round-trip should eventually replace the human on that axis.",
   "type": "object",
-  "required": ["schemaVersion", "ratedAt", "subject", "clips"],
+  "required": ["schemaVersion", "ratedAt", "runs"],
   "additionalProperties": false,
   "properties": {
     "schemaVersion": {
       "type": "string",
       "description": "The date this schema shape was fixed. A reader that does not know this version must refuse the file rather than guess.",
-      "const": "2026-09-12"
+      "const": "2026-09-13"
     },
     "ratedAt": { "type": "string", "format": "date-time" },
     "rater": {
@@ -22,32 +22,85 @@
       "description": "Headphones, laptop speakers, phone. The same clip is a different clip on each, so the condition is part of the reading.",
       "enum": ["headphones", "laptop-speakers", "external-speakers", "phone", "unstated"]
     },
-    "subject": {
-      "type": "object",
-      "description": "What was listened to. Copied from the clip manifest so an evaluation stands alone once the clips are gone.",
-      "required": ["model", "voice"],
-      "additionalProperties": false,
-      "properties": {
-        "model": { "type": "string" },
-        "voice": { "type": "string" },
-        "quantisation": { "type": "string" },
-        "library": { "type": "string" },
-        "maxWordsAChunk": { "type": "integer" },
-        "sampleRate": { "type": "integer" }
-      }
-    },
-    "clips": {
+    "runs": {
       "type": "array",
-      "items": { "$ref": "#/definitions/clipVerdict" }
+      "description": "ONE ENTRY A RUN, because the page compares runs and a verdict file that held only one would lose the comparison it was formed from. This replaced a single top-level `subject`/`clips` pair that the page had not written since it gained a model panel.",
+      "items": { "$ref": "#/definitions/ratedRun" }
+    },
+    "pairwise": {
+      "type": "array",
+      "description": "A/B votes. Pairwise beats absolute scoring - 'which of these two is better' is a more reliable judgement than scoring one clip out of context, which is why TTS Arena ranks that way.",
+      "items": {
+        "type": "object",
+        "additionalProperties": true,
+        "properties": {
+          "clip": { "type": "string" },
+          "a": { "type": "string" },
+          "b": { "type": "string" },
+          "winner": { "type": "string", "description": "A run id, or `tie`." },
+          "blind": { "type": "boolean" },
+          "at": { "type": "string" }
+        }
+      }
     }
   },
   "definitions": {
+    "ratedRun": {
+      "type": "object",
+      "required": ["runId", "subject", "clips"],
+      "additionalProperties": false,
+      "properties": {
+        "runId": { "type": "string", "description": "The directory the clips were read from." },
+        "benchmarkRunId": {
+          "type": ["string", "null"],
+          "description": "`<model>__<configSlug>` from the benchmark that voiced these clips. A listening verdict outlives the audio it was formed on, so it has to name the reading that produced it - without this, two verdicts on the same model at different chunk sizes are indistinguishable after the fact."
+        },
+        "configSlug": { "type": ["string", "null"] },
+        "config": {
+          "type": ["object", "null"],
+          "description": "The knobs the clips were voiced at, copied from the run manifest so the evaluation stands alone once the clips are gone.",
+          "additionalProperties": true
+        },
+        "isolated": {
+          "type": ["boolean", "null"],
+          "description": "Whether the benchmark reading behind these clips was taken with nothing else voicing. Null for a run that predates the run contract. It does NOT affect the listening verdict - audio is deterministic, so a contended run produces identical clips - but it decides whether the speed figures beside them may be believed."
+        },
+        "loadError": {
+          "type": ["string", "null"],
+          "description": "Set when the run's manifest could not be fetched. A run reported this way is different from a run with nothing judged, and collapsing the two would read as a listener who declined to score it."
+        },
+        "subject": {
+          "type": "object",
+          "description": "What was listened to. Copied from the clip manifest so an evaluation stands alone once the clips are gone.",
+          "additionalProperties": false,
+          "properties": {
+            "model": { "type": ["string", "null"] },
+            "voice": { "type": ["string", "null"] },
+            "quantisation": { "type": ["string", "null"] },
+            "library": { "type": ["string", "null"] },
+            "maxWordsAChunk": { "type": ["integer", "null"] },
+            "sampleRate": { "type": ["integer", "null"] },
+            "host": { "type": ["object", "null"], "additionalProperties": true },
+            "realTimeFactor": { "type": ["number", "null"] },
+            "wordsAMinute": { "type": ["number", "null"] }
+          }
+        },
+        "clips": {
+          "type": "array",
+          "items": { "$ref": "#/definitions/clipVerdict" }
+        }
+      }
+    },
     "clipVerdict": {
       "type": "object",
       "required": ["id"],
       "additionalProperties": false,
       "properties": {
         "id": { "type": "string" },
+        "thumb": {
+          "description": "The fast first pass: two dozen clips on one axis in the time four scales take for six. Null means not yet judged.",
+          "enum": ["up", "down", null]
+        },
         "verdict": {
           "description": "The one answer the project actually needs. null means not yet judged, which is different from a reject and must never be counted as one.",
           "enum": ["publishable", "borderline", "reject", null]

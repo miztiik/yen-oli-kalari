@@ -360,3 +360,59 @@ def test_the_model_is_named_identically_in_both_places(path):
     if "run" not in manifest:
         pytest.skip("predates the run contract")
     assert manifest["model"] == manifest["run"]["model"]
+
+
+# ------------------------------------------- the page tells two runs apart
+
+PAGE = HARNESS / "page" / "app.js"
+INDEX_BUILDER = HARNESS / "build-page-index.mjs"
+
+
+def test_the_page_has_one_place_that_names_a_run():
+    """Two runs of one model at different configurations must never render the
+    same, and the way that regresses is a second label built inline.
+
+    The page had six: the model card, both cross-run charts, the dock title, the
+    A/B selector and the A/B tally each built `name + quantisation` themselves,
+    so `kokoro-fp32-uk` at 40-word chunks and the same model at 25 were byte
+    identical in every one of them - the false comparison the run contract
+    prevents upstream, reintroduced at the last step.
+    """
+    source = PAGE.read_text(encoding="utf-8")
+    assert "function runLabel(" in source, "the page needs one helper that names a run"
+    inline = source.count("known(run).name || run.modelSlug") + source.count(
+        "known(r).name || r.modelSlug"
+    )
+    assert inline <= 1, (
+        f"{inline} places build a run label inline instead of calling runLabel(); "
+        "a run named two ways is a run that can be confused with another"
+    )
+
+
+def test_the_page_index_carries_what_the_card_must_show():
+    """The card has to warn about an unisolated or short run BEFORE the manifest
+    is fetched, so those facts belong in the index rather than only in the
+    manifest the page loads on demand."""
+    source = INDEX_BUILDER.read_text(encoding="utf-8")
+    for field in ("configSlug", "config", "isolated", "notIsolatedBecause", "shard"):
+        assert field in source, f"the page index drops {field}, so no card can show it"
+
+
+def test_the_export_does_not_assume_every_manifest_is_loaded():
+    """The page is a shell: only the run a listener opened has its clips in
+    memory. Mapping `run.clips` over every run threw on the first unopened one
+    and wrote no file at all - the button appeared to do nothing.
+
+    Scoped to the export, because elsewhere `run.clips` is the ACTIVE run, which
+    is always loaded, and banning the expression outright would be wrong.
+    """
+    source = PAGE.read_text(encoding="utf-8")
+    assert "Promise.all(DATA.runs.map" in source, (
+        "the export must fetch every run's manifest before writing, or it reports "
+        "a partial record as a complete one"
+    )
+    start = source.index("function writeEvaluation(")
+    body = source[start:]
+    assert "(run.clips || []).map(" in body, (
+        "the export must guard its clips list; an unopened run has none"
+    )

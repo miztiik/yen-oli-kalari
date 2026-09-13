@@ -1161,6 +1161,24 @@ body {
 	color: var(--color-text-tertiary);
 }
 
+/* A reading that may not be priced against the job cap, and a run that lost a
+   shard. Both are warnings about what a figure MEANS rather than errors, so
+   they use the existing warn tint rather than an error colour - the number is
+   real, it simply cannot be compared with an isolated one. */
+.model-card__tag[data-warn='true'] {
+	background: var(--tint-warn);
+	color: var(--band-medium);
+}
+
+/* The knobs that differ between the runs on this page. Monospace because these
+   are settings rather than prose, and two of them differ by one character. */
+.model-card__config {
+	font-family: var(--font-mono);
+	font-size: var(--text-xs);
+	line-height: var(--leading-xs);
+	color: var(--color-text-secondary);
+}
+
 /* --- Follow the text -------------------------------------------------- */
 
 /* A chunk that has been spoken stays dimmed; the one being spoken carries a
