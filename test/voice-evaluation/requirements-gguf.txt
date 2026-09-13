@@ -28,7 +28,18 @@ snac>=1.2.1
 
 # NeuTTS Air emits NeuCodec codes. The ONNX decoder path needs onnxruntime,
 # which the repository already pins for the Chatterbox arm.
+#
+# TORCHAO IS PINNED BECAUSE THE CHAIN BELOW IT IS NOT. Measured 2026-09-14:
+# `neucodec` imports `torchtune`, whose latest release (0.6.1) still expects
+# `torchao.dtypes.nf4tensor`. Current torchao moved it, so an unpinned install
+# resolves to something that cannot be imported:
+#
+#     ModuleNotFoundError: No module named 'torchao.dtypes.nf4tensor'
+#
+# 0.11.0 is the release contemporary with torchtune 0.6.1. This is the pinned
+# requirements file doing its job rather than a workaround.
 neucodec>=0.0.6
+torchao==0.11.0
 onnxruntime==1.22.1
 
 # Shared with the ONNX arm.

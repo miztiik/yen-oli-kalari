@@ -33,9 +33,18 @@ SHARD_TOTAL = max(1, int(os.environ.get("SHARD_TOTAL", "1")))
 
 
 def peak_memory_mb() -> int:
-    """Peak resident set for this process, which is what decides deployability."""
-    peak = resource.getrusage(resource.RUSAGE_SELF).ru_maxrss
-    return int(peak / 1024)  # ru_maxrss is KiB on Linux
+    """Peak resident set, which is what decides deployability.
+
+    MEASURED AND CORRECTED 2026-09-14. `RUSAGE_SELF` alone is wrong for any arm
+    that shells out: the Magpie arm drives a released NVIDIA binary, so the model
+    lives in a child process and the parent reported 48 MB for a 542 MB model.
+    Taking the larger of self and children reports the biggest single process the
+    run actually needed, and is unchanged for the in-process arms because their
+    children total zero.
+    """
+    mine = resource.getrusage(resource.RUSAGE_SELF).ru_maxrss
+    theirs = resource.getrusage(resource.RUSAGE_CHILDREN).ru_maxrss
+    return int(max(mine, theirs) / 1024)  # ru_maxrss is KiB on Linux
 
 
 def split_into_chunks(text: str, max_words: int = MAX_WORDS_A_CHUNK) -> list[str]:

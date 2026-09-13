@@ -106,6 +106,9 @@ def build_orpheus(spec: dict):
 
     START_TOKEN = 128259
     END_TOKENS = [128009, 128260]
+    # The model announces the start of audio and can emit ordinary text tokens
+    # before it settles. Only these genuinely end the utterance.
+    STOP_TOKENS = {128258, 128009, 128260, 128261}
     AUDIO_BASE = 128266
     CODES_A_FRAME = 7
     CODEBOOK = 4096
@@ -129,24 +132,33 @@ def build_orpheus(spec: dict):
         prompt = [START_TOKEN] + body + END_TOKENS
 
         codes: list[int] = []
+        seen = 0
         backbone.reset()
-        for position, token in enumerate(
-            backbone.generate(
-                prompt,
-                temp=temperature,
-                top_p=top_p,
-                repeat_penalty=repeat_penalty,
-            )
+        for token in backbone.generate(
+            prompt,
+            temp=temperature,
+            top_p=top_p,
+            repeat_penalty=repeat_penalty,
         ):
-            if position >= max_tokens or token < AUDIO_BASE:
-                break  # any non-audio token ends the utterance, including EOS
+            seen += 1
+            if seen > max_tokens or token in STOP_TOKENS:
+                break
+            # MEASURED 2026-09-14: ending the utterance at the first non-audio
+            # token produced three empty clips. Orpheus emits a start-of-audio
+            # marker and can emit stray text tokens, and the reference decoder
+            # SKIPS anything that is not a custom token rather than stopping. A
+            # token that is dropped also does not advance the frame position,
+            # which is what keeps the seven-code frame aligned.
+            if token < AUDIO_BASE:
+                continue
             code = token - AUDIO_BASE - (len(codes) % CODES_A_FRAME) * CODEBOOK
             if not 0 <= code < CODEBOOK:
-                break  # off-codebook means the frame has desynchronised
+                continue
             codes.append(code)
 
         frames = len(codes) // CODES_A_FRAME
         if frames == 0:
+            print(f"    no audio codes from {seen} tokens", flush=True)
             return np.zeros(0, dtype=np.float32), sample_rate
 
         coarse, middle, fine = [], [], []
