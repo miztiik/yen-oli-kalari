@@ -284,7 +284,9 @@
       "modelId": "mradermacher/neutts-air-GGUF",
       "ggufFile": "neutts-air.Q4_K_M.gguf",
       "dtype": "Q4_K_M",
-      "codecRepo": "neuphonic/neucodec",
+      "codecRepo": "aoiandroid/neuphonic-neucodec-onnx-decoder-int8-mirror",
+      "codecFile": "model.onnx",
+      "encoderRepo": "eugenehp/neucodec",
       "voice": "dave",
       "accent": "en-GB",
       "accentKnown": false,
@@ -303,9 +305,8 @@
         "baseUrl": "https://raw.githubusercontent.com/neuphonic/neutts-air/main/samples",
         "why": "NeuTTS is a cloning model with no built-in speaker: infer() requires reference codes and the reference transcript. The samples are in the GitHub repository, which is not gated, unlike the weights."
       },
-      "enabled": false,
-      "blocked": "MEASURED 2026-09-14, three runs, and the blocker is packaging rather than the model. Neuphonic gates its own weights and codec (gated: auto, 401 anonymously), which ungated community mirrors answer - the backbone at mradermacher/neutts-air-GGUF and an ONNX decoder both serve 200. What does not resolve is the Python chain: `neucodec` requires a current `torchao`, and also imports `torchtune`, whose latest release (0.6.1) imports `torchao.dtypes.nf4tensor`, which current torchao has moved. Pinning torchao back to 0.11.0 makes the import work and pip then reports ResolutionImpossible against neucodec. There is no version pair on Python 3.12 that satisfies both. Two further routes exist and neither is a quantisation change: run the arm on Python 3.10, or drive the ONNX decoder directly with onnxruntime and skip the neucodec package - which then needs pre-encoded reference codes, because NeuTTS is a cloning model and the ONNX artifact is decoder-only.",
-      "note": "The requested neuphonic/neutts-air-q4-gguf is Q4_0 at 502 MB; the ungated substitute is Q4_K_M at 569 MB. Recorded rather than hidden, because the row is what a later reader will trust."
+      "enabled": true,
+      "note": "EVERY PIECE HERE IS AN UNGATED SUBSTITUTE, and each is recorded because the row is what a later reader will trust. Neuphonic gates its weights, its codec and its ONNX decoder (gated: auto, 401 anonymously, verified 2026-09-14). The backbone is a community requant of the same base model - the requested neuphonic/neutts-air-q4-gguf is Q4_0 at 502 MB, this is Q4_K_M at 569 MB. The decoder is an ungated mirror of the int8 ONNX artifact. The encoder is a third mirror, used once to turn the reference clip into codes and then dropped, because the library's own encode_reference is locked to the two gated repositories. No Hugging Face token is needed."
     },
     {
       "id": "magpie-multilingual-f16",

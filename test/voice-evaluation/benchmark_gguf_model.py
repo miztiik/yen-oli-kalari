@@ -212,6 +212,15 @@ def build_neutts(spec: dict):
     speaker, and `infer` takes reference codes and the reference transcript
     alongside the text. The samples live in the upstream GitHub repository rather
     than on Hugging Face, which is convenient here because GitHub is not gated.
+
+    WHY THE REFERENCE IS ENCODED HERE RATHER THAN BY `tts.encode_reference`.
+    That method calls whichever codec the library loaded, and the library's
+    `_load_codec` accepts exactly four names - two gated Neuphonic repositories,
+    or a local `.onnx` file. The ONNX artifact is DECODER-ONLY, so it cannot
+    encode, and the two repositories that can are the ones returning 401. The
+    way out is that `infer` takes `ref_codes` as an argument: the encoder is
+    loaded separately from an ungated mirror of the same weights, used once, and
+    dropped. Decoding still goes through the library's ONNX path.
     """
     import numpy as np
     from huggingface_hub import hf_hub_download
@@ -241,7 +250,7 @@ def build_neutts(spec: dict):
         codec_device="cpu",
         seed=int(spec.get("seed", 1234)),
     )
-    ref_codes = tts.encode_reference(ref_wav)
+    ref_codes = encode_reference(spec["encoderRepo"], ref_wav)
 
     def speak(text: str):
         wav = tts.infer(
@@ -254,6 +263,23 @@ def build_neutts(spec: dict):
         return np.asarray(wav, dtype=np.float32), sample_rate
 
     return speak, sample_rate
+
+
+def encode_reference(encoder_repo: str, ref_wav: Path):
+    """Turn a reference clip into NeuCodec codes, once, using the full codec.
+
+    This is the only thing the encoder is needed for, and it happens before the
+    first word is voiced, so it is not on the measured path.
+    """
+    import librosa
+    import torch
+    from neucodec import NeuCodec
+
+    encoder = NeuCodec.from_pretrained(encoder_repo).eval()
+    wav, _ = librosa.load(str(ref_wav), sr=16000, mono=True)
+    tensor = torch.from_numpy(wav).float().unsqueeze(0).unsqueeze(0)  # [1, 1, T]
+    with torch.no_grad():
+        return encoder.encode_code(audio_or_path=tensor).squeeze(0).squeeze(0)
 
 
 # -------------------------------------------------------------------- Magpie

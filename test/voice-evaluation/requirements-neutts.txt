@@ -7,14 +7,20 @@
 # packaging failure two steps earlier. One model's dependency swamp must not be
 # able to sink another model's reading.
 #
-# THE PIN AND WHAT IT IS FOR. torchtune's latest release (0.6.1) still imports
-# `torchao.dtypes.nf4tensor`, which current torchao has moved, so an unpinned
-# install resolves to something that cannot be imported:
+# THE PIN IS THE WHOLE FIX, AND THE WINDOW IS TWO RELEASES WIDE.
 #
-#     ModuleNotFoundError: No module named 'torchao.dtypes.nf4tensor'
+# Measured 2026-09-14. `neucodec` requires `torchao>=0.12.0` at every version it
+# has ever published. It also imports `torchtune`, whose code does
+# `from torchao.dtypes.nf4tensor import NF4Tensor` - and that module exists in
+# torchao 0.12.0 and 0.13.0 and was REMOVED in 0.14.0.
 #
-# 0.11.0 is the torchao release contemporary with torchtune 0.6.1.
-torchao==0.11.0
+#   torchao 0.11.0   below neucodec's floor      -> pip: ResolutionImpossible
+#   torchao 0.12-13  satisfies both              -> works
+#   torchao 0.14+    torchtune's import is gone  -> ModuleNotFoundError
+#
+# So the satisfiable window is exactly two releases and an unpinned install
+# lands above it. torchtune is archived upstream, so this will not self-heal.
+torchao==0.13.0
 neucodec>=0.0.6
 
 # The runtime itself, from git because it is not published to PyPI.
