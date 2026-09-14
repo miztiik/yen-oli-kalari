@@ -373,9 +373,20 @@ jobs:
           for repo in ("neuphonic/neucodec", "neuphonic/neutts-air-q4-gguf"):
               try:
                   info = api.model_info(repo)
-                  print(f"{repo}: reachable, gated={info.gated}")
+                  print(f"{repo}: metadata reachable, gated={info.gated}")
               except Exception as exc:
                   print(f"{repo}: {type(exc).__name__} -> {str(exc)[:200]}")
+          # Metadata on a gated repository is PUBLIC. Only file content is
+          # gated, so the question is settled by fetching a file - and Hugging
+          # Face's own message distinguishes "terms not accepted" from "this
+          # token may not read gated repos".
+          from huggingface_hub import hf_hub_download
+          try:
+              path = hf_hub_download("neuphonic/neucodec", "meta.yaml", token=token)
+              print("GATED FILE READ OK ->", path)
+          except Exception as exc:
+              print("GATED FILE READ FAILED")
+              print(f"  {type(exc).__name__}: {str(exc)[:900]}")
           PY
 
       - name: Benchmark

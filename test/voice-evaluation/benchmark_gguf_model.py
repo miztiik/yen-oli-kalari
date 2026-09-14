@@ -276,12 +276,18 @@ def encode_reference(encoder_repo: str, ref_wav: Path):
 
     This is the only thing the encoder is needed for, and it happens before the
     first word is voiced, so it is not on the measured path.
+
+    THE TOKEN IS PASSED EXPLICITLY. `neucodec` forwards a `token` argument down
+    to `hf_hub_download`, and leaving it None relies on the ambient environment
+    being picked up. Naming it removes a variable from a failure that is already
+    hard to read: a 403 here means the credential is refused, not absent.
     """
     import librosa
     import torch
     from neucodec import NeuCodec
 
-    encoder = NeuCodec.from_pretrained(encoder_repo).eval()
+    token = os.environ.get("HF_TOKEN") or None
+    encoder = NeuCodec.from_pretrained(encoder_repo, token=token).eval()
     wav, _ = librosa.load(str(ref_wav), sr=16000, mono=True)
     tensor = torch.from_numpy(wav).float().unsqueeze(0).unsqueeze(0)  # [1, 1, T]
     with torch.no_grad():
