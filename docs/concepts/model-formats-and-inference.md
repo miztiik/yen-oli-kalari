@@ -150,7 +150,7 @@ manylinux wheel for the package at all. There is no prebuilt path to this
 runner, so the arm compiles llama.cpp from the sdist.
 
 See [../reference/benchmarks/2026-09-14-gguf-voices.md](../reference/benchmarks/2026-09-14-gguf-voices.md)
-for the figures: Magpie reads 2.3863 and Orpheus 6.2596, against the incumbent's
+for the figures: Magpie reads 2.4159 and Orpheus 6.2596, against the incumbent's
 0.3591 and a single-runner budget of 0.707.
 
 ## transformers.js is not TrevorJS

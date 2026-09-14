@@ -26,16 +26,29 @@ fact about any of them.
 
 | Model | Licence | Commercial | RTF | x real time | wpm | Peak MB | Load |
 | --- | --- | --- | --- | --- | --- | --- | --- |
-| **MagpieTTS Multilingual 357M** | NVIDIA Open Model | yes | **2.3863** | 0.42x | 124.7 | 1,244 | 13.3 s |
+| **MagpieTTS Multilingual 357M** | NVIDIA Open Model | yes | **2.4159** | 0.41x | 117.3 | 1,217 | 42.6 s |
 | **Orpheus 3B Q4_K_M** | Apache-2.0 | yes | **6.2596** | 0.16x | 130.0 | 4,780 | 3.2 s |
 | NeuTTS Air Q4 | Apache-2.0 | yes | **did not run** | - | - | - | - |
 
-**The spread, because one reading is not a measurement.** Magpie read 1.9438 and
-2.3863 on two runs of the same hardware - a 23 percent difference, which is
-larger than any distinction this table would otherwise draw. Orpheus read 6.0006
-and 6.2596, a 4 percent difference. **Magpie's figure is the less trustworthy of
-the two** and the reason is structural: it reloads its model for every chunk, so
-its number carries three model loads where Orpheus carries one.
+Magpie's row is the 6-clip rerun and is the figure to quote.
+
+**The spread, settled.** Magpie was rerun over six summaries specifically to
+resolve a 23 percent gap between its first two readings. The per-clip figures are
+**2.400, 2.407, 2.412, 2.416, 2.429, 2.443** - a span of **1.8 percent**, which
+is the tightest thing this project has measured. The model is not variable; the
+first reading was. Three run aggregates:
+
+| Run | Clips | RTF |
+| --- | --- | --- |
+| 34788657934 | 3 | 1.9438 |
+| 34790845502 | 3 | 2.3863 |
+| **34830809854** | **6** | **2.4159** |
+
+The last two agree to 1.2 percent and the first is the outlier. With within-run
+variation at 1.8 percent, a 20 percent gap between runs cannot come from the
+model - it is **runner-to-runner hardware variation**, which is worth knowing
+because it is larger than most differences this table would otherwise report.
+Orpheus showed the same effect more mildly: 6.0006 and 6.2596, 4 percent apart.
 
 For scale, the incumbent Kokoro fp32 reads **0.3591** on the same hardware, and
 the single-runner budget is **0.707**.
@@ -43,7 +56,7 @@ the single-runner budget is **0.707**.
 ## What this settles
 
 **Neither GGUF model is usable for the daily run, and it is not close.** Magpie
-is 6.6 times slower than the incumbent and Orpheus is 17.4 times slower. Against
+is 6.7 times slower than the incumbent and Orpheus is 17.4 times slower. Against
 the 0.707 single-runner budget, Magpie is 3.4x over and Orpheus 8.9x over.
 Orpheus does not fit even at four shards, where the budget relaxes to 2.83. The
 busiest day - 509 minutes of audio - would cost Orpheus roughly 53 hours of
@@ -62,10 +75,11 @@ room to hide the latency in.
 
 **Magpie is the surprise, and the only GGUF candidate that is not absurd.**
 357M parameters, 542 MB on disk, a licence that permits commercial use, 12
-languages, and a quarter of Orpheus's memory. Its figure **includes reloading the
-model for every chunk**, because NeMo-Speech.cpp is a CLI that starts fresh each
-invocation - 13.3 seconds of load, three times over, inside a 47 second reading.
-A resident server would read substantially lower; `nemo-speech serve` exists and
+languages, a quarter of Orpheus's memory, and a real-time factor that is stable
+to 1.8 percent. Its figure **includes reloading the model for every chunk**,
+because NeMo-Speech.cpp is a CLI that starts fresh each invocation - 42.6 seconds
+of load inside a 316 second reading, which is 13 percent of the measurement spent
+on something a resident process would pay once. `nemo-speech serve` exists and
 was not measured. **That is the one number here worth chasing.**
 
 ## The finding that outlives these three models
@@ -89,26 +103,46 @@ before there was a measurement behind it. There is one now.
 
 ## Why NeuTTS Air did not run, in order of what was actually blocking
 
-This is worth recording precisely, because three of the four obstacles look like
-the blocker and are not.
+Five runs were spent narrowing this, and four of the five obstacles look like
+the blocker and are not. Each was eliminated by a fix, not by an argument.
 
-1. **Neuphonic gates its own weights and its codec.** `gated: auto`, HTTP 401
-   anonymously, verified 2026-09-14. **Not the blocker** - ungated community
-   mirrors of both the backbone and an ONNX decoder serve 200.
-2. **The published Q4 is `Q4_0` and the ungated mirror is `Q4_K_M`.** A recorded
-   substitution, 502 MB against 569 MB. **Not the blocker.**
-3. **The ONNX decoder is decoder-only, and NeuTTS is a cloning model** that
-   requires encoded reference audio. **Not the blocker on its own**, because the
-   torch codec can encode.
-4. **The Python chain does not resolve.** `neucodec` requires a current
-   `torchao` and also imports `torchtune`, whose latest release (0.6.1) imports
-   `torchao.dtypes.nf4tensor`, which current torchao has moved. Pinning torchao
-   back to 0.11.0 fixes the import and pip then answers `ResolutionImpossible`.
-   **This is the blocker**, and no version pair on Python 3.12 satisfies both.
+| # | Obstacle | Status |
+| --- | --- | --- |
+| 1 | Neuphonic gates its weights and its codec - 401 anonymously | **Not the blocker.** Ungated requants and mirrors serve 200. |
+| 2 | Published Q4 is `Q4_0`, the ungated mirror is `Q4_K_M` | **Not the blocker.** A recorded substitution, 502 MB against 569 MB. |
+| 3 | `neucodec` and `torchtune` demand incompatible `torchao` | **Fixed.** See below - the window is two releases wide. |
+| 4 | The phonemiser could not infer a language from a local path | **Fixed.** The row names the eSpeak voice. |
+| 5 | The codec **encoder** refuses every substitute | **This is the blocker.** |
 
-Two routes remain, and neither is a quantisation change: run that arm on Python
-3.10, or drive the ONNX decoder directly with `onnxruntime` and supply
-pre-encoded reference codes. The row in `voices.config.json` carries this.
+**The torchao window, which is two releases wide.** `neucodec` requires
+`torchao>=0.12.0` at every version it has ever published, and also imports
+`torchtune`, whose code does `from torchao.dtypes.nf4tensor import NF4Tensor` -
+a module present in 0.12.0 and 0.13.0 and **removed in 0.14.0**.
+
+| torchao | neucodec floor (>=0.12) | torchtune's import | Result |
+| --- | --- | --- | --- |
+| 0.11.0 | no | yes | pip: `ResolutionImpossible` |
+| **0.12.0 - 0.13.0** | yes | yes | **works** |
+| 0.14.0+ | yes | no | `ModuleNotFoundError` |
+
+An unpinned install lands above the window and the obvious "pin it back" lands
+below it. torchtune is archived upstream, so this will not self-heal.
+
+**The blocker, and it is one credential.** NeuTTS is a cloning model, so the
+reference clip must be encoded to codes once before anything is voiced. The ONNX
+decoder is decoder-only, and `neucodec` refuses every alternative **by name
+rather than by content** - its `_from_pretrained` opens with
+
+```python
+assert model_id in ["neuphonic/neucodec", "neuphonic/distill-neucodec"]
+```
+
+Both are gated. No mirror can stand in, because the check never looks at the
+weights. **What is needed is a Hugging Face read token** - scope "Read access to
+contents of all public gated repos" - as the `HF_TOKEN` repository secret, on an
+account that has accepted the terms at `huggingface.co/neuphonic/neucodec`. The
+workflow already passes `HF_TOKEN` through, so adding the secret and flipping
+`enabled` is the whole remaining step.
 
 ## What the harness learned, which cost five runs
 

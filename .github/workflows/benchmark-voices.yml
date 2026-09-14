@@ -350,6 +350,11 @@ jobs:
         env:
           MODEL: ${{ matrix.model }}
           GGUF_THREADS: "4"
+          # Only the NeuTTS arm needs this, and only for the codec encoder:
+          # `neucodec` refuses any substitute by name, and both names it accepts
+          # are gated. Empty is fine for every other arm - all of their weights
+          # stream anonymously.
+          HF_TOKEN: ${{ secrets.HF_TOKEN }}
           # An autoregressive backbone plus a codec decoder, on four cores with
           # no GPU, is the slowest thing this harness runs. A bounded slice
           # still yields a real real-time factor, which is the figure this arm
