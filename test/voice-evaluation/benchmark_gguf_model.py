@@ -248,6 +248,12 @@ def build_neutts(spec: dict):
         backbone_device="cpu",
         codec_repo=codec_repo,
         codec_device="cpu",
+        # The library infers the phonemiser language from the repository NAME,
+        # against a map of Neuphonic's own ids. A local file path matches
+        # nothing, so it must be told - and since the corpus is read for a
+        # British-English listener, the row asks for the British eSpeak voice
+        # rather than letting a default decide.
+        language=spec.get("language", "en-gb"),
         seed=int(spec.get("seed", 1234)),
     )
     ref_codes = encode_reference(spec["encoderRepo"], ref_wav)

@@ -290,6 +290,7 @@
       "voice": "dave",
       "accent": "en-GB",
       "accentKnown": false,
+      "language": "en-gb",
       "params": "0.5B",
       "architecture": "autoregressive",
       "licence": "Apache-2.0",
