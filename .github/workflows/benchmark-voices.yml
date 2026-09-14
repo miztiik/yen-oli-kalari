@@ -346,6 +346,38 @@ jobs:
           df -h / | tail -1
           python -c "import llama_cpp; print('llama-cpp-python', llama_cpp.__version__)" || true
 
+      # WHICH ACCOUNT, AND CAN IT REACH THE GATE? A 403 on a gated repository
+      # has two causes that look identical from the traceback: the account has
+      # not accepted the terms, or a fine-grained token lacks "Read access to
+      # contents of all public gated repos". This says which, without printing
+      # the token. It runs only for the arm that needs one.
+      - name: Check the gated-repo credential
+        if: startsWith(matrix.model, 'neutts')
+        continue-on-error: true
+        env:
+          HF_TOKEN: ${{ secrets.HF_TOKEN }}
+        run: |
+          python - <<'PY'
+          import os
+          from huggingface_hub import HfApi
+          token = os.environ.get("HF_TOKEN") or None
+          print("HF_TOKEN present:", bool(token))
+          api = HfApi(token=token)
+          try:
+              me = api.whoami()
+              print("authenticated as:", me.get("name"), "| type:", me.get("type"))
+              auth = (me.get("auth") or {}).get("accessToken") or {}
+              print("token role:", auth.get("role"), "| name:", auth.get("displayName"))
+          except Exception as exc:
+              print("whoami FAILED:", type(exc).__name__, exc)
+          for repo in ("neuphonic/neucodec", "neuphonic/neutts-air-q4-gguf"):
+              try:
+                  info = api.model_info(repo)
+                  print(f"{repo}: reachable, gated={info.gated}")
+              except Exception as exc:
+                  print(f"{repo}: {type(exc).__name__} -> {str(exc)[:200]}")
+          PY
+
       - name: Benchmark
         env:
           MODEL: ${{ matrix.model }}
