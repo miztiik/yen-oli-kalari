@@ -257,6 +257,14 @@ def build_neutts(spec: dict):
         seed=int(spec.get("seed", 1234)),
     )
     ref_codes = encode_reference(spec["encoderRepo"], ref_wav)
+    # WHICH INPUT FORMAT DID IT PICK, AND WHY IT MATTERS. The library reads
+    # `neuphonic.input_format` out of the GGUF metadata and falls back to
+    # sniffing the chat template when the key is absent. A community requant can
+    # drop those keys, and the failure is silent: the prompt is built for the
+    # wrong format, the model emits ordinary text, and the decoder reports "no
+    # valid speech tokens" - which reads like a model fault rather than a
+    # metadata one.
+    print(f"  input format {tts.input_format!r}  (from GGUF metadata)", flush=True)
 
     def speak(text: str):
         wav = tts.infer(
